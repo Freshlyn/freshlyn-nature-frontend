@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'DM Sans', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+
+  /* Primary: Light Green – HSL 88 50% 53% */
+  --primary: 88 50% 53%;
+  --primary-foreground: 0 0% 100%;
+  --primary-border: hsl(88 50% 43%);
+
+  /* Accent: Yellow/Orange – HSL 45 100% 51% */
+  --accent: 45 100% 51%;
+  --accent-foreground: 30 40% 20%;
+  --accent-border: hsl(45 100% 41%);
+
+  --background: 0 0% 100%;
+  --foreground: 220 13% 18%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 220 13% 18%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 13% 18%;
+
+  --secondary: 100 20% 96%;
+  --secondary-foreground: 220 13% 18%;
+  --secondary-border: hsl(220 13% 85%);
+
+  --muted: 100 20% 96%;
+  --muted-foreground: 220 10% 45%;
+  --muted-border: hsl(220 13% 88%);
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --destructive-border: hsl(0 84% 50%);
+
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 88 50% 53%;
+
+  --radius: 0.75rem;
+
+  /* Component-specific border/outline variables */
+  --button-outline: hsl(var(--border));
+  --badge-outline: hsl(var(--border));
+  --card-border: hsl(var(--border));
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20;
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+
+  /* Subtle lift used on cards and interactive elements */
+  .hover-elevate {
+    @apply transition-all duration-200 hover:shadow-md;
+  }
+
+  .active-elevate-2 {
+    @apply active:scale-[0.98];
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .gradient-shine {
+    background: linear-gradient(
+      135deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.1) 30%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.1) 70%,
+      transparent 80%
+    );
+    background-size: 200% 200%;
+    animation: shine 3s infinite;
+  }
+
+  @keyframes shine {
+    0% { background-position: 200% 200%; }
+    100% { background-position: -200% -200%; }
+  }
+
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
+  }
+
+  @keyframes bounce-subtle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-200 rounded-full hover:bg-gray-300;
+}
