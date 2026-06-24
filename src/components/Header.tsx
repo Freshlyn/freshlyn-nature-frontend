@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'wouter';
-import { ShoppingBag, Search, MapPin, Menu, X } from 'lucide-react';
+import { ShoppingCart, Search, MapPin, Menu, X } from 'lucide-react';
 import { useStaticCart } from '@/hooks/use-static-cart';
 import { useStaticAuth } from '@/hooks/use-static-auth';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 
 interface HeaderProps {
@@ -15,13 +16,33 @@ interface HeaderProps {
 
 export function Header({ onSearch, location = 'Select Location', onLocationClick, sidebarOpen, onSidebarToggle }: HeaderProps) {
   const [term, setTerm] = useState('');
-  const { getCartCount, getCartTotal } = useStaticCart();
+  const { getCartCount } = useStaticCart();
   const { user } = useStaticAuth();
   const [currentPath] = useLocation();
   const isHomePage = currentPath === '/';
 
   const itemCount = getCartCount();
-  const cartTotal = getCartTotal();
+  const [displayCount, setDisplayCount] = useState(itemCount);
+  const [justAdded, setJustAdded] = useState(false);
+  const [dropId, setDropId] = useState(0);
+  const prevCountRef = useRef(itemCount);
+
+  useEffect(() => {
+    if (itemCount > prevCountRef.current) {
+      setJustAdded(true);
+      setDropId((id) => id + 1);
+      // Number bumps only once the falling item "lands" in the cart, not the instant it's added.
+      const landTimeout = setTimeout(() => setDisplayCount(itemCount), 380);
+      const endTimeout = setTimeout(() => setJustAdded(false), 650);
+      prevCountRef.current = itemCount;
+      return () => {
+        clearTimeout(landTimeout);
+        clearTimeout(endTimeout);
+      };
+    }
+    setDisplayCount(itemCount);
+    prevCountRef.current = itemCount;
+  }, [itemCount]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,19 +114,59 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
               className="relative h-10 md:h-11 px-3 md:px-4 rounded-xl font-bold tracking-wide transition-all duration-300 gap-2 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg shadow-primary/25"
               data-testid="button-cart"
             >
-              <div className="relative">
-                <ShoppingBag size={18} />
-                {itemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 w-4 h-4 bg-accent text-accent-foreground text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
-                    {itemCount > 9 ? '9+' : itemCount}
-                  </span>
-                )}
+              <div className="relative flex items-center justify-center w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/20 overflow-visible">
+                {/* item falling in from above, landing inside the cart */}
+                <AnimatePresence>
+                  {justAdded && (
+                    <motion.span
+                      key={dropId}
+                      className="absolute left-1/2 top-0 -translate-x-1/2 w-2.5 h-2.5 rounded-[3px] bg-accent shadow-md z-10"
+                      initial={{ y: -22, opacity: 0, scale: 0.6, rotate: -20 }}
+                      animate={{ y: [-22, -20, 2, 0], opacity: [0, 1, 1, 0], scale: [0.6, 1, 0.7, 0.3], rotate: [-20, 8, 0, 0] }}
+                      transition={{ duration: 0.55, times: [0, 0.25, 0.75, 1], ease: 'easeIn' }}
+                    />
+                  )}
+                </AnimatePresence>
+
+                {/* impact flash right as the item lands */}
+                <AnimatePresence>
+                  {justAdded && (
+                    <motion.span
+                      key={`ring-${dropId}`}
+                      className="absolute inset-0 rounded-full bg-accent"
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: [0.6, 0.6, 1.7], opacity: [0, 0.7, 0] }}
+                      transition={{ duration: 0.5, times: [0, 0.55, 1], ease: 'easeOut' }}
+                    />
+                  )}
+                </AnimatePresence>
+
+                {/* cart "catches" the item with a quick squash-and-settle */}
+                <motion.div
+                  animate={
+                    justAdded
+                      ? { scaleY: [1, 1, 0.75, 1.08, 1], scaleX: [1, 1, 1.1, 0.96, 1] }
+                      : { scaleY: 1, scaleX: 1 }
+                  }
+                  transition={{ duration: 0.55, times: [0, 0.55, 0.7, 0.85, 1], ease: 'easeInOut' }}
+                >
+                  <ShoppingCart size={16} />
+                </motion.div>
               </div>
-              {itemCount > 0 ? (
-                <span className="text-sm font-bold">${cartTotal.toFixed(0)}</span>
-              ) : (
-                <span className="hidden md:inline text-sm">Cart</span>
-              )}
+
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={displayCount > 0 ? `count-${displayCount}` : 'label'}
+                  initial={{ y: -10, opacity: 0, scale: 0.6 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: 10, opacity: 0, scale: 0.6 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className={`text-sm font-bold whitespace-nowrap ${displayCount > 0 ? 'inline-block' : 'hidden md:inline-block'}`}
+                  data-testid="text-cart-count"
+                >
+                  {displayCount > 0 ? `${displayCount} ${displayCount === 1 ? 'item' : 'items'}` : 'Cart'}
+                </motion.span>
+              </AnimatePresence>
             </Button>
           </Link>
         </div>
