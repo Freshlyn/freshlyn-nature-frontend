@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, ArrowLeft, ShoppingBag, Truck, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { MobileBackButton } from '@/components/MobileBackButton';
 
 type PhoneStep = 'phone' | 'otp';
 
@@ -75,10 +74,9 @@ export default function AuthPage() {
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="flex flex-col justify-center p-8 md:p-12 lg:p-16 bg-white">
         <div className="max-w-md mx-auto w-full space-y-8">
-          <MobileBackButton to="/" label="Back to Shop" />
-          <div className="space-y-3">
-            <Link href="/" className="text-3xl font-display font-extrabold text-primary tracking-tight block mb-8">
-              Freshlyn<span className="text-foreground">Nature</span>
+          <div className="space-y-3 text-center">
+            <Link href="/" className="flex justify-center mb-8">
+              <img src="/logo.png" alt="Freshlyn Nature" className="h-24 md:h-28 w-auto object-contain" />
             </Link>
 
             {phoneStep === 'phone' ? (

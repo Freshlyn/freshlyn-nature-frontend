@@ -44,14 +44,8 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
             </Button>
           )}
 
-          <Link href="/" className="flex items-center gap-1">
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <ShoppingBag size={18} className="text-white md:hidden" />
-              <ShoppingBag size={22} className="text-white hidden md:block" />
-            </div>
-            <span className="text-xl md:text-2xl font-display font-extrabold tracking-tight">
-              <span className="text-primary">Freshlyn</span><span className="text-foreground">Nature</span>
-            </span>
+          <Link href="/" className="flex items-center">
+            <img src="/logo.png" alt="Freshlyn Nature" className="h-11 md:h-14 w-auto object-contain" />
           </Link>
 
           <button
