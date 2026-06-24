@@ -159,9 +159,6 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
               <h2 className="text-lg md:text-xl font-display font-bold text-foreground">
                 {category === 'all' ? 'All Products' : CATEGORIES.find((c) => c.id === category)?.name}
               </h2>
-              <span className="text-xs md:text-sm text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                {products?.length} items
-              </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5" data-testid="product-grid">
               {products?.map((product) => (
