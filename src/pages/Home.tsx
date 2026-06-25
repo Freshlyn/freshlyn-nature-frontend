@@ -4,6 +4,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { ProductCardSkeleton } from '@/components/ProductCardSkeleton';
 import { useStaticProducts } from '@/hooks/use-static-products';
 import { useStaticCart } from '@/hooks/use-static-cart';
+import { useDebounce } from '@/hooks/use-debounce';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import type { Product } from '@/data/products';
 import type { SubscriptionFrequency } from '@/data/product_variants';
@@ -29,13 +30,14 @@ interface HomeProps {
 export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
   const [category, setCategory] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
+  const debouncedSearch = useDebounce(search, 300);
   const [location, setLocation] = useState('Set Location');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
 
   const { data: products, isLoading: loadingProducts } = useStaticProducts({
     category: category === 'all' ? undefined : category,
-    search: search || undefined,
+    search: debouncedSearch || undefined,
   });
 
   const { addToCart, getQuantity } = useStaticCart();

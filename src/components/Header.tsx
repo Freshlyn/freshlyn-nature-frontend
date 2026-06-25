@@ -46,7 +46,11 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSearch) onSearch(term);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setTerm(value);
+    if (onSearch) onSearch(value);
   };
 
   return (
@@ -93,7 +97,7 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
                 placeholder="Search for 'milk', 'bread', 'chips'..."
                 className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-input bg-muted/30 focus:bg-white focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-muted-foreground/60 text-sm"
                 value={term}
-                onChange={(e) => setTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 data-testid="input-search"
               />
             </form>
@@ -181,7 +185,7 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
               placeholder="Search products..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-input bg-muted/30 focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none text-sm"
               value={term}
-              onChange={(e) => setTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               data-testid="input-search-mobile"
             />
           </form>
