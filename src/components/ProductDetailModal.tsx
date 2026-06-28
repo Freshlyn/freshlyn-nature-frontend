@@ -9,6 +9,7 @@ import {
   endOfMonth,
   eachDayOfInterval,
   isBefore,
+  isAfter,
   isSameDay,
   getDay,
   differenceInCalendarDays,
@@ -23,7 +24,7 @@ import {
   getSubscriptionConfig,
   isSubscriptionEnabled,
   getFrequencyLabel,
-  calculateDeliveryCount,
+  getFrequencyIntervalDays,
 } from "@/data/product_variants";
 import {
   Dialog,
@@ -158,25 +159,19 @@ export function ProductDetailModal({
         : null,
     [subscriptionConfig, selectedDuration],
   );
-  const deliveryCount = useMemo(
-    () =>
-      selectedDuration
-        ? calculateDeliveryCount(selectedDuration, selectedFrequency)
-        : 0,
-    [selectedDuration, selectedFrequency],
-  );
+  // Duration now means "number of deliveries", so it's the count directly —
+  // it no longer needs to be derived from frequency.
+  const deliveryCount = selectedDuration ?? 0;
   const isCalendarDeliveryDay = (day: Date) => {
-    const intervalDays: Record<SubscriptionFrequency, number> = {
-      daily: 1,
-      alternate: 2,
-      every_3rd: 3,
-    };
-    const interval = intervalDays[selectedFrequency];
+    const interval = getFrequencyIntervalDays(selectedFrequency);
     if (isBefore(day, selectedStartDate) && !isSameDay(day, selectedStartDate))
       return false;
     if (selectedDuration) {
-      const endDate = addDays(selectedStartDate, selectedDuration);
-      if (!isBefore(day, endDate)) return false;
+      const lastDeliveryDate = addDays(
+        selectedStartDate,
+        (selectedDuration - 1) * interval,
+      );
+      if (isAfter(day, lastDeliveryDate)) return false;
     }
     return differenceInCalendarDays(day, selectedStartDate) % interval === 0;
   };
@@ -456,7 +451,7 @@ export function ProductDetailModal({
             <div className="space-y-4 animate-in fade-in duration-200">
               <div className="space-y-2">
                 <Label className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                  Duration
+                  Plan
                 </Label>
                 <div className="flex flex-wrap gap-2">
                   {[...subscriptionConfig.durations]

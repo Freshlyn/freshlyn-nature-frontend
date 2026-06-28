@@ -2,7 +2,7 @@ import { useCallback, useSyncExternalStore, useMemo } from 'react';
 import type { Product } from '@/data/products';
 import { getProductById } from '@/data/products';
 import type { ProductVariant, SubscriptionFrequency } from '@/data/product_variants';
-import { getVariantById, getFrequencyLabel, calculateDeliveryCount, getSubscriptionConfig } from '@/data/product_variants';
+import { getVariantById, getSubscriptionConfig } from '@/data/product_variants';
 import { useToast } from '@/hooks/use-toast';
 
 export interface LocalCartItem {
@@ -142,7 +142,7 @@ export function useStaticCart() {
       const product = getProductById(productId);
 
       if (deliveryType === 'subscription') {
-        toast({ title: 'Subscription added', description: `${product?.name} (${variant?.name}) - ${subscriptionDuration} days subscription` });
+        toast({ title: 'Subscription added', description: `${product?.name} (${variant?.name}) - ${subscriptionDuration} deliveries` });
       } else {
         toast({ title: 'Added to cart', description: `${product?.name} (${variant?.name}) added to your basket.` });
       }
@@ -194,7 +194,7 @@ export function useStaticCart() {
 
       const variant = getVariantById(updates.variantId);
       const product = getProductById(existing.product_id);
-      toast({ title: 'Subscription updated', description: `${product?.name} (${variant?.name}) - ${updates.subscriptionDuration} days subscription` });
+      toast({ title: 'Subscription updated', description: `${product?.name} (${variant?.name}) - ${updates.subscriptionDuration} deliveries` });
     },
     [toast],
   );
@@ -223,7 +223,8 @@ export function useStaticCart() {
       let discountPercent: number | undefined;
 
       if (item.delivery_type === 'subscription' && item.subscription_duration && item.subscription_frequency) {
-        deliveryCount = calculateDeliveryCount(item.subscription_duration, item.subscription_frequency);
+        // subscription_duration is the chosen number of deliveries, independent of frequency.
+        deliveryCount = item.subscription_duration;
         const config = getSubscriptionConfig(item.product_id);
         discountPercent = config?.durations.find((d) => d.duration_days === item.subscription_duration)?.discount_percent;
         itemTotal = variant.price * deliveryCount * (1 - (discountPercent || 0) / 100);

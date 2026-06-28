@@ -12,6 +12,8 @@ export interface ProductVariant {
 export type SubscriptionFrequency = "daily" | "alternate" | "every_3rd";
 
 export interface SubscriptionOption {
+  // Number of deliveries in this plan, independent of frequency — e.g. "30 Deliveries"
+  // always means 30 drop-offs, whether they land daily or every 2/3 days.
   duration_days: number;
   label: string;
   discount_percent: number;
@@ -632,8 +634,8 @@ export const subscriptionConfigs: ProductSubscriptionConfig[] = [
     product_id: "prod_001",
     enabled: true,
     durations: [
-      { duration_days: 15, label: "15 Days", discount_percent: 5 },
-      { duration_days: 30, label: "30 Days", discount_percent: 10 },
+      { duration_days: 15, label: "15 Deliveries", discount_percent: 5 },
+      { duration_days: 30, label: "30 Deliveries", discount_percent: 10 },
     ],
     frequencies: ["daily", "alternate", "every_3rd"],
   },
@@ -641,8 +643,8 @@ export const subscriptionConfigs: ProductSubscriptionConfig[] = [
     product_id: "prod_002",
     enabled: true,
     durations: [
-      { duration_days: 7, label: "7 Days", discount_percent: 3 },
-      { duration_days: 15, label: "15 Days", discount_percent: 5 },
+      { duration_days: 7, label: "7 Deliveries", discount_percent: 3 },
+      { duration_days: 15, label: "15 Deliveries", discount_percent: 5 },
     ],
     frequencies: ["daily", "alternate"],
   },
@@ -650,8 +652,8 @@ export const subscriptionConfigs: ProductSubscriptionConfig[] = [
     product_id: "prod_003",
     enabled: true,
     durations: [
-      { duration_days: 7, label: "7 Days", discount_percent: 3 },
-      { duration_days: 15, label: "15 Days", discount_percent: 5 },
+      { duration_days: 7, label: "7 Deliveries", discount_percent: 3 },
+      { duration_days: 15, label: "15 Deliveries", discount_percent: 5 },
     ],
     frequencies: ["daily", "alternate", "every_3rd"],
   },
@@ -659,9 +661,9 @@ export const subscriptionConfigs: ProductSubscriptionConfig[] = [
     product_id: "prod_006",
     enabled: true,
     durations: [
-      { duration_days: 7, label: "7 Days", discount_percent: 3 },
-      { duration_days: 15, label: "15 Days", discount_percent: 5 },
-      { duration_days: 30, label: "30 Days", discount_percent: 10 },
+      { duration_days: 7, label: "7 Deliveries", discount_percent: 3 },
+      { duration_days: 15, label: "15 Deliveries", discount_percent: 5 },
+      { duration_days: 30, label: "30 Deliveries", discount_percent: 10 },
     ],
     frequencies: ["daily", "alternate", "every_3rd"],
   },
@@ -669,8 +671,8 @@ export const subscriptionConfigs: ProductSubscriptionConfig[] = [
     product_id: "prod_013",
     enabled: true,
     durations: [
-      { duration_days: 7, label: "7 Days", discount_percent: 3 },
-      { duration_days: 15, label: "15 Days", discount_percent: 5 },
+      { duration_days: 7, label: "7 Deliveries", discount_percent: 3 },
+      { duration_days: 15, label: "15 Deliveries", discount_percent: 5 },
     ],
     frequencies: ["daily", "alternate"],
   },
@@ -678,8 +680,8 @@ export const subscriptionConfigs: ProductSubscriptionConfig[] = [
     product_id: "prod_021",
     enabled: true,
     durations: [
-      { duration_days: 5, label: "5 Days", discount_percent: 2 },
-      { duration_days: 10, label: "10 Days", discount_percent: 5 },
+      { duration_days: 5, label: "5 Deliveries", discount_percent: 2 },
+      { duration_days: 10, label: "10 Deliveries", discount_percent: 5 },
     ],
     frequencies: ["daily", "alternate", "every_3rd"],
   },
@@ -687,9 +689,9 @@ export const subscriptionConfigs: ProductSubscriptionConfig[] = [
     product_id: "prod_023",
     enabled: true,
     durations: [
-      { duration_days: 7, label: "7 Days", discount_percent: 3 },
-      { duration_days: 15, label: "15 Days", discount_percent: 5 },
-      { duration_days: 30, label: "30 Days", discount_percent: 10 },
+      { duration_days: 7, label: "7 Deliveries", discount_percent: 3 },
+      { duration_days: 15, label: "15 Deliveries", discount_percent: 5 },
+      { duration_days: 30, label: "30 Deliveries", discount_percent: 10 },
     ],
     frequencies: ["daily", "alternate"],
   },
@@ -726,25 +728,20 @@ export function isSubscriptionEnabled(productId: string): boolean {
 
 export function getFrequencyLabel(frequency: SubscriptionFrequency): string {
   const labels: Record<SubscriptionFrequency, string> = {
-    daily: "Every 1 day",
+    daily: "Everyday",
     alternate: "Every 2 days",
     every_3rd: "Every 3 days",
   };
   return labels[frequency];
 }
 
-export function calculateDeliveryCount(
-  durationDays: number,
+export function getFrequencyIntervalDays(
   frequency: SubscriptionFrequency,
 ): number {
-  switch (frequency) {
-    case "daily":
-      return durationDays;
-    case "alternate":
-      return Math.ceil(durationDays / 2);
-    case "every_3rd":
-      return Math.ceil(durationDays / 3);
-    default:
-      return durationDays;
-  }
+  const intervals: Record<SubscriptionFrequency, number> = {
+    daily: 1,
+    alternate: 2,
+    every_3rd: 3,
+  };
+  return intervals[frequency];
 }
