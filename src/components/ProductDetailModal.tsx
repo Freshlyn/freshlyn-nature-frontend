@@ -20,6 +20,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { useStaticCart } from "@/hooks/use-static-cart";
+import { useToast } from "@/hooks/use-toast";
 import {
   Minus,
   Plus,
@@ -28,6 +30,7 @@ import {
   Sparkles,
   X,
   ImageOff,
+  Trash2,
 } from "lucide-react";
 
 interface ProductDetailModalProps {
@@ -51,7 +54,6 @@ export function ProductDetailModal({
   onAddToCart,
 }: ProductDetailModalProps) {
   const [selectedVariantId, setSelectedVariantId] = useState("");
-  const [quantity, setQuantity] = useState(1);
   const [deliveryType, setDeliveryType] = useState<"one_time" | "subscription">(
     "one_time",
   );
@@ -63,6 +65,42 @@ export function ProductDetailModal({
   const [displayedDeliveryType, setDisplayedDeliveryType] = useState<
     "one_time" | "subscription"
   >("one_time");
+  const [showUnsubscribeConfirm, setShowUnsubscribeConfirm] = useState(false);
+  const [incrementPulse, setIncrementPulse] = useState(0);
+
+  const {
+    cart,
+    addToCart,
+    updateSubscriptionItem,
+    removeFromCart,
+    updateQuantity,
+  } = useStaticCart();
+  const { toast } = useToast();
+
+  const existingSubscriptionItem = useMemo(
+    () =>
+      product
+        ? cart.find(
+            (item) =>
+              item.product_id === product.id &&
+              item.delivery_type === "subscription",
+          )
+        : undefined,
+    [cart, product],
+  );
+
+  const oneTimeCartItem = useMemo(
+    () =>
+      product && selectedVariantId
+        ? cart.find(
+            (item) =>
+              item.product_id === product.id &&
+              item.delivery_type === "one_time" &&
+              item.variant_id === selectedVariantId,
+          )
+        : undefined,
+    [cart, product, selectedVariantId],
+  );
 
   const handleCloseClick = () => {
     setIsCloseClicked(true);
@@ -102,41 +140,68 @@ export function ProductDetailModal({
     [selectedDuration, selectedFrequency],
   );
   const totalPrice = useMemo(() => {
-    if (!selectedVariant) return 0;
-    if (deliveryType === "one_time") return selectedVariant.price * quantity;
+    if (!selectedVariant || deliveryType !== "subscription") return 0;
     const basePrice = selectedVariant.price * deliveryCount;
     const discount = selectedDurationOption?.discount_percent || 0;
     return basePrice * (1 - discount / 100);
-  }, [
-    selectedVariant,
-    quantity,
-    deliveryType,
-    deliveryCount,
-    selectedDurationOption,
-  ]);
+  }, [selectedVariant, deliveryType, deliveryCount, selectedDurationOption]);
 
   useEffect(() => {
     if (open && product) {
       const productVariants = getVariantsForProduct(product.id);
-      setSelectedVariantId(productVariants[0]?.id || "");
-      setQuantity(1);
+      const existingSub = cart.find(
+        (item) =>
+          item.product_id === product.id &&
+          item.delivery_type === "subscription",
+      );
+
+      const existingOneTime = cart.find(
+        (item) =>
+          item.product_id === product.id &&
+          item.delivery_type === "one_time",
+      );
       const config = getSubscriptionConfig(product.id);
-      const hasSub = isSubscriptionEnabled(product.id);
-      const initialDeliveryType = hasSub ? "subscription" : "one_time";
-      setDeliveryType(initialDeliveryType);
-      setDisplayedDeliveryType(initialDeliveryType);
-      if (config) {
-        const sorted = [...config.durations].sort(
-          (a, b) => b.duration_days - a.duration_days,
-        );
-        setSelectedDuration(sorted[0]?.duration_days || null);
+
+      if (existingSub) {
+        setSelectedVariantId(existingSub.variant_id);
+        setDeliveryType("subscription");
+        setDisplayedDeliveryType("subscription");
+        setSelectedDuration(existingSub.subscription_duration || null);
+        setSelectedFrequency(existingSub.subscription_frequency || "daily");
+      } else if (existingOneTime) {
+        setSelectedVariantId(existingOneTime.variant_id);
+        setDeliveryType("one_time");
+        setDisplayedDeliveryType("one_time");
+        if (config) {
+          const sorted = [...config.durations].sort(
+            (a, b) => b.duration_days - a.duration_days,
+          );
+          setSelectedDuration(sorted[0]?.duration_days || null);
+        } else {
+          setSelectedDuration(null);
+        }
+        setSelectedFrequency("daily");
       } else {
-        setSelectedDuration(null);
+        setSelectedVariantId(productVariants[0]?.id || "");
+        const hasSub = isSubscriptionEnabled(product.id);
+        const initialDeliveryType = hasSub ? "subscription" : "one_time";
+        setDeliveryType(initialDeliveryType);
+        setDisplayedDeliveryType(initialDeliveryType);
+        if (config) {
+          const sorted = [...config.durations].sort(
+            (a, b) => b.duration_days - a.duration_days,
+          );
+          setSelectedDuration(sorted[0]?.duration_days || null);
+        } else {
+          setSelectedDuration(null);
+        }
+        setSelectedFrequency("daily");
       }
-      setSelectedFrequency("daily");
       setImageFailed(false);
       setIsCloseClicked(false);
+      setShowUnsubscribeConfirm(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, product]);
 
   useEffect(() => {
@@ -146,21 +211,52 @@ export function ProductDetailModal({
     return () => clearTimeout(timer);
   }, [deliveryType]);
 
-  const handleAddToCart = () => {
-    if (!product || !selectedVariantId) return;
+  const handleSubscribe = () => {
+    if (!product || !selectedVariantId || !selectedDuration) return;
+
+    if (existingSubscriptionItem) {
+      updateSubscriptionItem(existingSubscriptionItem.id, {
+        variantId: selectedVariantId,
+        subscriptionDuration: selectedDuration,
+        subscriptionFrequency: selectedFrequency,
+      });
+      onOpenChange(false);
+      return;
+    }
+
     onAddToCart({
       productId: product.id,
       variantId: selectedVariantId,
-      quantity: deliveryType === "one_time" ? quantity : 1,
-      deliveryType,
-      subscriptionDuration:
-        deliveryType === "subscription"
-          ? selectedDuration || undefined
-          : undefined,
-      subscriptionFrequency:
-        deliveryType === "subscription" ? selectedFrequency : undefined,
+      quantity: 1,
+      deliveryType: "subscription",
+      subscriptionDuration: selectedDuration,
+      subscriptionFrequency: selectedFrequency,
     });
     onOpenChange(false);
+  };
+
+  const handleIncrementOneTime = () => {
+    if (!product || !selectedVariantId) return;
+    setIncrementPulse((p) => p + 1);
+    if (oneTimeCartItem) {
+      updateQuantity(oneTimeCartItem.id, oneTimeCartItem.quantity + 1);
+    } else {
+      addToCart({
+        productId: product.id,
+        variantId: selectedVariantId,
+        quantity: 1,
+        deliveryType: "one_time",
+      });
+    }
+  };
+
+  const handleDecrementOneTime = () => {
+    if (!oneTimeCartItem) return;
+    if (oneTimeCartItem.quantity <= 1) {
+      removeFromCart(oneTimeCartItem.id);
+    } else {
+      updateQuantity(oneTimeCartItem.id, oneTimeCartItem.quantity - 1);
+    }
   };
 
   if (!product) return null;
@@ -299,36 +395,6 @@ export function ProductDetailModal({
             </div>
           )}
 
-          {displayedDeliveryType === "one_time" && (
-            <div className="flex items-center justify-between animate-in fade-in duration-200">
-              <Label className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                Quantity
-              </Label>
-              <div className="flex items-center bg-muted/60 rounded-full p-0.5 border border-border/40 shadow-inner">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-7 h-7 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-muted transition-colors active:scale-95"
-                  data-testid="button-decrease-qty"
-                >
-                  <Minus size={13} />
-                </button>
-                <span
-                  className="font-bold w-8 text-center text-sm"
-                  data-testid="text-quantity"
-                >
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-7 h-7 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-muted transition-colors active:scale-95"
-                  data-testid="button-increase-qty"
-                >
-                  <Plus size={13} />
-                </button>
-              </div>
-            </div>
-          )}
-
           {displayedDeliveryType === "subscription" && subscriptionConfig && (
             <div className="space-y-4 animate-in fade-in duration-200">
               <div className="space-y-2">
@@ -412,40 +478,132 @@ export function ProductDetailModal({
                     )}
                 </div>
               )}
+
+              {existingSubscriptionItem && (
+                <div className="pt-1">
+                  {!showUnsubscribeConfirm ? (
+                    <button
+                      onClick={() => setShowUnsubscribeConfirm(true)}
+                      className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-red-500 hover:text-red-600 transition-colors py-1.5"
+                      data-testid="button-unsubscribe"
+                    >
+                      <Trash2 size={13} />
+                      Unsubscribe
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-center gap-3 text-xs bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">
+                      <span className="text-red-600 font-medium">
+                        Remove this subscription?
+                      </span>
+                      <button
+                        onClick={() => {
+                          removeFromCart(existingSubscriptionItem.id);
+                          toast({ title: "Subscription removed" });
+                          onOpenChange(false);
+                        }}
+                        className="font-bold text-red-600 hover:text-red-700"
+                        data-testid="button-confirm-unsubscribe"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setShowUnsubscribeConfirm(false)}
+                        className="font-semibold text-muted-foreground hover:text-foreground"
+                        data-testid="button-cancel-unsubscribe"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          <div className="-mx-5 -mb-4 px-5 pt-4 pb-5 bg-gradient-to-b from-muted/30 to-muted/50 border-t border-border/40 flex items-center gap-4">
-            <div className="flex-1">
-              <span className="text-[10px] text-muted-foreground/80 font-medium uppercase tracking-wider block leading-tight">
-                Total
-              </span>
-              <span className="text-2xl font-display font-bold text-primary leading-tight">
-                ${totalPrice.toFixed(2)}
-              </span>
-            </div>
+          <div className="-mx-5 -mb-4 px-5 pt-4 pb-5 bg-gradient-to-b from-muted/30 to-muted/50 border-t border-border/40">
+            {displayedDeliveryType === "one_time" ? (
+              <div className="flex items-center justify-between gap-4 animate-in fade-in duration-200">
+                <div className="leading-tight">
+                  <span className="text-[10px] text-muted-foreground/80 font-medium uppercase tracking-wider block leading-tight">
+                    Price
+                  </span>
+                  <span className="text-2xl font-display font-bold text-primary leading-tight">
+                    ${selectedVariant ? selectedVariant.price.toFixed(2) : "0.00"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground"> / item</span>
+                </div>
 
-            <Button
-              onClick={handleAddToCart}
-              className="flex-1 h-11 text-sm font-bold rounded-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/35 transition-all duration-150 active:scale-[0.97] hover:shadow-xl hover:shadow-primary/40"
-              disabled={
-                !selectedVariantId ||
-                (deliveryType === "subscription" && !selectedDuration)
-              }
-              data-testid="button-add-to-cart-modal"
-            >
-              {deliveryType === "subscription" ? (
-                <>
+                <div className="relative w-[132px] h-11 flex items-center justify-end shrink-0">
+                {incrementPulse > 0 && (
+                  <span
+                    key={incrementPulse}
+                    className="absolute inset-0 rounded-full border-2 border-primary animate-ring-pulse pointer-events-none"
+                  />
+                )}
+                {!oneTimeCartItem || oneTimeCartItem.quantity <= 0 ? (
+                  <button
+                    onClick={handleIncrementOneTime}
+                    disabled={!selectedVariantId}
+                    className="h-11 w-full flex items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white text-sm font-bold shadow-lg shadow-primary/35 transition-all duration-150 active:scale-[0.97] hover:shadow-xl hover:shadow-primary/40 disabled:opacity-50"
+                    data-testid="button-add-to-cart-modal"
+                  >
+                    <Plus size={16} strokeWidth={2.5} />
+                    Add
+                  </button>
+                ) : (
+                  <div
+                    className="flex items-center justify-between w-full h-11 bg-white rounded-full p-1 border border-primary/30 shadow-md shadow-primary/10"
+                    data-testid="stepper-one-time"
+                  >
+                    <button
+                      onClick={handleDecrementOneTime}
+                      className="w-9 h-9 flex items-center justify-center rounded-full bg-muted/60 hover:bg-muted transition-colors active:scale-95"
+                      data-testid="button-decrease-qty"
+                    >
+                      <Minus size={15} />
+                    </button>
+                    <span
+                      key={incrementPulse}
+                      className="font-bold w-9 text-center text-base animate-qty-bump"
+                      data-testid="text-quantity"
+                    >
+                      {oneTimeCartItem.quantity}
+                    </span>
+                    <button
+                      onClick={handleIncrementOneTime}
+                      className="w-9 h-9 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 transition-colors active:scale-95 shadow-sm shadow-primary/30"
+                      data-testid="button-increase-qty"
+                    >
+                      <Plus size={15} />
+                    </button>
+                  </div>
+                )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 animate-in fade-in duration-200">
+                <div className="flex-1 leading-tight">
+                  <span className="text-[10px] text-muted-foreground/80 font-medium uppercase tracking-wider block leading-tight">
+                    Total
+                  </span>
+                  <span className="text-2xl font-display font-bold text-primary leading-tight">
+                    ${totalPrice.toFixed(2)}
+                  </span>
+                </div>
+
+                <Button
+                  onClick={handleSubscribe}
+                  className="flex-1 h-11 text-sm font-bold rounded-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/35 transition-all duration-150 active:scale-[0.97] hover:shadow-xl hover:shadow-primary/40"
+                  disabled={!selectedVariantId || !selectedDuration}
+                  data-testid="button-add-to-cart-modal"
+                >
                   <Sparkles size={15} className="mr-1.5" />
-                  Subscribe
-                </>
-              ) : (
-                <>
-                  <ShoppingBag size={15} className="mr-1.5" />
-                  Add to Cart
-                </>
-              )}
-            </Button>
+                  {existingSubscriptionItem
+                    ? "Update Subscription"
+                    : "Subscribe"}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

@@ -167,6 +167,33 @@ export function useStaticCart() {
     emitChange();
   }, []);
 
+  const updateSubscriptionItem = useCallback(
+    (
+      cartItemId: string,
+      updates: { variantId: string; subscriptionDuration: number; subscriptionFrequency: SubscriptionFrequency },
+    ) => {
+      const existing = globalCart.find((item) => item.id === cartItemId);
+      if (!existing) return;
+
+      globalCart = globalCart.map((item) =>
+        item.id === cartItemId
+          ? {
+              ...item,
+              variant_id: updates.variantId,
+              subscription_duration: updates.subscriptionDuration,
+              subscription_frequency: updates.subscriptionFrequency,
+            }
+          : item,
+      );
+      emitChange();
+
+      const variant = getVariantById(updates.variantId);
+      const product = getProductById(existing.product_id);
+      toast({ title: 'Subscription updated', description: `${product?.name} (${variant?.name}) - ${updates.subscriptionDuration} days subscription` });
+    },
+    [toast],
+  );
+
   const clearCart = useCallback(() => {
     globalCart = [];
     emitChange();
@@ -224,6 +251,7 @@ export function useStaticCart() {
     addToCartSimple,
     updateQuantity,
     removeFromCart,
+    updateSubscriptionItem,
     clearCart,
     getQuantity,
     getCartWithProducts: () => cartWithProducts,
