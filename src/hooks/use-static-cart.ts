@@ -13,6 +13,7 @@ export interface LocalCartItem {
   delivery_type: 'one_time' | 'subscription';
   subscription_duration?: number;
   subscription_frequency?: SubscriptionFrequency;
+  subscription_start_date?: string;
 }
 
 export interface CartItemWithDetails {
@@ -23,6 +24,7 @@ export interface CartItemWithDetails {
   delivery_type: 'one_time' | 'subscription';
   subscription_duration?: number;
   subscription_frequency?: SubscriptionFrequency;
+  subscription_start_date?: string;
   product: Product;
   variant: ProductVariant;
   item_total: number;
@@ -103,8 +105,9 @@ export function useStaticCart() {
       deliveryType: 'one_time' | 'subscription';
       subscriptionDuration?: number;
       subscriptionFrequency?: SubscriptionFrequency;
+      subscriptionStartDate?: string;
     }) => {
-      const { productId, variantId, quantity, deliveryType, subscriptionDuration, subscriptionFrequency } = params;
+      const { productId, variantId, quantity, deliveryType, subscriptionDuration, subscriptionFrequency, subscriptionStartDate } = params;
       const itemKey = getItemKey(productId, variantId, deliveryType, subscriptionDuration, subscriptionFrequency);
 
       const existing = globalCart.find((item) => {
@@ -128,6 +131,7 @@ export function useStaticCart() {
             delivery_type: deliveryType,
             subscription_duration: subscriptionDuration,
             subscription_frequency: subscriptionFrequency,
+            subscription_start_date: subscriptionStartDate,
           },
         ];
       }
@@ -170,7 +174,7 @@ export function useStaticCart() {
   const updateSubscriptionItem = useCallback(
     (
       cartItemId: string,
-      updates: { variantId: string; subscriptionDuration: number; subscriptionFrequency: SubscriptionFrequency },
+      updates: { variantId: string; subscriptionDuration: number; subscriptionFrequency: SubscriptionFrequency; subscriptionStartDate?: string },
     ) => {
       const existing = globalCart.find((item) => item.id === cartItemId);
       if (!existing) return;
@@ -182,6 +186,7 @@ export function useStaticCart() {
               variant_id: updates.variantId,
               subscription_duration: updates.subscriptionDuration,
               subscription_frequency: updates.subscriptionFrequency,
+              subscription_start_date: updates.subscriptionStartDate,
             }
           : item,
       );
@@ -232,6 +237,7 @@ export function useStaticCart() {
         delivery_type: item.delivery_type,
         subscription_duration: item.subscription_duration,
         subscription_frequency: item.subscription_frequency,
+        subscription_start_date: item.subscription_start_date,
         product,
         variant,
         item_total: itemTotal,

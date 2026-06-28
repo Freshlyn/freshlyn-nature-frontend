@@ -54,6 +54,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
     deliveryType: 'one_time' | 'subscription';
     subscriptionDuration?: number;
     subscriptionFrequency?: SubscriptionFrequency;
+    subscriptionStartDate?: string;
   }) => {
     addToCart(params);
   };

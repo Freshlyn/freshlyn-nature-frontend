@@ -726,9 +726,9 @@ export function isSubscriptionEnabled(productId: string): boolean {
 
 export function getFrequencyLabel(frequency: SubscriptionFrequency): string {
   const labels: Record<SubscriptionFrequency, string> = {
-    daily: "Every Day",
-    alternate: "Alternate Days",
-    every_3rd: "Every 3rd Day",
+    daily: "Every 1 day",
+    alternate: "Every 2 days",
+    every_3rd: "Every 3 days",
   };
   return labels[frequency];
 }

@@ -1,4 +1,18 @@
 import { useState, useMemo, useEffect } from "react";
+import {
+  format,
+  addDays,
+  addMonths,
+  subMonths,
+  startOfDay,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isBefore,
+  isSameDay,
+  getDay,
+  differenceInCalendarDays,
+} from "date-fns";
 import type { Product } from "@/data/products";
 import type {
   ProductVariant,
@@ -31,6 +45,9 @@ import {
   X,
   ImageOff,
   Trash2,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface ProductDetailModalProps {
@@ -44,6 +61,7 @@ interface ProductDetailModalProps {
     deliveryType: "one_time" | "subscription";
     subscriptionDuration?: number;
     subscriptionFrequency?: SubscriptionFrequency;
+    subscriptionStartDate?: string;
   }) => void;
 }
 
@@ -60,6 +78,14 @@ export function ProductDetailModal({
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [selectedFrequency, setSelectedFrequency] =
     useState<SubscriptionFrequency>("daily");
+  const minStartDate = startOfDay(addDays(new Date(), 1));
+  const maxStartDate = addMonths(minStartDate, 3);
+  const [selectedStartDate, setSelectedStartDate] =
+    useState<Date>(minStartDate);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarViewMonth, setCalendarViewMonth] = useState(
+    startOfMonth(minStartDate),
+  );
   const [imageFailed, setImageFailed] = useState(false);
   const [isCloseClicked, setIsCloseClicked] = useState(false);
   const [displayedDeliveryType, setDisplayedDeliveryType] = useState<
@@ -139,6 +165,21 @@ export function ProductDetailModal({
         : 0,
     [selectedDuration, selectedFrequency],
   );
+  const isCalendarDeliveryDay = (day: Date) => {
+    const intervalDays: Record<SubscriptionFrequency, number> = {
+      daily: 1,
+      alternate: 2,
+      every_3rd: 3,
+    };
+    const interval = intervalDays[selectedFrequency];
+    if (isBefore(day, selectedStartDate) && !isSameDay(day, selectedStartDate))
+      return false;
+    if (selectedDuration) {
+      const endDate = addDays(selectedStartDate, selectedDuration);
+      if (!isBefore(day, endDate)) return false;
+    }
+    return differenceInCalendarDays(day, selectedStartDate) % interval === 0;
+  };
   const totalPrice = useMemo(() => {
     if (!selectedVariant || deliveryType !== "subscription") return 0;
     const basePrice = selectedVariant.price * deliveryCount;
@@ -162,12 +203,19 @@ export function ProductDetailModal({
       );
       const config = getSubscriptionConfig(product.id);
 
+      const nextMinStartDate = startOfDay(addDays(new Date(), 1));
+
       if (existingSub) {
         setSelectedVariantId(existingSub.variant_id);
         setDeliveryType("subscription");
         setDisplayedDeliveryType("subscription");
         setSelectedDuration(existingSub.subscription_duration || null);
         setSelectedFrequency(existingSub.subscription_frequency || "daily");
+        const existingStartDate = existingSub.subscription_start_date
+          ? startOfDay(new Date(existingSub.subscription_start_date))
+          : nextMinStartDate;
+        setSelectedStartDate(existingStartDate);
+        setCalendarViewMonth(startOfMonth(existingStartDate));
       } else if (existingOneTime) {
         setSelectedVariantId(existingOneTime.variant_id);
         setDeliveryType("one_time");
@@ -181,6 +229,8 @@ export function ProductDetailModal({
           setSelectedDuration(null);
         }
         setSelectedFrequency("daily");
+        setSelectedStartDate(nextMinStartDate);
+        setCalendarViewMonth(startOfMonth(nextMinStartDate));
       } else {
         setSelectedVariantId(productVariants[0]?.id || "");
         const hasSub = isSubscriptionEnabled(product.id);
@@ -196,10 +246,13 @@ export function ProductDetailModal({
           setSelectedDuration(null);
         }
         setSelectedFrequency("daily");
+        setSelectedStartDate(nextMinStartDate);
+        setCalendarViewMonth(startOfMonth(nextMinStartDate));
       }
       setImageFailed(false);
       setIsCloseClicked(false);
       setShowUnsubscribeConfirm(false);
+      setShowCalendar(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, product]);
@@ -214,11 +267,14 @@ export function ProductDetailModal({
   const handleSubscribe = () => {
     if (!product || !selectedVariantId || !selectedDuration) return;
 
+    const subscriptionStartDate = format(selectedStartDate, "yyyy-MM-dd");
+
     if (existingSubscriptionItem) {
       updateSubscriptionItem(existingSubscriptionItem.id, {
         variantId: selectedVariantId,
         subscriptionDuration: selectedDuration,
         subscriptionFrequency: selectedFrequency,
+        subscriptionStartDate,
       });
       onOpenChange(false);
       return;
@@ -231,6 +287,7 @@ export function ProductDetailModal({
       deliveryType: "subscription",
       subscriptionDuration: selectedDuration,
       subscriptionFrequency: selectedFrequency,
+      subscriptionStartDate,
     });
     onOpenChange(false);
   };
@@ -462,6 +519,115 @@ export function ProductDetailModal({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                  Start Date
+                </Label>
+                <button
+                  onClick={() => setShowCalendar((v) => !v)}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-border/70 bg-white hover:border-primary/40 hover:shadow-sm transition-all duration-150"
+                  data-testid="button-start-date"
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <CalendarDays size={15} className="text-primary" />
+                    {isSameDay(selectedStartDate, minStartDate)
+                      ? `Tomorrow, ${format(selectedStartDate, "d MMM")}`
+                      : format(selectedStartDate, "EEE, d MMM yyyy")}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {showCalendar ? "Close" : "Change"}
+                  </span>
+                </button>
+
+                {showCalendar && (
+                  <div className="rounded-xl border border-border/70 bg-white p-3 space-y-2 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCalendarViewMonth((m) => subMonths(m, 1))
+                        }
+                        disabled={
+                          startOfMonth(calendarViewMonth).getTime() <=
+                          startOfMonth(minStartDate).getTime()
+                        }
+                        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-muted transition-colors disabled:opacity-30"
+                        data-testid="button-prev-month"
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+                      <span className="text-xs font-semibold">
+                        {format(calendarViewMonth, "MMMM yyyy")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCalendarViewMonth((m) => addMonths(m, 1))
+                        }
+                        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+                        data-testid="button-next-month"
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground/70 font-medium">
+                      {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+                        <span key={i}>{d}</span>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+                      Delivery day
+                    </p>
+                    <div className="grid grid-cols-7 gap-1">
+                      {(() => {
+                        const start = startOfMonth(calendarViewMonth);
+                        const end = endOfMonth(calendarViewMonth);
+                        const leadingBlanks = getDay(start);
+                        const monthDays = eachDayOfInterval({ start, end });
+                        const cells: (Date | null)[] = [
+                          ...Array(leadingBlanks).fill(null),
+                          ...monthDays,
+                        ];
+                        return cells.map((day, i) => {
+                          if (!day) return <span key={i} />;
+                          const outOfRange =
+                            isBefore(day, minStartDate) ||
+                            isBefore(maxStartDate, day);
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              disabled={outOfRange}
+                              onClick={() => setSelectedStartDate(day)}
+                              className={`relative h-9 w-9 text-[11px] rounded-full flex items-center justify-center transition-colors ${
+                                isSameDay(day, selectedStartDate)
+                                  ? "bg-primary text-white font-bold"
+                                  : outOfRange
+                                    ? "text-muted-foreground/30 cursor-not-allowed"
+                                    : "hover:bg-primary/10 text-foreground"
+                              }`}
+                              data-testid={`calendar-day-${format(day, "yyyy-MM-dd")}`}
+                            >
+                              {format(day, "d")}
+                              {isCalendarDeliveryDay(day) && (
+                                <span
+                                  className={`absolute bottom-0.5 w-1 h-1 rounded-full ${
+                                    isSameDay(day, selectedStartDate)
+                                      ? "bg-white"
+                                      : "bg-primary"
+                                  }`}
+                                />
+                              )}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {selectedDuration && (
