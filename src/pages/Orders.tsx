@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import type { OrderWithItems } from '@/hooks/use-static-orders';
 import { useStaticOrders } from '@/hooks/use-static-orders';
 import { Header } from '@/components/Header';
@@ -8,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Link } from 'wouter';
+import OrderFilters, { DEFAULT_ORDER_FILTERS, hasActiveOrderFilters } from '@/components/orders/OrderFilters';
+import { filterOrders } from '@/lib/order-filters';
 
 const statusConfig: Record<string, { icon: typeof Clock; label: string; variant: string }> = {
   pending: { icon: Clock, label: 'Pending', variant: 'secondary' },
@@ -82,13 +85,19 @@ function OrderCard({ order }: { order: OrderWithItems }) {
 
 export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
   const { orders, isLoading } = useStaticOrders();
+  const [filters, setFilters] = useState(DEFAULT_ORDER_FILTERS);
+
+  const filteredOrders = useMemo(() => filterOrders(orders, filters), [orders, filters]);
+  const filtersActive = hasActiveOrderFilters(filters);
 
   return (
     <div className="min-h-screen bg-muted/10">
       <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} />
       <main className="container mx-auto px-4 py-6 max-w-2xl">
         <MobileBackButton to="/" label="Back to Shop" />
-        <h1 className="text-2xl font-display font-bold mb-6" data-testid="text-orders-title">Your Orders</h1>
+        <h1 className="text-2xl font-display font-bold mb-4" data-testid="text-orders-title">Your Orders</h1>
+
+        {!isLoading && orders.length > 0 && <OrderFilters value={filters} onChange={setFilters} />}
 
         {isLoading ? (
           <div className="text-center py-10">Loading...</div>
@@ -103,9 +112,25 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
               </Button>
             </Link>
           </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-border shadow-sm">
+            <div className="text-5xl mb-4">🔍</div>
+            <h2 className="text-lg font-bold text-foreground" data-testid="text-no-filtered-orders">No orders match these filters</h2>
+            <p className="text-muted-foreground mt-2 mb-6 text-sm">Try adjusting your filters.</p>
+            {filtersActive && (
+              <Button
+                variant="outline"
+                onClick={() => setFilters(DEFAULT_ORDER_FILTERS)}
+                className="rounded-xl border-primary/30 text-primary hover:bg-primary hover:text-white"
+                data-testid="button-clear-order-filters"
+              >
+                Clear all filters
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="space-y-3">
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <OrderCard key={order.id} order={order} />
             ))}
           </div>
