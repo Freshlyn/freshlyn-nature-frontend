@@ -2,7 +2,7 @@ import { useCallback, useSyncExternalStore, useMemo } from 'react';
 import type { Product } from '@/data/products';
 import { getProductById } from '@/data/products';
 import type { ProductVariant, SubscriptionFrequency } from '@/data/product_variants';
-import { getVariantById, getFrequencyLabel, calculateDeliveryCount, getSubscriptionConfig } from '@/data/product_variants';
+import { getVariantById, getSubscriptionConfig } from '@/data/product_variants';
 import { useToast } from '@/hooks/use-toast';
 
 export interface LocalCartItem {
@@ -13,6 +13,7 @@ export interface LocalCartItem {
   delivery_type: 'one_time' | 'subscription';
   subscription_duration?: number;
   subscription_frequency?: SubscriptionFrequency;
+  subscription_start_date?: string;
 }
 
 export interface CartItemWithDetails {
@@ -23,6 +24,7 @@ export interface CartItemWithDetails {
   delivery_type: 'one_time' | 'subscription';
   subscription_duration?: number;
   subscription_frequency?: SubscriptionFrequency;
+  subscription_start_date?: string;
   product: Product;
   variant: ProductVariant;
   item_total: number;
@@ -103,8 +105,9 @@ export function useStaticCart() {
       deliveryType: 'one_time' | 'subscription';
       subscriptionDuration?: number;
       subscriptionFrequency?: SubscriptionFrequency;
+      subscriptionStartDate?: string;
     }) => {
-      const { productId, variantId, quantity, deliveryType, subscriptionDuration, subscriptionFrequency } = params;
+      const { productId, variantId, quantity, deliveryType, subscriptionDuration, subscriptionFrequency, subscriptionStartDate } = params;
       const itemKey = getItemKey(productId, variantId, deliveryType, subscriptionDuration, subscriptionFrequency);
 
       const existing = globalCart.find((item) => {
@@ -128,6 +131,7 @@ export function useStaticCart() {
             delivery_type: deliveryType,
             subscription_duration: subscriptionDuration,
             subscription_frequency: subscriptionFrequency,
+            subscription_start_date: subscriptionStartDate,
           },
         ];
       }
@@ -138,7 +142,7 @@ export function useStaticCart() {
       const product = getProductById(productId);
 
       if (deliveryType === 'subscription') {
-        toast({ title: 'Subscription added', description: `${product?.name} (${variant?.name}) - ${subscriptionDuration} days subscription` });
+        toast({ title: 'Subscription added', description: `${product?.name} (${variant?.name}) - ${subscriptionDuration} deliveries` });
       } else {
         toast({ title: 'Added to cart', description: `${product?.name} (${variant?.name}) added to your basket.` });
       }
@@ -167,6 +171,34 @@ export function useStaticCart() {
     emitChange();
   }, []);
 
+  const updateSubscriptionItem = useCallback(
+    (
+      cartItemId: string,
+      updates: { variantId: string; subscriptionDuration: number; subscriptionFrequency: SubscriptionFrequency; subscriptionStartDate?: string },
+    ) => {
+      const existing = globalCart.find((item) => item.id === cartItemId);
+      if (!existing) return;
+
+      globalCart = globalCart.map((item) =>
+        item.id === cartItemId
+          ? {
+              ...item,
+              variant_id: updates.variantId,
+              subscription_duration: updates.subscriptionDuration,
+              subscription_frequency: updates.subscriptionFrequency,
+              subscription_start_date: updates.subscriptionStartDate,
+            }
+          : item,
+      );
+      emitChange();
+
+      const variant = getVariantById(updates.variantId);
+      const product = getProductById(existing.product_id);
+      toast({ title: 'Subscription updated', description: `${product?.name} (${variant?.name}) - ${updates.subscriptionDuration} deliveries` });
+    },
+    [toast],
+  );
+
   const clearCart = useCallback(() => {
     globalCart = [];
     emitChange();
@@ -191,7 +223,8 @@ export function useStaticCart() {
       let discountPercent: number | undefined;
 
       if (item.delivery_type === 'subscription' && item.subscription_duration && item.subscription_frequency) {
-        deliveryCount = calculateDeliveryCount(item.subscription_duration, item.subscription_frequency);
+        // subscription_duration is the chosen number of deliveries, independent of frequency.
+        deliveryCount = item.subscription_duration;
         const config = getSubscriptionConfig(item.product_id);
         discountPercent = config?.durations.find((d) => d.duration_days === item.subscription_duration)?.discount_percent;
         itemTotal = variant.price * deliveryCount * (1 - (discountPercent || 0) / 100);
@@ -205,6 +238,7 @@ export function useStaticCart() {
         delivery_type: item.delivery_type,
         subscription_duration: item.subscription_duration,
         subscription_frequency: item.subscription_frequency,
+        subscription_start_date: item.subscription_start_date,
         product,
         variant,
         item_total: itemTotal,
@@ -224,6 +258,7 @@ export function useStaticCart() {
     addToCartSimple,
     updateQuantity,
     removeFromCart,
+    updateSubscriptionItem,
     clearCart,
     getQuantity,
     getCartWithProducts: () => cartWithProducts,

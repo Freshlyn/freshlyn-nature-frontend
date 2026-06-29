@@ -125,8 +125,8 @@ export default function RegisterPage() {
           <Link href="/login" className="p-2 -ml-2 hover:bg-muted rounded-lg transition-colors" data-testid="button-back">
             <ArrowLeft size={20} />
           </Link>
-          <Link href="/" className="text-2xl font-display font-extrabold text-primary tracking-tight">
-            Freshlyn<span className="text-foreground">Nature</span>
+          <Link href="/">
+            <img src="/logo.png" alt="Freshlyn Nature" className="h-9 w-auto object-contain" />
           </Link>
         </div>
       </header>

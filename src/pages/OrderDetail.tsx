@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Link, useParams } from 'wouter';
 import type { SubscriptionFrequency } from '@/data/product_variants';
-import { getFrequencyLabel } from '@/data/product_variants';
+import { getFrequencyLabel, getFrequencyIntervalDays } from '@/data/product_variants';
 
 const statusConfig: Record<string, { icon: typeof Clock; label: string; variant: string }> = {
   pending: { icon: Clock, label: 'Pending', variant: 'secondary' },
@@ -20,18 +20,9 @@ const statusConfig: Record<string, { icon: typeof Clock; label: string; variant:
   cancelled: { icon: XCircle, label: 'Cancelled', variant: 'destructive' },
 };
 
-function generateDeliveryDates(startDate: Date, durationDays: number, frequency: SubscriptionFrequency): Date[] {
-  const dates: Date[] = [];
-  const endDate = addDays(startDate, durationDays);
-  let currentDate = new Date(startDate);
-  const gap = frequency === 'daily' ? 1 : frequency === 'alternate' ? 2 : 3;
-
-  while (isBefore(currentDate, endDate)) {
-    dates.push(new Date(currentDate));
-    currentDate = addDays(currentDate, gap);
-  }
-
-  return dates;
+function generateDeliveryDates(startDate: Date, deliveryCount: number, frequency: SubscriptionFrequency): Date[] {
+  const gap = getFrequencyIntervalDays(frequency);
+  return Array.from({ length: deliveryCount }, (_, i) => addDays(startDate, i * gap));
 }
 
 function DeliverySchedule({ item, orderDate }: { item: OrderItemWithDetails; orderDate: string }) {
@@ -40,7 +31,7 @@ function DeliverySchedule({ item, orderDate }: { item: OrderItemWithDetails; ord
   const startDate = startOfDay(new Date(orderDate));
   const deliveryDates = generateDeliveryDates(startDate, item.subscription_duration, item.subscription_frequency);
   const today = startOfDay(new Date());
-  const endDate = addDays(startDate, item.subscription_duration);
+  const endDate = deliveryDates[deliveryDates.length - 1] ?? startDate;
 
   return (
     <Card className="p-4 mt-3 bg-emerald-50/50 border-emerald-200/60" data-testid={`schedule-${item.id}`}>
@@ -55,8 +46,8 @@ function DeliverySchedule({ item, orderDate }: { item: OrderItemWithDetails; ord
           <span className="font-semibold text-foreground" data-testid={`text-frequency-${item.id}`}>{getFrequencyLabel(item.subscription_frequency!)}</span>
         </div>
         <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
-          <span className="text-muted-foreground block">Duration</span>
-          <span className="font-semibold text-foreground" data-testid={`text-duration-${item.id}`}>{item.subscription_duration} Days</span>
+          <span className="text-muted-foreground block">Plan</span>
+          <span className="font-semibold text-foreground" data-testid={`text-duration-${item.id}`}>{item.subscription_duration} Deliveries</span>
         </div>
         <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
           <span className="text-muted-foreground block">Total Deliveries</span>

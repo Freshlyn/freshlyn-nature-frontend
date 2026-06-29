@@ -161,7 +161,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                           </Badge>
                           <Badge variant="outline" className="text-[10px] gap-1 border-border/60">
                             <Calendar size={10} />
-                            {item.subscription_duration} days
+                            {item.subscription_duration} deliveries
                           </Badge>
                           <Badge variant="outline" className="text-[10px] border-border/60">
                             {item.subscription_frequency && getFrequencyLabel(item.subscription_frequency)}
@@ -177,9 +177,6 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                       <div className="flex items-end justify-between mt-3">
                         <div>
                           <p className="font-display font-bold text-lg text-primary">${item.item_total.toFixed(2)}</p>
-                          {item.delivery_type === 'subscription' && item.delivery_count && (
-                            <p className="text-[10px] text-muted-foreground">{item.delivery_count} deliveries</p>
-                          )}
                         </div>
 
                         {item.delivery_type === 'one_time' && (
