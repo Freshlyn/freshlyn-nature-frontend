@@ -16,6 +16,7 @@ export const orders: Order[] = [
   { id: 'ord_003', user_id: 'usr_002', total: 17.97, item_count: 2, status: 'pending', delivery_address: '456 Oak Ave, Los Angeles, CA 90001', delivery_fee: 5.0, created_at: '2024-01-21T14:15:00Z', updated_at: '2024-01-21T14:15:00Z' },
   { id: 'ord_004', user_id: 'usr_001', total: 29.05, item_count: 3, status: 'confirmed', delivery_address: '789 Demo Lane, San Francisco, CA 94102', delivery_fee: 5.0, created_at: '2024-01-22T08:00:00Z', updated_at: '2024-01-22T08:05:00Z' },
   { id: 'ord_005', user_id: 'usr_001', total: 62.4, item_count: 6, status: 'preparing', delivery_address: '123 Main St, Apt 4B, New York, NY 10001', delivery_fee: 5.0, created_at: '2024-01-23T10:00:00Z', updated_at: '2024-01-23T10:05:00Z' },
+  { id: 'ord_006', user_id: 'usr_001', total: 80.73, item_count: 1, status: 'out_for_delivery', delivery_address: '123 Main St, Apt 4B, New York, NY 10001', delivery_fee: 0, created_at: '2026-06-21T10:00:00Z', updated_at: '2026-07-02T09:00:00Z' },
 ];
 
 export function getOrderById(id: string): Order | undefined {

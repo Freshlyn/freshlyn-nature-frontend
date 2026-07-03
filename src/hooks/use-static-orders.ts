@@ -12,8 +12,8 @@ import { useStaticAuth } from './use-static-auth';
 
 let localOrders: Order[] = [...initialOrders];
 let localOrderItems: OrderItem[] = [...initialOrderItems];
-let orderIdCounter = 5;
-let orderItemIdCounter = 12;
+let orderIdCounter = 7;
+let orderItemIdCounter = 19;
 let ordersListeners: Set<() => void> = new Set();
 
 function emitOrdersChange() {

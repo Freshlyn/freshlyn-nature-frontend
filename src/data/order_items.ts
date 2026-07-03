@@ -12,6 +12,7 @@ export interface OrderItem {
   subscription_frequency?: SubscriptionFrequency;
   delivery_count?: number;
   discount_percent?: number;
+  missed_delivery_dates?: string[];
   created_at: string;
 }
 
@@ -33,6 +34,7 @@ export const orderItems: OrderItem[] = [
   { id: 'oi_015', order_id: 'ord_005', product_id: 'prod_004', variant_id: 'var_010', quantity: 1, unit_price: 2.99, delivery_type: 'one_time', created_at: '2024-01-23T10:00:00Z' },
   { id: 'oi_016', order_id: 'ord_005', product_id: 'prod_005', variant_id: 'var_013', quantity: 1, unit_price: 5.99, delivery_type: 'one_time', created_at: '2024-01-23T10:00:00Z' },
   { id: 'oi_017', order_id: 'ord_005', product_id: 'prod_006', variant_id: 'var_015', quantity: 1, unit_price: 4.99, delivery_type: 'subscription', subscription_duration: 30, subscription_frequency: 'daily', delivery_count: 30, discount_percent: 5, created_at: '2024-01-23T10:00:00Z' },
+  { id: 'oi_018', order_id: 'ord_006', product_id: 'prod_001', variant_id: 'var_002', quantity: 1, unit_price: 2.99, delivery_type: 'subscription', subscription_duration: 30, subscription_frequency: 'daily', delivery_count: 30, discount_percent: 10, missed_delivery_dates: ['2026-06-25', '2026-06-29'], created_at: '2026-06-21T10:00:00Z' },
 ];
 
 export function getOrderItemsByOrderId(orderId: string): OrderItem[] {

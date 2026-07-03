@@ -3,11 +3,12 @@ import { useStaticOrders } from '@/hooks/use-static-orders';
 import { Header } from '@/components/Header';
 import { MobileBackButton } from '@/components/MobileBackButton';
 import { format, addDays, isBefore, isToday, startOfDay } from 'date-fns';
-import { Package, Clock, CheckCircle, Truck, XCircle, RefreshCw, Calendar, MapPin } from 'lucide-react';
+import { Package, Clock, CheckCircle, Truck, XCircle, RefreshCw, Calendar, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Link, useParams } from 'wouter';
+import { useState } from 'react';
 import type { SubscriptionFrequency } from '@/data/product_variants';
 import { getFrequencyLabel, getFrequencyIntervalDays } from '@/data/product_variants';
 
@@ -25,13 +26,22 @@ function generateDeliveryDates(startDate: Date, deliveryCount: number, frequency
   return Array.from({ length: deliveryCount }, (_, i) => addDays(startDate, i * gap));
 }
 
-function DeliverySchedule({ item, orderDate }: { item: OrderItemWithDetails; orderDate: string }) {
+function DeliverySchedule({ item, orderDate, expanded, onToggle }: { item: OrderItemWithDetails; orderDate: string; expanded: boolean; onToggle: () => void }) {
   if (item.delivery_type !== 'subscription' || !item.subscription_duration || !item.subscription_frequency) return null;
 
   const startDate = startOfDay(new Date(orderDate));
   const deliveryDates = generateDeliveryDates(startDate, item.subscription_duration, item.subscription_frequency);
   const today = startOfDay(new Date());
   const endDate = deliveryDates[deliveryDates.length - 1] ?? startDate;
+  const missedSet = new Set(item.missed_delivery_dates ?? []);
+
+  // Pivot = index of today or first upcoming delivery
+  const pivotIndex = deliveryDates.findIndex((date) => !isBefore(date, today));
+  const effectivePivot = pivotIndex === -1 ? deliveryDates.length : pivotIndex;
+  // Collapsed: show 2 past + 2 upcoming, clamped so we always get 4 rows
+  const collapseStart = Math.max(0, Math.min(effectivePivot - 2, deliveryDates.length - 4));
+  const visibleDates = expanded ? deliveryDates : deliveryDates.slice(collapseStart, collapseStart + 4);
+  const hasMore = deliveryDates.length > 4;
 
   return (
     <Card className="p-4 mt-3 bg-emerald-50/50 border-emerald-200/60" data-testid={`schedule-${item.id}`}>
@@ -60,19 +70,24 @@ function DeliverySchedule({ item, orderDate }: { item: OrderItemWithDetails; ord
       </div>
 
       <div className="space-y-0">
-        {deliveryDates.map((date, index) => {
+        {visibleDates.map((date, sliceIndex) => {
+          const globalIndex = expanded ? sliceIndex : collapseStart + sliceIndex;
           const isPast = isBefore(date, today) && !isToday(date);
           const isTodayDate = isToday(date);
+          const isMissed = isPast && missedSet.has(format(date, 'yyyy-MM-dd'));
+          const isLast = sliceIndex === visibleDates.length - 1;
 
           return (
-            <div key={index} className="flex items-center gap-3 relative" data-testid={`delivery-date-${index}`}>
-              {index < deliveryDates.length - 1 && (
-                <div className={`absolute left-[9px] top-[22px] w-0.5 h-full ${isPast ? 'bg-emerald-300' : 'bg-gray-200'}`} />
+            <div key={globalIndex} className="flex items-center gap-3 relative" data-testid={`delivery-date-${globalIndex}`}>
+              {!isLast && (
+                <div className={`absolute left-[9px] top-[22px] w-0.5 h-full ${isPast && !isMissed ? 'bg-emerald-300' : 'bg-gray-200'}`} />
               )}
               <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center flex-shrink-0 z-10 ${
-                isPast ? 'bg-emerald-500' : isTodayDate ? 'bg-emerald-500 ring-2 ring-emerald-200' : 'bg-gray-200'
+                isMissed ? 'bg-red-400' : isPast ? 'bg-emerald-500' : isTodayDate ? 'bg-emerald-500 ring-2 ring-emerald-200' : 'bg-gray-200'
               }`}>
-                {isPast || isTodayDate ? (
+                {isMissed ? (
+                  <XCircle size={12} className="text-white" />
+                ) : isPast || isTodayDate ? (
                   <CheckCircle size={12} className="text-white" />
                 ) : (
                   <div className="w-2 h-2 rounded-full bg-gray-400" />
@@ -80,14 +95,14 @@ function DeliverySchedule({ item, orderDate }: { item: OrderItemWithDetails; ord
               </div>
               <div className={`flex-1 flex items-center justify-between gap-2 py-2.5 ${isTodayDate ? 'font-semibold' : ''}`}>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-xs ${isPast ? 'text-muted-foreground' : 'text-foreground'}`} data-testid={`text-delivery-date-${index}`}>
+                  <span className={`text-xs ${isPast ? 'text-muted-foreground' : 'text-foreground'}`} data-testid={`text-delivery-date-${globalIndex}`}>
                     {format(date, 'EEE, MMM d')}
                   </span>
                   {isTodayDate && (
-                    <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-emerald-600 h-4" data-testid={`badge-today-${index}`}>Today</Badge>
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-emerald-600 h-4" data-testid={`badge-today-${globalIndex}`}>Today</Badge>
                   )}
                 </div>
-                <span className={`text-xs ${isPast ? 'text-muted-foreground' : 'text-foreground'}`} data-testid={`text-delivery-time-${index}`}>
+                <span className={`text-xs ${isPast ? 'text-muted-foreground' : 'text-foreground'}`} data-testid={`text-delivery-time-${globalIndex}`}>
                   9:00 AM
                 </span>
               </div>
@@ -95,6 +110,20 @@ function DeliverySchedule({ item, orderDate }: { item: OrderItemWithDetails; ord
           );
         })}
       </div>
+
+      {hasMore && (
+        <button
+          onClick={onToggle}
+          className="mt-2 w-full flex items-center justify-center gap-1 text-xs text-emerald-700 font-medium py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
+          data-testid="button-toggle-schedule"
+        >
+          {expanded ? (
+            <>Show less <ChevronUp size={14} /></>
+          ) : (
+            <>View full schedule <ChevronDown size={14} /></>
+          )}
+        </button>
+      )}
     </Card>
   );
 }
@@ -117,7 +146,7 @@ function OneTimeItemCard({ item }: { item: OrderItemWithDetails }) {
   );
 }
 
-function SubscriptionItemCard({ item, orderDate }: { item: OrderItemWithDetails; orderDate: string }) {
+function SubscriptionItemCard({ item, orderDate, expandedId, onToggle }: { item: OrderItemWithDetails; orderDate: string; expandedId: string | null; onToggle: (id: string) => void }) {
   if (!item.product) return null;
   const totalCost = item.delivery_count
     ? item.unit_price * item.delivery_count * (1 - (item.discount_percent || 0) / 100)
@@ -146,7 +175,12 @@ function SubscriptionItemCard({ item, orderDate }: { item: OrderItemWithDetails;
           ${totalCost.toFixed(2)}
         </span>
       </div>
-      <DeliverySchedule item={item} orderDate={orderDate} />
+      <DeliverySchedule
+        item={item}
+        orderDate={orderDate}
+        expanded={expandedId === item.id}
+        onToggle={() => onToggle(item.id)}
+      />
     </div>
   );
 }
@@ -160,6 +194,11 @@ export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetai
   const params = useParams<{ id: string }>();
   const { getOrderDetail } = useStaticOrders();
   const order = getOrderDetail(params.id || '');
+  const [expandedScheduleId, setExpandedScheduleId] = useState<string | null>(null);
+
+  const handleScheduleToggle = (id: string) => {
+    setExpandedScheduleId((prev) => (prev === id ? null : id));
+  };
 
   if (!order) {
     return (
@@ -242,7 +281,15 @@ export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetai
               Subscription Items ({subscriptionItems.length})
             </h3>
             <div className="divide-y divide-border">
-              {subscriptionItems.map((item) => <SubscriptionItemCard key={item.id} item={item} orderDate={order.created_at} />)}
+              {subscriptionItems.map((item) => (
+                <SubscriptionItemCard
+                  key={item.id}
+                  item={item}
+                  orderDate={order.created_at}
+                  expandedId={expandedScheduleId}
+                  onToggle={handleScheduleToggle}
+                />
+              ))}
             </div>
           </Card>
         )}
