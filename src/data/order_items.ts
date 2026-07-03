@@ -27,6 +27,12 @@ export const orderItems: OrderItem[] = [
   { id: 'oi_009', order_id: 'ord_004', product_id: 'prod_021', variant_id: 'var_051', quantity: 1, unit_price: 1.49, delivery_type: 'subscription', subscription_duration: 10, subscription_frequency: 'alternate', delivery_count: 5, discount_percent: 5, created_at: '2024-01-22T08:00:00Z' },
   { id: 'oi_010', order_id: 'ord_004', product_id: 'prod_004', variant_id: 'var_010', quantity: 1, unit_price: 2.99, delivery_type: 'one_time', created_at: '2024-01-22T08:00:00Z' },
   { id: 'oi_011', order_id: 'ord_004', product_id: 'prod_010', variant_id: 'var_027', quantity: 2, unit_price: 6.99, delivery_type: 'one_time', created_at: '2024-01-22T08:00:00Z' },
+  { id: 'oi_012', order_id: 'ord_005', product_id: 'prod_001', variant_id: 'var_002', quantity: 1, unit_price: 2.99, delivery_type: 'one_time', created_at: '2024-01-23T10:00:00Z' },
+  { id: 'oi_013', order_id: 'ord_005', product_id: 'prod_002', variant_id: 'var_005', quantity: 1, unit_price: 1.99, delivery_type: 'one_time', created_at: '2024-01-23T10:00:00Z' },
+  { id: 'oi_014', order_id: 'ord_005', product_id: 'prod_003', variant_id: 'var_007', quantity: 1, unit_price: 2.49, delivery_type: 'one_time', created_at: '2024-01-23T10:00:00Z' },
+  { id: 'oi_015', order_id: 'ord_005', product_id: 'prod_004', variant_id: 'var_010', quantity: 1, unit_price: 2.99, delivery_type: 'one_time', created_at: '2024-01-23T10:00:00Z' },
+  { id: 'oi_016', order_id: 'ord_005', product_id: 'prod_005', variant_id: 'var_013', quantity: 1, unit_price: 5.99, delivery_type: 'one_time', created_at: '2024-01-23T10:00:00Z' },
+  { id: 'oi_017', order_id: 'ord_005', product_id: 'prod_006', variant_id: 'var_015', quantity: 1, unit_price: 4.99, delivery_type: 'subscription', subscription_duration: 30, subscription_frequency: 'daily', delivery_count: 30, discount_percent: 5, created_at: '2024-01-23T10:00:00Z' },
 ];
 
 export function getOrderItemsByOrderId(orderId: string): OrderItem[] {
