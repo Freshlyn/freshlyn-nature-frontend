@@ -4,13 +4,15 @@ import { useStaticAuth } from '@/hooks/use-static-auth';
 import { Header } from '@/components/Header';
 import { MobileBackButton } from '@/components/MobileBackButton';
 import { AddressModal } from '@/components/AddressModal';
+import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import {
   Plus, Minus, Trash2, ArrowRight, Loader2, ShoppingBag, Repeat,
-  Calendar, Sparkles, Package, MapPin, Clock, ChevronRight, Home, Briefcase, Tag,
+  Calendar, Sparkles, Package, MapPin, Clock, ChevronRight, Home, Briefcase, Tag, Pencil,
 } from 'lucide-react';
+import type { Product } from '@/data/products';
 import { Link, useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo } from 'react';
@@ -37,7 +39,7 @@ function getLabelIcon(label: string) {
 }
 
 export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
-  const { getCartWithProducts, updateQuantity, removeFromCart, clearCart, getCartTotal } = useStaticCart();
+  const { getCartWithProducts, updateQuantity, removeFromCart, clearCart, getCartTotal, addToCart } = useStaticCart();
   const { user } = useStaticAuth();
   const { createOrder, isPending } = useCreateStaticOrder();
   const [, setLocation] = useLocation();
@@ -47,6 +49,8 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState('7:00 AM');
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const cartItems = getCartWithProducts();
   const total = getCartTotal();
@@ -200,9 +204,14 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                         )}
 
                         {item.delivery_type === 'subscription' && (
-                          <Badge variant="outline" className="text-xs border-primary/30 text-primary">
-                            1 × {item.variant.name}
-                          </Badge>
+                          <button
+                            onClick={() => { setEditingProduct(item.product); setEditModalOpen(true); }}
+                            className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded-lg hover:bg-primary/8"
+                            data-testid={`button-edit-subscription-${item.id}`}
+                          >
+                            <Pencil size={11} />
+                            Edit plan
+                          </button>
                         )}
                       </div>
                     </div>
@@ -348,6 +357,14 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
           setSelectedAddressId(addr.id);
           setAddressModalOpen(false);
         }}
+      />
+
+      <ProductDetailModal
+        product={editingProduct}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        hideDeliveryToggle
+        onAddToCart={(params) => addToCart(params)}
       />
     </div>
   );

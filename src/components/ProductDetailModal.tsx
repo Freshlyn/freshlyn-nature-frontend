@@ -64,6 +64,7 @@ interface ProductDetailModalProps {
     subscriptionFrequency?: SubscriptionFrequency;
     subscriptionStartDate?: string;
   }) => void;
+  hideDeliveryToggle?: boolean;
 }
 
 export function ProductDetailModal({
@@ -71,6 +72,7 @@ export function ProductDetailModal({
   open,
   onOpenChange,
   onAddToCart,
+  hideDeliveryToggle = false,
 }: ProductDetailModalProps) {
   const [selectedVariantId, setSelectedVariantId] = useState("");
   const [deliveryType, setDeliveryType] = useState<"one_time" | "subscription">(
@@ -397,7 +399,7 @@ export function ProductDetailModal({
             </div>
           )}
 
-          {hasSubscription && subscriptionConfig && (
+          {hasSubscription && subscriptionConfig && !hideDeliveryToggle && (
             <div className="space-y-2">
               <Label className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
                 Delivery
