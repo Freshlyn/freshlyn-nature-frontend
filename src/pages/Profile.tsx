@@ -120,8 +120,12 @@ export default function Profile({
     .toUpperCase()
     .slice(0, 2);
 
+  const memberSinceDate = new Date(user.created_at);
+  const memberSince = `${memberSinceDate.toLocaleDateString("en-US", { month: "short" })} '${String(memberSinceDate.getFullYear()).slice(-2)}`;
+
   const menuSections = [
     {
+      label: "Account",
       items: [
         {
           icon: ClipboardList,
@@ -137,10 +141,6 @@ export default function Profile({
           action: () => setAddressDialogOpen(true),
           testId: "menu-saved-addresses",
         },
-      ],
-    },
-    {
-      items: [
         {
           icon: Bell,
           label: "Notifications",
@@ -156,6 +156,7 @@ export default function Profile({
       ],
     },
     {
+      label: "Support",
       items: [
         {
           icon: MessageCircle,
@@ -184,6 +185,7 @@ export default function Profile({
       ],
     },
     {
+      label: "Legal",
       items: [
         {
           icon: FileText,
@@ -220,71 +222,80 @@ export default function Profile({
       <main className="container mx-auto px-4 py-6 max-w-lg pb-28 md:pb-6">
         <MobileBackButton to="/" label="Back to Shop" />
 
-        <Card className="mb-5 overflow-visible" data-testid="card-user-info">
-          <div className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span
-                  className="text-xl font-bold text-primary"
-                  data-testid="text-user-initials"
-                >
-                  {userInitials}
-                </span>
+        <div
+          className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[hsl(88_58%_93%)] to-[hsl(88_54%_86%)] px-5 pt-6 pb-6 mb-5"
+          data-testid="card-user-info"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-[68px] h-[68px] rounded-full bg-[hsl(88_52%_80%)] flex items-center justify-center flex-shrink-0">
+              <span
+                className="text-xl font-extrabold text-[hsl(88_55%_26%)]"
+                data-testid="text-user-initials"
+              >
+                {userInitials}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2
+                className="text-lg font-bold text-[hsl(88_48%_20%)] truncate"
+                data-testid="text-user-name"
+              >
+                {user.name}
+              </h2>
+              <div className="flex items-center gap-1.5 text-sm text-[hsl(88_35%_30%)] mt-1">
+                <Phone size={13} />
+                <span data-testid="text-user-phone">+91 {user.phone}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <h2
-                  className="text-lg font-bold truncate"
-                  data-testid="text-user-name"
-                >
-                  {user.name}
-                </h2>
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
-                  <Phone size={13} />
-                  <span data-testid="text-user-phone">+91 {user.phone}</span>
+              {user.email && (
+                <div className="flex items-center gap-1.5 text-sm text-[hsl(88_35%_30%)] mt-0.5">
+                  <Mail size={13} />
+                  <span data-testid="text-user-email">{user.email}</span>
                 </div>
-                {user.email && (
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
-                    <Mail size={13} />
-                    <span data-testid="text-user-email">{user.email}</span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
-        </Card>
+          <span
+            className="inline-block mt-3.5 text-[11px] font-medium text-[hsl(88_50%_26%)] bg-white/65 rounded-full px-2.5 py-1"
+            data-testid="text-stat-member-since"
+          >
+            Member since {memberSince}
+          </span>
+        </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {menuSections.map((section, sIdx) => (
-            <Card
-              key={sIdx}
-              className="overflow-visible divide-y divide-border"
-            >
-              {section.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.testId}
-                    onClick={item.action}
-                    className="flex items-center gap-3.5 w-full px-4 py-3.5 text-left hover-elevate transition-colors first:rounded-t-[inherit] last:rounded-b-[inherit]"
-                    data-testid={item.testId}
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
-                      <Icon size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold">{item.label}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {item.subtitle}
-                      </p>
-                    </div>
-                    <ChevronRight
-                      size={16}
-                      className="text-muted-foreground flex-shrink-0"
-                    />
-                  </button>
-                );
-              })}
-            </Card>
+            <div key={sIdx}>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1 mb-1.5">
+                {section.label}
+              </p>
+              <Card className="overflow-visible divide-y divide-border">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.testId}
+                      onClick={item.action}
+                      className="flex items-center gap-3.5 w-full px-4 py-3.5 text-left hover-elevate transition-colors first:rounded-t-[inherit] last:rounded-b-[inherit]"
+                      data-testid={item.testId}
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
+                        <Icon size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold">{item.label}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.subtitle}
+                        </p>
+                      </div>
+                      <ChevronRight
+                        size={16}
+                        className="text-muted-foreground flex-shrink-0"
+                      />
+                    </button>
+                  );
+                })}
+              </Card>
+            </div>
           ))}
         </div>
 
