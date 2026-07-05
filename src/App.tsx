@@ -12,6 +12,8 @@ import Cart from '@/pages/Cart';
 import Orders from '@/pages/Orders';
 import OrderDetail from '@/pages/OrderDetail';
 import Profile from '@/pages/Profile';
+import TermsAndConditions from '@/pages/TermsAndConditions';
+import DataPrivacy from '@/pages/DataPrivacy';
 import AuthPage from '@/pages/Auth';
 import RegisterPage from '@/pages/Register';
 
@@ -53,6 +55,16 @@ function App() {
           <Route path="/profile">
             <ProtectedRoute>
               <Profile sidebarOpen={sidebarOpen} onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/terms">
+            <ProtectedRoute>
+              <TermsAndConditions sidebarOpen={sidebarOpen} onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/privacy">
+            <ProtectedRoute>
+              <DataPrivacy sidebarOpen={sidebarOpen} onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
             </ProtectedRoute>
           </Route>
           <Route path="/login">

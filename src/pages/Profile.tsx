@@ -185,19 +185,21 @@ export default function Profile({
       ],
     },
     {
-      label: "Legal",
+      label: "Trust & Transparency",
       items: [
         {
           icon: FileText,
           label: "Terms & Conditions",
           subtitle: "Read our terms of service",
-          action: () =>
-            setInfoDialog({
-              title: "Terms & Conditions",
-              content:
-                "Terms & Conditions\nLast updated: April 2026\n\n1. Acceptance of Terms\nBy using FreshlynNature, you agree to these terms and conditions.\n\n2. Orders & Delivery\nOrders are subject to product availability. We aim to deliver within the selected time slot.\n\n3. Pricing\nAll prices are in USD and include applicable taxes. Prices may change without prior notice.\n\n4. Cancellation & Refunds\nOrders can be cancelled before dispatch. Refunds are processed within 5-7 business days.\n\n5. Subscription Plans\nSubscription orders are prepaid. You can pause or cancel subscriptions from your account.\n\n6. Privacy\nWe respect your privacy. Please read our Privacy Policy for details on data handling.",
-            }),
+          action: () => setLocation("/terms"),
           testId: "menu-terms",
+        },
+        {
+          icon: ShieldCheck,
+          label: "Safe & Secure",
+          subtitle: "Our commitment to protecting your data",
+          action: () => setLocation("/privacy"),
+          testId: "menu-privacy",
         },
         {
           icon: Info,

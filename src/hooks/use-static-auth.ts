@@ -139,6 +139,14 @@ export function useStaticAuth() {
     emitChange();
   }, []);
 
+  const deleteAccount = useCallback(() => {
+    if (!currentUser) return;
+    const idx = users.findIndex((u) => u.id === currentUser?.id);
+    if (idx >= 0) users.splice(idx, 1);
+    currentUser = null;
+    emitChange();
+  }, []);
+
   const addAddress = useCallback(async (address: Omit<UserAddress, 'id'>) => {
     if (!currentUser) return;
     const newAddress: UserAddress = { ...address, id: `addr_${Date.now()}` };
@@ -189,6 +197,7 @@ export function useStaticAuth() {
     login,
     register,
     logout,
+    deleteAccount,
     sendOtp,
     verifyOtp,
     registerWithPhone,
