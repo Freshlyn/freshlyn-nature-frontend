@@ -203,8 +203,8 @@ export default function Profile({
         },
         {
           icon: Info,
-          label: "About FreshlynNature",
-          subtitle: "App version 1.0.0",
+          label: "About Us",
+          subtitle: "Learn more about our story",
           action: () =>
             setInfoDialog({
               title: "About FreshlynNature",
