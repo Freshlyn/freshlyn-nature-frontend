@@ -20,7 +20,6 @@ import {
   Phone,
   Mail,
   MapPin,
-  LogOut,
   ChevronRight,
   ClipboardList,
   MessageCircle,
@@ -70,6 +69,7 @@ export default function Profile({
     content: string;
   } | null>(null);
   const [newLabel, setNewLabel] = useState("Home");
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [newAddress, setNewAddress] = useState({
     flat_house: "",
     building: "",
@@ -305,10 +305,9 @@ export default function Profile({
           <Button
             variant="outline"
             className="w-full text-destructive border-destructive/30 gap-2"
-            onClick={handleLogout}
+            onClick={() => setLogoutConfirmOpen(true)}
             data-testid="button-logout"
           >
-            <LogOut size={18} />
             Log Out
           </Button>
         </div>
@@ -641,6 +640,38 @@ export default function Profile({
             data-testid="text-info-content"
           >
             {infoDialog?.content}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
+        <DialogContent className="w-[calc(100%-2rem)] rounded-2xl sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Log out?</DialogTitle>
+          </DialogHeader>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Are you sure you want to log out of your account?
+          </p>
+          <div className="mt-4 flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setLogoutConfirmOpen(false)}
+              data-testid="button-logout-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => {
+                setLogoutConfirmOpen(false);
+                handleLogout();
+              }}
+              data-testid="button-logout-confirm"
+            >
+              Log Out
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
