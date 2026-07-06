@@ -93,21 +93,14 @@ export function useStaticAuth() {
       name: string;
       phone: string;
       email?: string;
-      address: Omit<UserAddress, 'id' | 'label' | 'is_default'>;
     }): Promise<User> => {
       await new Promise((r) => setTimeout(r, 300));
-      const newAddress: UserAddress = {
-        id: `addr_${Date.now()}`,
-        label: 'Home',
-        ...data.address,
-        is_default: true,
-      };
       const newUser: User = {
         id: `usr_${Date.now()}`,
         email: data.email || null,
         name: data.name,
         phone: data.phone.replace(/\s+/g, '').replace(/-/g, ''),
-        addresses: [newAddress],
+        addresses: [],
         created_at: new Date().toISOString(),
       };
       users.push(newUser);

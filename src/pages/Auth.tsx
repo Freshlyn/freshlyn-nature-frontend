@@ -1,18 +1,18 @@
-import { useState } from 'react';
-import { useStaticAuth } from '@/hooks/use-static-auth';
-import { useLocation, Link } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2, ArrowLeft, ShoppingBag, Truck, Shield } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { useStaticAuth } from "@/hooks/use-static-auth";
+import { useLocation, Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, ArrowLeft, ShoppingBag, Truck, Shield } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-type PhoneStep = 'phone' | 'otp';
+type PhoneStep = "phone" | "otp";
 
 export default function AuthPage() {
-  const [phoneStep, setPhoneStep] = useState<PhoneStep>('phone');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
+  const [phoneStep, setPhoneStep] = useState<PhoneStep>("phone");
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
   const [isPending, setIsPending] = useState(false);
 
   const { sendOtp, verifyOtp } = useStaticAuth();
@@ -22,7 +22,11 @@ export default function AuthPage() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || phone.length < 10) {
-      toast({ variant: 'destructive', title: 'Invalid Phone', description: 'Please enter a valid phone number' });
+      toast({
+        variant: "destructive",
+        title: "Invalid Phone",
+        description: "Please enter a valid phone number",
+      });
       return;
     }
 
@@ -30,10 +34,14 @@ export default function AuthPage() {
     try {
       const result = await sendOtp(phone);
       if (result.success) {
-        toast({ title: 'OTP Sent!', description: result.message });
-        setPhoneStep('otp');
+        toast({ title: "OTP Sent!", description: result.message });
+        setPhoneStep("otp");
       } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.message,
+        });
       }
     } finally {
       setIsPending(false);
@@ -43,7 +51,11 @@ export default function AuthPage() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp || otp.length !== 6) {
-      toast({ variant: 'destructive', title: 'Invalid OTP', description: 'Please enter the 6-digit OTP' });
+      toast({
+        variant: "destructive",
+        title: "Invalid OTP",
+        description: "Please enter the 6-digit OTP",
+      });
       return;
     }
 
@@ -52,13 +64,22 @@ export default function AuthPage() {
       const result = await verifyOtp(phone, otp);
       if (result.success) {
         if (result.isNewUser) {
-          setLocation(`/register?phone=${encodeURIComponent(phone)}&verified=true`);
+          setLocation(
+            `/register?phone=${encodeURIComponent(phone)}&verified=true`,
+          );
         } else {
-          toast({ title: 'Welcome back!', description: 'Successfully logged in.' });
-          setLocation('/');
+          toast({
+            title: "Welcome back!",
+            description: "Successfully logged in.",
+          });
+          setLocation("/");
         }
       } else {
-        toast({ variant: 'destructive', title: 'Verification Failed', description: result.message });
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: result.message,
+        });
       }
     } finally {
       setIsPending(false);
@@ -66,8 +87,8 @@ export default function AuthPage() {
   };
 
   const resetPhoneFlow = () => {
-    setPhoneStep('phone');
-    setOtp('');
+    setPhoneStep("phone");
+    setOtp("");
   };
 
   return (
@@ -76,19 +97,27 @@ export default function AuthPage() {
         <div className="max-w-md mx-auto w-full space-y-8">
           <div className="space-y-3 text-center">
             <Link href="/" className="flex justify-center mb-8">
-              <img src="/logo.png" alt="Freshlyn Nature" className="h-24 md:h-28 w-auto object-contain" />
+              <img
+                src="/logo.png"
+                alt="Freshlyn Nature"
+                className="h-24 md:h-28 w-auto object-contain"
+              />
             </Link>
 
-            {phoneStep === 'phone' ? (
+            {phoneStep === "phone" ? (
               <>
-                <h1 className="text-3xl font-bold tracking-tight">Login or Sign Up</h1>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  Login or Sign Up
+                </h1>
                 <p className="text-muted-foreground text-lg">
                   Enter your phone number to login or create a new account
                 </p>
               </>
             ) : (
               <>
-                <h1 className="text-3xl font-bold tracking-tight">Verify your number</h1>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  Verify your number
+                </h1>
                 <p className="text-muted-foreground text-lg">
                   Enter the code we sent to +91 {phone}
                 </p>
@@ -96,10 +125,12 @@ export default function AuthPage() {
             )}
           </div>
 
-          {phoneStep === 'phone' ? (
+          {phoneStep === "phone" ? (
             <form onSubmit={handleSendOtp} className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="phone" className="text-base font-medium">Phone Number</Label>
+                <Label htmlFor="phone" className="text-base font-medium">
+                  Phone Number
+                </Label>
                 <div className="flex gap-2">
                   <div className="flex items-center px-4 bg-muted rounded-xl text-sm font-semibold border border-input h-12">
                     +91
@@ -109,7 +140,9 @@ export default function AuthPage() {
                     type="tel"
                     placeholder="10-digit mobile number"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    onChange={(e) =>
+                      setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+                    }
                     className="h-12 rounded-xl flex-1 text-base"
                     maxLength={10}
                     required
@@ -125,21 +158,19 @@ export default function AuthPage() {
                 data-testid="button-send-otp"
               >
                 {isPending ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending OTP...</>
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending
+                    OTP...
+                  </>
                 ) : (
-                  'Continue'
+                  "Continue"
                 )}
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">
-                By continuing, you agree to our Terms of Service and Privacy Policy
+                By continuing, you agree to our Terms of Service and Privacy
+                Policy
               </p>
-
-              <div className="text-center pt-2">
-                <p className="text-sm text-muted-foreground">
-                  New to FreshlynNature? <span className="text-primary font-semibold">We'll help you create an account</span>
-                </p>
-              </div>
             </form>
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-6">
@@ -154,13 +185,17 @@ export default function AuthPage() {
               </button>
 
               <div className="space-y-3">
-                <Label htmlFor="otp" className="text-base font-medium">Enter 6-digit OTP</Label>
+                <Label htmlFor="otp" className="text-base font-medium">
+                  Enter 6-digit OTP
+                </Label>
                 <Input
                   id="otp"
                   type="text"
                   placeholder="------"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
                   className="h-14 rounded-xl text-center text-2xl tracking-[0.5em] font-mono"
                   maxLength={6}
                   required
@@ -176,14 +211,19 @@ export default function AuthPage() {
                 data-testid="button-verify-otp"
               >
                 {isPending ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</>
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Verifying...
+                  </>
                 ) : (
-                  'Verify & Continue'
+                  "Verify & Continue"
                 )}
               </Button>
 
               <div className="text-center">
-                <span className="text-sm text-muted-foreground">Didn't receive the code? </span>
+                <span className="text-sm text-muted-foreground">
+                  Didn't receive the code?{" "}
+                </span>
                 <button
                   type="button"
                   onClick={(e) => handleSendOtp(e as any)}
@@ -202,19 +242,25 @@ export default function AuthPage() {
                 <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                   <Truck className="h-5 w-5 text-primary" />
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">Fast Delivery</p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  Fast Delivery
+                </p>
               </div>
               <div className="space-y-2">
                 <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                   <ShoppingBag className="h-5 w-5 text-primary" />
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">Fresh Products</p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  Fresh Products
+                </p>
               </div>
               <div className="space-y-2">
                 <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                   <Shield className="h-5 w-5 text-primary" />
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">Secure Payments</p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  Secure Payments
+                </p>
               </div>
             </div>
           </div>
@@ -237,7 +283,8 @@ export default function AuthPage() {
               Fresh groceries delivered in minutes
             </h2>
             <p className="text-xl text-white/80">
-              Shop from thousands of products and get them delivered to your doorstep. Quick, easy, and reliable.
+              Shop from thousands of products and get them delivered to your
+              doorstep. Quick, easy, and reliable.
             </p>
             <div className="flex gap-8 pt-4">
               <div className="space-y-1">
