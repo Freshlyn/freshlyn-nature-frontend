@@ -11,9 +11,18 @@ function buildDeps(): FinalizeAccountBanDeps {
       });
       if (banError) throw new Error(banError.message);
 
+      // GoTrue's admin API ignores phone: null/"" as a no-op (unlike email, which does
+      // clear) and rejects non-E.164 strings — overwrite with a unique all-digit dummy
+      // value hashed from userId instead, so the real number doesn't survive at the
+      // auth.users level without colliding with auth.users' phone unique index.
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(userId));
+      const dummyPhone = Array.from(new Uint8Array(digest))
+        .map((b) => (b % 10).toString())
+        .slice(0, 15)
+        .join("");
       const { error: clearError } = await admin.auth.admin.updateUserById(userId, {
         email: null,
-        phone: null,
+        phone: dummyPhone,
       });
       if (clearError) throw new Error(clearError.message);
     },
