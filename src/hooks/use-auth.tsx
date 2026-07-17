@@ -13,7 +13,7 @@ interface AuthContextValue {
   needsProfileCompletion: boolean;
   sendOtp: (phone: string) => Promise<{ success: boolean; message: string }>;
   verifyOtp: (phone: string, otp: string) => Promise<{ success: boolean; isNewUser: boolean; message: string }>;
-  updateProfile: (params: { name: string }) => Promise<void>;
+  updateProfile: (params: { name: string; email?: string }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -96,9 +96,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const updateProfile = useCallback(
-    async ({ name }: { name: string }) => {
+    async ({ name, email }: { name: string; email?: string }) => {
       if (!session) throw new Error('Not authenticated');
-      const { error } = await supabase.from('profiles').update({ name }).eq('id', session.user.id);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ name, ...(email ? { email } : {}) })
+        .eq('id', session.user.id);
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
     },

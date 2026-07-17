@@ -4,11 +4,12 @@ import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, User, Phone, ArrowLeft } from "lucide-react";
+import { Loader2, User, Phone, Mail, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [isPending, setIsPending] = useState(false);
 
   const { updateProfile, profile, isAuthenticated, isLoading, needsProfileCompletion } = useAuth();
@@ -53,7 +54,7 @@ export default function RegisterPage() {
     }
     setIsPending(true);
     try {
-      await updateProfile({ name: name.trim() });
+      await updateProfile({ name: name.trim(), email: email.trim() || undefined });
       toast({
         title: "Welcome to FreshlynNature!",
         description: "Your account has been created.",
@@ -148,6 +149,32 @@ export default function RegisterPage() {
                       data-testid="input-name"
                     />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">
+                    Email{" "}
+                    <span className="text-muted-foreground font-normal">
+                      (Optional)
+                    </span>
+                  </Label>
+                  <div className="relative">
+                    <Mail
+                      size={18}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-11 rounded-2xl pl-10"
+                      data-testid="input-email"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    For order updates and offers
+                  </p>
                 </div>
               </div>
             </section>
