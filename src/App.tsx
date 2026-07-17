@@ -73,9 +73,7 @@ function App() {
             </PublicOnlyRoute>
           </Route>
           <Route path="/register">
-            <PublicOnlyRoute>
-              <RegisterPage />
-            </PublicOnlyRoute>
+            <RegisterPage />
           </Route>
           <Route component={NotFound} />
         </Switch>
