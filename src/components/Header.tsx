@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'wouter';
 import { ShoppingCart, Search, MapPin, Menu, X } from 'lucide-react';
 import { useStaticCart } from '@/hooks/use-static-cart';
-import { useStaticAuth } from '@/hooks/use-static-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ interface HeaderProps {
 export function Header({ onSearch, location = 'Select Location', onLocationClick, sidebarOpen, onSidebarToggle }: HeaderProps) {
   const [term, setTerm] = useState('');
   const { getCartCount } = useStaticCart();
-  const { user } = useStaticAuth();
+  const { user } = useAuth();
   const [currentPath] = useLocation();
   const isHomePage = currentPath === '/';
 
