@@ -1,7 +1,7 @@
 import { Switch, Route, useLocation } from 'wouter';
 import { useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
-import { useStaticAuth } from '@/hooks/use-static-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { BottomNav } from '@/components/BottomNav';
 import { DesktopSidebar } from '@/components/DesktopSidebar';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -18,7 +18,7 @@ import AuthPage from '@/pages/Auth';
 import RegisterPage from '@/pages/Register';
 
 function App() {
-  const { user } = useStaticAuth();
+  const { user } = useAuth();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
