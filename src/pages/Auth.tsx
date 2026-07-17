@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useStaticAuth } from "@/hooks/use-static-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ export default function AuthPage() {
   const [otp, setOtp] = useState("");
   const [isPending, setIsPending] = useState(false);
 
-  const { sendOtp, verifyOtp } = useStaticAuth();
+  const { sendOtp, verifyOtp } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -267,7 +267,7 @@ export default function AuthPage() {
 
           <div className="text-center text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
             <p className="font-medium mb-1">Demo Mode</p>
-            <p>OTP will appear in browser console (F12)</p>
+            <p>Check Supabase Edge Function logs for the OTP</p>
           </div>
         </div>
       </div>
