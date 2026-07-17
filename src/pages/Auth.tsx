@@ -64,9 +64,7 @@ export default function AuthPage() {
       const result = await verifyOtp(phone, otp);
       if (result.success) {
         if (result.isNewUser) {
-          setLocation(
-            `/register?phone=${encodeURIComponent(phone)}&verified=true`,
-          );
+          setLocation("/register");
         } else {
           toast({
             title: "Welcome back!",
