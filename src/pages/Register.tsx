@@ -1,24 +1,32 @@
 import { useState, useEffect } from "react";
-import { useStaticAuth } from "@/hooks/use-static-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, User, Phone, Mail, ArrowLeft } from "lucide-react";
+import { Loader2, User, Phone, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
-  const { sendOtp, verifyOtp, registerWithPhone } = useStaticAuth();
+  const { sendOtp, verifyOtp, updateProfile, isAuthenticated, isLoading, needsProfileCompletion } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      setLocation('/login', { replace: true });
+    } else if (!needsProfileCompletion) {
+      setLocation('/', { replace: true });
+    }
+  }, [isLoading, isAuthenticated, needsProfileCompletion, setLocation]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -70,14 +78,6 @@ export default function RegisterPage() {
     try {
       const result = await verifyOtp(phone, otp);
       if (result.success) {
-        if (!result.isNewUser && result.user) {
-          toast({
-            title: "Account exists!",
-            description: "You already have an account. Logging you in...",
-          });
-          setLocation("/");
-          return;
-        }
         toast({
           title: "Phone verified!",
           description: "Now complete your profile.",
@@ -107,11 +107,7 @@ export default function RegisterPage() {
     }
     setIsPending(true);
     try {
-      await registerWithPhone({
-        name: name.trim(),
-        phone: `+91${phone}`,
-        email: email.trim() || undefined,
-      });
+      await updateProfile({ name: name.trim() });
       toast({
         title: "Welcome to FreshlynNature!",
         description: "Your account has been created.",
@@ -302,32 +298,6 @@ export default function RegisterPage() {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">
-                        Email{" "}
-                        <span className="text-muted-foreground">
-                          (Optional)
-                        </span>
-                      </Label>
-                      <div className="relative">
-                        <Mail
-                          size={18}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                        />
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="your@email.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="h-11 rounded-2xl pl-10"
-                          data-testid="input-email"
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        For order updates and offers
-                      </p>
-                    </div>
                   </div>
                 </section>
 
@@ -353,7 +323,7 @@ export default function RegisterPage() {
           <div className="mt-6 text-center text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
             <p className="font-medium mb-1">Demo Mode</p>
             <p>
-              Enter any 10-digit phone number. Check browser console for OTP.
+              Enter any 10-digit phone number. Check Supabase Edge Function logs for the OTP.
             </p>
           </div>
       </main>
