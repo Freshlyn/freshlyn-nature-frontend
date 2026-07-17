@@ -79,10 +79,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       const result = data!;
       if (result.success) {
-        await supabase.auth.setSession({
+        const { data: setSessionData } = await supabase.auth.setSession({
           access_token: result.session.access_token,
           refresh_token: result.session.refresh_token,
         });
+        // setSession resolving does not guarantee AuthProvider's own
+        // `session` state (updated via the onAuthStateChange listener) has
+        // re-rendered yet. Push it into state directly so callers that
+        // navigate immediately after verifyOtp() see isAuthenticated=true
+        // on the very next render, instead of racing the listener.
+        setSession(setSessionData.session);
       }
       return { success: result.success, isNewUser: result.isNewUser, message: result.message };
     },
