@@ -1,10 +1,9 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import type { User, UserAddress } from '@/data/users';
-import { users, getUserByEmail, getUserByPhone, getDefaultAddress } from '@/data/users';
+import { users, getDefaultAddress } from '@/data/users';
 
 let currentUser: User | null = null;
 let listeners: Set<() => void> = new Set();
-let pendingOtp: { phone: string; otp: string; expiresAt: number } | null = null;
 
 function emitChange() {
   listeners.forEach((l) => l());
@@ -19,113 +18,8 @@ function getSnapshot() {
   return currentUser;
 }
 
-function generateOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
 export function useStaticAuth() {
   const user = useSyncExternalStore(subscribe, getSnapshot, () => null);
-
-  const login = useCallback(async (email: string, _password: string) => {
-    await new Promise((r) => setTimeout(r, 300));
-    let found = getUserByEmail(email);
-    if (found) {
-      currentUser = found;
-      emitChange();
-      return found;
-    }
-    const newUser: User = {
-      id: `usr_${Date.now()}`,
-      email,
-      name: email.split('@')[0],
-      phone: '',
-      addresses: [],
-      created_at: new Date().toISOString(),
-    };
-    users.push(newUser);
-    currentUser = newUser;
-    emitChange();
-    return newUser;
-  }, []);
-
-  const sendOtp = useCallback(async (phone: string): Promise<{ success: boolean; message: string }> => {
-    await new Promise((r) => setTimeout(r, 500));
-    const otp = generateOtp();
-    pendingOtp = {
-      phone: phone.replace(/\s+/g, '').replace(/-/g, ''),
-      otp,
-      expiresAt: Date.now() + 5 * 60 * 1000,
-    };
-    console.log(`[Demo] OTP for ${phone}: ${otp}`);
-    return { success: true, message: `OTP sent to ${phone}. (Demo: Check console for OTP: ${otp})` };
-  }, []);
-
-  const verifyOtp = useCallback(
-    async (phone: string, otp: string): Promise<{ success: boolean; user?: User; isNewUser: boolean; message: string }> => {
-      await new Promise((r) => setTimeout(r, 300));
-      const normalizedPhone = phone.replace(/\s+/g, '').replace(/-/g, '');
-
-      if (!pendingOtp || pendingOtp.phone !== normalizedPhone) {
-        return { success: false, isNewUser: false, message: 'Please request a new OTP' };
-      }
-      if (Date.now() > pendingOtp.expiresAt) {
-        pendingOtp = null;
-        return { success: false, isNewUser: false, message: 'OTP has expired. Please request a new one.' };
-      }
-      if (pendingOtp.otp !== otp) {
-        return { success: false, isNewUser: false, message: 'Invalid OTP. Please try again.' };
-      }
-
-      pendingOtp = null;
-      const existing = getUserByPhone(phone);
-      if (existing) {
-        currentUser = existing;
-        emitChange();
-        return { success: true, user: existing, isNewUser: false, message: 'Login successful!' };
-      }
-      return { success: true, isNewUser: true, message: 'OTP verified. Please complete registration.' };
-    },
-    [],
-  );
-
-  const registerWithPhone = useCallback(
-    async (data: {
-      name: string;
-      phone: string;
-      email?: string;
-    }): Promise<User> => {
-      await new Promise((r) => setTimeout(r, 300));
-      const newUser: User = {
-        id: `usr_${Date.now()}`,
-        email: data.email || null,
-        name: data.name,
-        phone: data.phone.replace(/\s+/g, '').replace(/-/g, ''),
-        addresses: [],
-        created_at: new Date().toISOString(),
-      };
-      users.push(newUser);
-      currentUser = newUser;
-      emitChange();
-      return newUser;
-    },
-    [],
-  );
-
-  const register = useCallback(async (email: string, _password: string, name?: string) => {
-    await new Promise((r) => setTimeout(r, 300));
-    const newUser: User = {
-      id: `usr_${Date.now()}`,
-      email,
-      name: name || email.split('@')[0],
-      phone: '',
-      addresses: [],
-      created_at: new Date().toISOString(),
-    };
-    users.push(newUser);
-    currentUser = newUser;
-    emitChange();
-    return newUser;
-  }, []);
 
   const logout = useCallback(() => {
     currentUser = null;
@@ -187,13 +81,8 @@ export function useStaticAuth() {
     user,
     isLoading: false,
     isAuthenticated: !!user,
-    login,
-    register,
     logout,
     deleteAccount,
-    sendOtp,
-    verifyOtp,
-    registerWithPhone,
     addAddress,
     setDefaultAddress,
     deleteAddress,

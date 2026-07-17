@@ -119,19 +119,6 @@ export function getUserById(id: string): User | undefined {
   return users.find((u) => u.id === id);
 }
 
-export function getUserByEmail(email: string): User | undefined {
-  return users.find((u) => u.email === email);
-}
-
-export function getUserByPhone(phone: string): User | undefined {
-  const normalizedInput = phone.replace(/\s+/g, '').replace(/-/g, '').replace(/^\+91/, '');
-  const last10 = normalizedInput.slice(-10);
-  return users.find((u) => {
-    const userLast10 = u.phone.replace(/\s+/g, '').replace(/-/g, '').replace(/^\+91/, '').slice(-10);
-    return userLast10 === last10;
-  });
-}
-
 export function getDefaultAddress(user: User): UserAddress | undefined {
   return user.addresses.find((a) => a.is_default) || user.addresses[0];
 }
