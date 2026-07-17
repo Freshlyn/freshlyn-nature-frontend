@@ -1,19 +1,20 @@
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { useStaticAuth } from '@/hooks/use-static-auth';
+import { useAuth } from '@/hooks/use-auth';
 
 interface PublicOnlyRouteProps {
   children: React.ReactNode;
 }
 
 export function PublicOnlyRoute({ children }: PublicOnlyRouteProps) {
-  const { isAuthenticated } = useStaticAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [, navigate] = useLocation();
 
   useEffect(() => {
+    if (isLoading) return;
     if (isAuthenticated) navigate('/', { replace: true });
-  }, [isAuthenticated, navigate]);
+  }, [isLoading, isAuthenticated, navigate]);
 
-  if (isAuthenticated) return null;
+  if (isLoading || isAuthenticated) return null;
   return <>{children}</>;
 }
