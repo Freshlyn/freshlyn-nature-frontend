@@ -1,5 +1,5 @@
-import type { OrderItemWithDetails } from '@/hooks/use-static-orders';
-import { useStaticOrders } from '@/hooks/use-static-orders';
+import type { OrderItemWithDetails } from '@/hooks/use-orders';
+import { useOrder } from '@/hooks/use-orders';
 import { Header } from '@/components/Header';
 import { MobileBackButton } from '@/components/MobileBackButton';
 import { format, addDays, isBefore, isToday, startOfDay } from 'date-fns';
@@ -27,13 +27,13 @@ function generateDeliveryDates(startDate: Date, deliveryCount: number, frequency
 }
 
 function DeliverySchedule({ item, orderDate, expanded, onToggle }: { item: OrderItemWithDetails; orderDate: string; expanded: boolean; onToggle: () => void }) {
-  if (item.delivery_type !== 'subscription' || !item.subscription_duration || !item.subscription_frequency) return null;
+  if (item.delivery_type !== 'subscription' || !item.subscription_duration_days || !item.subscription_frequency) return null;
 
   const startDate = startOfDay(new Date(orderDate));
-  const deliveryDates = generateDeliveryDates(startDate, item.subscription_duration, item.subscription_frequency);
+  const deliveryDates = generateDeliveryDates(startDate, item.subscription_duration_days, item.subscription_frequency);
   const today = startOfDay(new Date());
   const endDate = deliveryDates[deliveryDates.length - 1] ?? startDate;
-  const missedSet = new Set(item.missed_delivery_dates ?? []);
+  const missedSet = new Set<string>();
 
   // Pivot = index of today or first upcoming delivery
   const pivotIndex = deliveryDates.findIndex((date) => !isBefore(date, today));
@@ -57,11 +57,11 @@ function DeliverySchedule({ item, orderDate, expanded, onToggle }: { item: Order
         </div>
         <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
           <span className="text-muted-foreground block">Plan</span>
-          <span className="font-semibold text-foreground" data-testid={`text-duration-${item.id}`}>{item.subscription_duration} Deliveries</span>
+          <span className="font-semibold text-foreground" data-testid={`text-duration-${item.id}`}>{item.subscription_duration_days} Deliveries</span>
         </div>
         <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
           <span className="text-muted-foreground block">Total Deliveries</span>
-          <span className="font-semibold text-foreground" data-testid={`text-deliveries-${item.id}`}>{item.delivery_count}</span>
+          <span className="font-semibold text-foreground" data-testid={`text-deliveries-${item.id}`}>{item.subscription_duration_days}</span>
         </div>
         <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
           <span className="text-muted-foreground block">Ends on</span>
@@ -133,7 +133,7 @@ function OneTimeItemCard({ item }: { item: OrderItemWithDetails }) {
   return (
     <div className="flex items-center gap-3 py-3" data-testid={`order-item-${item.id}`}>
       <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-        <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
+        <img src={item.product.image_url ?? undefined} alt={item.product.name} className="w-full h-full object-cover" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm truncate" data-testid={`text-item-name-${item.id}`}>{item.product.name}</p>
@@ -148,15 +148,15 @@ function OneTimeItemCard({ item }: { item: OrderItemWithDetails }) {
 
 function SubscriptionItemCard({ item, orderDate, expandedId, onToggle }: { item: OrderItemWithDetails; orderDate: string; expandedId: string | null; onToggle: (id: string) => void }) {
   if (!item.product) return null;
-  const totalCost = item.delivery_count
-    ? item.unit_price * item.delivery_count * (1 - (item.discount_percent || 0) / 100)
+  const totalCost = item.subscription_duration_days
+    ? item.unit_price * item.subscription_duration_days * (1 - (item.discount_percent || 0) / 100)
     : item.unit_price * item.quantity;
 
   return (
     <div data-testid={`order-item-${item.id}`}>
       <div className="flex items-center gap-3 py-3">
         <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-          <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
+          <img src={item.product.image_url ?? undefined} alt={item.product.name} className="w-full h-full object-cover" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -167,7 +167,7 @@ function SubscriptionItemCard({ item, orderDate, expandedId, onToggle }: { item:
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {item.variant?.name} · {item.delivery_count} deliveries
+            {item.variant?.name} · {item.subscription_duration_days} deliveries
             {item.discount_percent ? ` · ${item.discount_percent}% off` : ''}
           </p>
         </div>
@@ -192,8 +192,7 @@ interface OrderDetailProps {
 
 export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetailProps) {
   const params = useParams<{ id: string }>();
-  const { getOrderDetail } = useStaticOrders();
-  const order = getOrderDetail(params.id || '');
+  const { data: order } = useOrder(params.id || '');
   const [expandedScheduleId, setExpandedScheduleId] = useState<string | null>(null);
 
   const handleScheduleToggle = (id: string) => {
@@ -225,8 +224,8 @@ export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetai
   const subscriptionItems = order.items.filter((item) => item.delivery_type === 'subscription');
 
   const computedSubtotal = order.items.reduce((sum, item) => {
-    if (item.delivery_type === 'subscription' && item.delivery_count) {
-      return sum + item.unit_price * item.delivery_count * (1 - (item.discount_percent || 0) / 100);
+    if (item.delivery_type === 'subscription' && item.subscription_duration_days) {
+      return sum + item.unit_price * item.subscription_duration_days * (1 - (item.discount_percent || 0) / 100);
     }
     return sum + item.unit_price * item.quantity;
   }, 0);

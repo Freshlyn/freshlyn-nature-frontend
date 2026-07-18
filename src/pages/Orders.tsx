@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useStaticOrders } from '@/hooks/use-static-orders';
+import { useOrders } from '@/hooks/use-orders';
 import { Header } from '@/components/Header';
 import { MobileBackButton } from '@/components/MobileBackButton';
 import { ShoppingBag } from 'lucide-react';
@@ -15,7 +15,7 @@ interface OrdersProps {
 }
 
 export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
-  const { orders, isLoading } = useStaticOrders();
+  const { data: orders = [], isLoading } = useOrders();
   const [filters, setFilters] = useState(DEFAULT_ORDER_FILTERS);
 
   const filteredOrders = useMemo(() => filterOrders(orders, filters), [orders, filters]);

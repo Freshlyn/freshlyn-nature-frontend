@@ -1,4 +1,4 @@
-import type { OrderWithItems } from '@/hooks/use-static-orders';
+import type { OrderWithItems } from '@/hooks/use-orders';
 import { format } from 'date-fns';
 import { ChevronRight, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -59,7 +59,7 @@ export function OrderCardTracker({ order }: OrderCardProps) {
                   key={item.id}
                   className="w-10 h-10 rounded-xl overflow-hidden border-2 border-white bg-muted flex-shrink-0 shadow-sm"
                 >
-                  <img src={item.product!.image_url} alt={item.product!.name} className="w-full h-full object-cover" />
+                  <img src={item.product!.image_url ?? undefined} alt={item.product!.name} className="w-full h-full object-cover" />
                 </div>
               ))}
               {extraItemCount > 0 && (

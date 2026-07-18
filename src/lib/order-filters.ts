@@ -1,4 +1,4 @@
-import type { OrderWithItems } from '@/hooks/use-static-orders';
+import type { OrderWithItems } from '@/hooks/use-orders';
 import type { OrderFilterState } from '@/components/orders/orderFilterTypes';
 
 const ACTIVE_STATUSES = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
