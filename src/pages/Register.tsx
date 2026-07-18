@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -16,25 +16,16 @@ export default function RegisterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      setLocation('/login', { replace: true });
+    } else if (!needsProfileCompletion) {
+      setLocation('/', { replace: true });
+    }
+  }, [isLoading, isAuthenticated, needsProfileCompletion, setLocation]);
 
-  if (!isAuthenticated) {
-    setLocation('/login', { replace: true });
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!needsProfileCompletion) {
-    setLocation('/', { replace: true });
+  if (isLoading || !isAuthenticated || !needsProfileCompletion) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
