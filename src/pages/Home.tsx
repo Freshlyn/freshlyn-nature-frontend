@@ -43,7 +43,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
   const [category, setCategory] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const debouncedSearch = useDebounce(search, 300);
-  const [location, setLocation] = useState('Set Location');
+  const [location] = useState('Set Location');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
 

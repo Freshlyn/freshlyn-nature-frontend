@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { UserAddress } from '@/data/users';
+import type { UserAddress } from '@/types/user';
 import { useAddresses, useAddAddress, useSetDefaultAddress, useDeleteAddress } from '@/hooks/use-addresses';
 import { MapPin, Plus, Check, Trash2, Home, Briefcase, Tag } from 'lucide-react';
 

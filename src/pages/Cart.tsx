@@ -9,17 +9,16 @@ import { AddressModal } from '@/components/AddressModal';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import {
   Plus, Minus, Trash2, ArrowRight, Loader2, ShoppingBag, Repeat,
   Calendar, Sparkles, Package, MapPin, Clock, ChevronRight, Home, Briefcase, Tag, Pencil,
 } from 'lucide-react';
-import type { Product } from '@/data/products';
+import type { Product } from '@/hooks/use-products';
+import { getFrequencyLabel, useProducts } from '@/hooks/use-products';
 import { Link, useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo } from 'react';
-import { getFrequencyLabel } from '@/data/product_variants';
-import type { UserAddress } from '@/data/users';
+import type { UserAddress } from '@/types/user';
 
 interface CartProps {
   sidebarOpen?: boolean;
@@ -41,7 +40,8 @@ function getLabelIcon(label: string) {
 }
 
 export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
-  const { getCartWithProducts, updateQuantity, removeFromCart, clearCart, getCartTotal, addToCart } = useStaticCart();
+  const { data: allProducts = [] } = useProducts();
+  const { getCartWithProducts, updateQuantity, removeFromCart, clearCart, getCartTotal, addToCart } = useStaticCart(allProducts);
   const { isAuthenticated } = useAuth();
   const { data: addresses = [] } = useAddresses();
   const { mutateAsync: checkout, isPending } = useCheckout();
@@ -139,7 +139,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                 <div key={item.id} className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-border/40 hover:shadow-md transition-shadow" data-testid={`cart-item-${item.id}`}>
                   <div className="flex gap-3 md:gap-4">
                     <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-gradient-to-br from-muted/50 to-muted/20 overflow-hidden flex-shrink-0 border border-border/30">
-                      <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
+                      <img src={item.product.image_url ?? undefined} alt={item.product.name} className="w-full h-full object-cover" />
                     </div>
 
                     <div className="flex-1 min-w-0">

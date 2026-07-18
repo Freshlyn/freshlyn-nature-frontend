@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { UserAddress } from '@/data/users';
+import type { UserAddress } from '@/types/user';
 
 const ADDRESSES_KEY = ['addresses'];
 

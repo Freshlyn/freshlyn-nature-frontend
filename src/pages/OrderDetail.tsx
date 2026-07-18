@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Link, useParams } from 'wouter';
 import { useState } from 'react';
-import type { SubscriptionFrequency } from '@/data/product_variants';
-import { getFrequencyLabel, getFrequencyIntervalDays } from '@/data/product_variants';
+import type { SubscriptionFrequency } from '@/hooks/use-products';
+import { getFrequencyLabel, getFrequencyIntervalDays } from '@/hooks/use-products';
 
 const statusConfig: Record<string, { icon: typeof Clock; label: string; variant: string }> = {
   pending: { icon: Clock, label: 'Pending', variant: 'secondary' },

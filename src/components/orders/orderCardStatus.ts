@@ -1,7 +1,6 @@
 import { Truck, CheckCircle, XCircle, type LucideIcon } from 'lucide-react';
-import type { Order } from '@/data/orders';
+import type { OrderStatus } from '@/hooks/use-orders';
 
-export type OrderStatus = Order['status'];
 export type DisplayStatus = 'active' | 'delivered' | 'cancelled';
 
 interface StatusMeta {
