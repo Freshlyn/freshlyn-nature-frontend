@@ -1,6 +1,8 @@
 import { useStaticCart } from '@/hooks/use-static-cart';
-import { useCreateStaticOrder } from '@/hooks/use-static-orders';
-import { useStaticAuth } from '@/hooks/use-static-auth';
+import { useAuth } from '@/hooks/use-auth';
+import { useAddresses } from '@/hooks/use-addresses';
+import { useCheckout } from '@/hooks/use-checkout';
+import { getErrorMessage } from '@/lib/errors';
 import { Header } from '@/components/Header';
 import { MobileBackButton } from '@/components/MobileBackButton';
 import { AddressModal } from '@/components/AddressModal';
@@ -40,8 +42,9 @@ function getLabelIcon(label: string) {
 
 export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
   const { getCartWithProducts, updateQuantity, removeFromCart, clearCart, getCartTotal, addToCart } = useStaticCart();
-  const { user } = useStaticAuth();
-  const { createOrder, isPending } = useCreateStaticOrder();
+  const { isAuthenticated } = useAuth();
+  const { data: addresses = [] } = useAddresses();
+  const { mutateAsync: checkout, isPending } = useCheckout();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -60,13 +63,12 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
   const hasSubscriptionItems = useMemo(() => cartItems.some((item) => item.delivery_type === 'subscription'), [cartItems]);
 
   const selectedAddress = useMemo((): UserAddress | undefined => {
-    if (!user) return undefined;
-    if (selectedAddressId) return user.addresses.find((a) => a.id === selectedAddressId);
-    return user.addresses.find((a) => a.is_default) || user.addresses[0];
-  }, [user, selectedAddressId]);
+    if (selectedAddressId) return addresses.find((a) => a.id === selectedAddressId);
+    return addresses.find((a) => a.is_default) || addresses[0];
+  }, [addresses, selectedAddressId]);
 
   const handleCheckout = async () => {
-    if (!user) {
+    if (!isAuthenticated) {
       toast({ title: 'Please login', description: 'You need to be logged in to place an order', variant: 'destructive' });
       setLocation('/login');
       return;
@@ -78,11 +80,12 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
     }
     setIsCheckingOut(true);
     try {
-      await createOrder({ addressId: selectedAddress?.id, deliveryTime: hasSubscriptionItems ? selectedTime : undefined });
+      await checkout({ addressId: selectedAddress.id, cartItems });
       toast({ title: 'Order Placed!', description: 'Your groceries are on the way!' });
+      clearCart();
       setLocation('/orders');
-    } catch {
-      toast({ title: 'Error', description: 'Failed to place order. Try again.', variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Error', description: await getErrorMessage(err), variant: 'destructive' });
     } finally {
       setIsCheckingOut(false);
     }
@@ -221,7 +224,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
             </div>
 
             <div className="md:col-span-1 space-y-4">
-              {user && (
+              {isAuthenticated && (
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-border/40">
                   <div className="flex items-center justify-between mb-3 gap-2">
                     <h3 className="font-bold text-sm flex items-center gap-2">
