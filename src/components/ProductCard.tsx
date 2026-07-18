@@ -1,19 +1,19 @@
-import type { Product } from '@/data/products';
+import type { Product } from '@/hooks/use-products';
 import { Button } from '@/components/ui/button';
-import { isSubscriptionEnabled } from '@/data/product_variants';
 import { Repeat, Plus } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
+  startingPrice: number;
+  hasSubscription: boolean;
   quantity?: number;
   onAdd: () => void;
 }
 
-export function ProductCard({ product, quantity = 0, onAdd }: ProductCardProps) {
+export function ProductCard({ product, startingPrice, hasSubscription, quantity = 0, onAdd }: ProductCardProps) {
   const imageSrc = product.image_url?.startsWith('http')
     ? product.image_url
     : `https://placehold.co/400x400/f3f4f6/a3a3a3?text=${encodeURIComponent(product.name)}`;
-  const hasSubscription = isSubscriptionEnabled(product.id);
 
   return (
     <div
@@ -58,8 +58,8 @@ export function ProductCard({ product, quantity = 0, onAdd }: ProductCardProps) 
 
         <div className="mt-3 pt-3 border-t border-border/50 flex items-end justify-between gap-2">
           <div className="flex flex-col">
-            <span className="text-[10px] text-muted-foreground/70 line-through">${(product.price * 1.2).toFixed(2)}</span>
-            <span className="font-display font-bold text-lg text-foreground leading-none">${product.price.toFixed(2)}</span>
+            <span className="text-[10px] text-muted-foreground/70">From</span>
+            <span className="font-display font-bold text-lg text-foreground leading-none">${startingPrice.toFixed(2)}</span>
           </div>
 
           <Button

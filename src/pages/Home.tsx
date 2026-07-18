@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductCardSkeleton } from '@/components/ProductCardSkeleton';
-import { useStaticProducts } from '@/hooks/use-static-products';
+import { useProducts, useProduct } from '@/hooks/use-products';
 import { useStaticCart } from '@/hooks/use-static-cart';
 import { useDebounce } from '@/hooks/use-debounce';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
-import type { Product } from '@/data/products';
-import type { SubscriptionFrequency } from '@/data/product_variants';
+import type { Product, SubscriptionFrequency } from '@/hooks/use-products';
 import { Truck, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,6 +21,19 @@ const CATEGORIES = [
   { id: 'beverages', name: 'Beverages', icon: '🧃' },
 ];
 
+function ProductCardContainer({ product, quantity, onAdd }: { product: Product; quantity: number; onAdd: () => void }) {
+  const { data: detail } = useProduct(product.id);
+  return (
+    <ProductCard
+      product={product}
+      startingPrice={detail?.startingPrice ?? 0}
+      hasSubscription={!!detail?.subscriptionConfig?.enabled}
+      quantity={quantity}
+      onAdd={onAdd}
+    />
+  );
+}
+
 interface HomeProps {
   sidebarOpen?: boolean;
   onSidebarToggle?: () => void;
@@ -35,7 +47,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
 
-  const { data: products, isLoading: loadingProducts } = useStaticProducts({
+  const { data: products, isLoading: loadingProducts } = useProducts({
     category: category === 'all' ? undefined : category,
     search: debouncedSearch || undefined,
   });
@@ -202,7 +214,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5" data-testid="product-grid">
               {products?.map((product) => (
-                <ProductCard
+                <ProductCardContainer
                   key={product.id}
                   product={product}
                   quantity={getQuantity(product.id)}
