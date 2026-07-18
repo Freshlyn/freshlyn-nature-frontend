@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useStaticAuth } from "@/hooks/use-static-auth";
+import { useAuth } from "@/hooks/use-auth";
+import { useAddresses, useAddAddress, useSetDefaultAddress, useDeleteAddress } from "@/hooks/use-addresses";
 import { useLocation } from "wouter";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -59,8 +60,11 @@ export default function Profile({
   sidebarOpen,
   onSidebarToggle,
 }: ProfileProps) {
-  const { user, logout, addAddress, deleteAddress, setDefaultAddress } =
-    useStaticAuth();
+  const { user, logout } = useAuth();
+  const { data: addresses = [] } = useAddresses();
+  const { mutateAsync: addAddress } = useAddAddress();
+  const { mutateAsync: setDefaultAddress } = useSetDefaultAddress();
+  const { mutateAsync: deleteAddress } = useDeleteAddress();
   const [, setLocation] = useLocation();
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -97,7 +101,7 @@ export default function Profile({
       return;
     await addAddress({
       label: newLabel,
-      is_default: user.addresses.length === 0,
+      is_default: addresses.length === 0,
       ...newAddress,
     });
     setShowAddForm(false);
@@ -137,7 +141,7 @@ export default function Profile({
         {
           icon: MapPin,
           label: "Saved Addresses",
-          subtitle: `${user.addresses.length} saved address${user.addresses.length !== 1 ? "es" : ""}`,
+          subtitle: `${addresses.length} saved address${addresses.length !== 1 ? "es" : ""}`,
           action: () => setAddressDialogOpen(true),
           testId: "menu-saved-addresses",
         },
@@ -335,7 +339,7 @@ export default function Profile({
           </DialogHeader>
 
           <div className="space-y-3 mt-2">
-            {user.addresses.length === 0 && !showAddForm && (
+            {addresses.length === 0 && !showAddForm && (
               <div className="text-center py-8">
                 <div className="w-14 h-14 mx-auto rounded-full bg-muted flex items-center justify-center mb-3">
                   <MapPin size={24} className="text-muted-foreground" />
@@ -349,7 +353,7 @@ export default function Profile({
               </div>
             )}
 
-            {user.addresses.map((addr) => (
+            {addresses.map((addr) => (
               <Card
                 key={addr.id}
                 className={`p-3 transition-all ${addr.is_default ? "border-primary/40 ring-1 ring-primary/20" : ""}`}
@@ -394,18 +398,18 @@ export default function Profile({
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground"
-                        onClick={() => setDefaultAddress(addr.id)}
+                        onClick={() => { void setDefaultAddress(addr.id); }}
                         data-testid={`button-set-default-${addr.id}`}
                       >
                         <Check size={14} />
                       </Button>
                     )}
-                    {user.addresses.length > 1 && (
+                    {addresses.length > 1 && (
                       <Button
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground"
-                        onClick={() => deleteAddress(addr.id)}
+                        onClick={() => { void deleteAddress(addr.id); }}
                         data-testid={`button-delete-address-${addr.id}`}
                       >
                         <Trash2 size={14} />

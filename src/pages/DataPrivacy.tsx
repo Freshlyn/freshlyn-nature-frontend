@@ -12,7 +12,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useStaticAuth } from "@/hooks/use-static-auth";
+import { useDeleteAccount } from "@/hooks/use-account-deletion";
+import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/errors";
 
 interface DataPrivacyProps {
   sidebarOpen?: boolean;
@@ -117,14 +119,19 @@ export default function DataPrivacy({
   sidebarOpen,
   onSidebarToggle,
 }: DataPrivacyProps) {
-  const { deleteAccount } = useStaticAuth();
+  const { mutateAsync: deleteAccount } = useDeleteAccount();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
 
-  const handleConfirmDelete = () => {
-    deleteAccount();
-    setLocation("/login");
+  const handleConfirmDelete = async () => {
+    try {
+      await deleteAccount();
+      setLocation("/login");
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: await getErrorMessage(err) });
+    }
   };
 
   return (
