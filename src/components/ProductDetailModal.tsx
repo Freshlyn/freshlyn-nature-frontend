@@ -14,18 +14,8 @@ import {
   getDay,
   differenceInCalendarDays,
 } from "date-fns";
-import type { Product } from "@/data/products";
-import type {
-  ProductVariant,
-  SubscriptionFrequency,
-} from "@/data/product_variants";
-import {
-  getVariantsForProduct,
-  getSubscriptionConfig,
-  isSubscriptionEnabled,
-  getFrequencyLabel,
-  getFrequencyIntervalDays,
-} from "@/data/product_variants";
+import type { Product, SubscriptionFrequency } from "@/hooks/use-products";
+import { useProduct, getFrequencyLabel, getFrequencyIntervalDays } from "@/hooks/use-products";
 import {
   Dialog,
   DialogContent,
@@ -106,6 +96,11 @@ export function ProductDetailModal({
   } = useStaticCart();
   const { toast } = useToast();
 
+  const { data: productDetail } = useProduct(product?.id ?? null);
+  const variants = productDetail?.variants ?? [];
+  const subscriptionConfig = productDetail?.subscriptionConfig ?? null;
+  const hasSubscription = !!productDetail?.subscriptionConfig?.enabled;
+
   const existingSubscriptionItem = useMemo(
     () =>
       product
@@ -136,18 +131,6 @@ export function ProductDetailModal({
     setTimeout(() => onOpenChange(false), 200);
   };
 
-  const variants = useMemo(
-    () => (product ? getVariantsForProduct(product.id) : []),
-    [product],
-  );
-  const subscriptionConfig = useMemo(
-    () => (product ? getSubscriptionConfig(product.id) : null),
-    [product],
-  );
-  const hasSubscription = useMemo(
-    () => (product ? isSubscriptionEnabled(product.id) : false),
-    [product],
-  );
   const selectedVariant = useMemo(
     () => variants.find((v) => v.id === selectedVariantId),
     [variants, selectedVariantId],
@@ -185,8 +168,8 @@ export function ProductDetailModal({
   }, [selectedVariant, deliveryType, deliveryCount, selectedDurationOption]);
 
   useEffect(() => {
-    if (open && product) {
-      const productVariants = getVariantsForProduct(product.id);
+    if (open && product && productDetail) {
+      const productVariants = productDetail.variants;
       const existingSub = cart.find(
         (item) =>
           item.product_id === product.id &&
@@ -198,7 +181,7 @@ export function ProductDetailModal({
           item.product_id === product.id &&
           item.delivery_type === "one_time",
       );
-      const config = getSubscriptionConfig(product.id);
+      const config = productDetail.subscriptionConfig;
 
       const nextMinStartDate = startOfDay(addDays(new Date(), 1));
 
@@ -230,7 +213,7 @@ export function ProductDetailModal({
         setCalendarViewMonth(startOfMonth(nextMinStartDate));
       } else {
         setSelectedVariantId(productVariants[0]?.id || "");
-        const hasSub = isSubscriptionEnabled(product.id);
+        const hasSub = !!config?.enabled;
         const initialDeliveryType = hasSub ? "subscription" : "one_time";
         setDeliveryType(initialDeliveryType);
         setDisplayedDeliveryType(initialDeliveryType);
@@ -252,7 +235,7 @@ export function ProductDetailModal({
       setShowCalendar(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, product]);
+  }, [open, product, productDetail]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -321,7 +304,7 @@ export function ProductDetailModal({
         <div className="relative h-36 overflow-hidden shrink-0 bg-gradient-to-br from-primary/40 via-primary/15 to-accent/30">
           {!imageFailed && (
             <img
-              src={product.image_url}
+              src={product.image_url ?? undefined}
               alt={product.name}
               onError={() => setImageFailed(true)}
               className="w-full h-full object-cover"
