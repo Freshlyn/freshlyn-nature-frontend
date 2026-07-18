@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { UserAddress } from '@/data/users';
-import { useStaticAuth } from '@/hooks/use-static-auth';
+import { useAddresses, useAddAddress, useSetDefaultAddress, useDeleteAddress } from '@/hooks/use-addresses';
 import { MapPin, Plus, Check, Trash2, Home, Briefcase, Tag } from 'lucide-react';
 
 interface AddressModalProps {
@@ -28,26 +28,27 @@ function getLabelIcon(label: string) {
 }
 
 export function AddressModal({ open, onClose, selectedAddressId, onSelectAddress }: AddressModalProps) {
-  const { user, addAddress, deleteAddress, setDefaultAddress } = useStaticAuth();
+  const { data: addresses = [] } = useAddresses();
+  const { mutateAsync: addAddress } = useAddAddress();
+  const { mutateAsync: setDefaultAddress } = useSetDefaultAddress();
+  const { mutateAsync: deleteAddress } = useDeleteAddress();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newLabel, setNewLabel] = useState('Home');
   const [newAddress, setNewAddress] = useState({
     flat_house: '', building: '', street: '', landmark: '', city: '', state: '', pincode: '',
   });
 
-  if (!user) return null;
-
   const handleAddAddress = async () => {
     if (!newAddress.flat_house || !newAddress.street || !newAddress.city || !newAddress.pincode) return;
-    const addr = await addAddress({ label: newLabel, is_default: user.addresses.length === 0, ...newAddress });
-    if (addr) onSelectAddress(addr);
+    const addr = await addAddress({ label: newLabel, is_default: addresses.length === 0, ...newAddress });
+    onSelectAddress(addr);
     setShowAddForm(false);
     setNewAddress({ flat_house: '', building: '', street: '', landmark: '', city: '', state: '', pincode: '' });
     setNewLabel('Home');
   };
 
-  const handleSelect = (addr: UserAddress) => {
-    setDefaultAddress(addr.id);
+  const handleSelect = async (addr: UserAddress) => {
+    await setDefaultAddress(addr.id);
     onSelectAddress(addr);
     onClose();
   };
@@ -55,8 +56,8 @@ export function AddressModal({ open, onClose, selectedAddressId, onSelectAddress
   const handleDelete = async (addressId: string) => {
     const isSelected = selectedAddressId === addressId;
     await deleteAddress(addressId);
-    if (isSelected && user) {
-      const remaining = user.addresses.filter((a) => a.id !== addressId);
+    if (isSelected) {
+      const remaining = addresses.filter((a) => a.id !== addressId);
       const newDefault = remaining.find((a) => a.is_default) || remaining[0];
       if (newDefault) onSelectAddress(newDefault);
     }
@@ -73,7 +74,7 @@ export function AddressModal({ open, onClose, selectedAddressId, onSelectAddress
         </DialogHeader>
 
         <div className="space-y-3 mt-2">
-          {user.addresses.map((addr) => (
+          {addresses.map((addr) => (
             <Card
               key={addr.id}
               className={`p-3 cursor-pointer transition-all ${selectedAddressId === addr.id ? 'border-primary ring-1 ring-primary/30' : 'hover:shadow-md'}`}
@@ -93,7 +94,7 @@ export function AddressModal({ open, onClose, selectedAddressId, onSelectAddress
                     {[addr.flat_house, addr.building, addr.street, addr.landmark, addr.city, `${addr.state} ${addr.pincode}`].filter(Boolean).join(', ')}
                   </p>
                 </div>
-                {user.addresses.length > 1 && (
+                {addresses.length > 1 && (
                   <Button
                     variant="ghost"
                     size="icon"
