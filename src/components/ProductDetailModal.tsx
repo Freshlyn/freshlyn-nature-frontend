@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useStaticCart } from "@/hooks/use-static-cart";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -95,7 +96,7 @@ export function ProductDetailModal({
   } = useStaticCart();
   const { toast } = useToast();
 
-  const { data: productDetail } = useProduct(product?.id ?? null);
+  const { data: productDetail, isLoading: isDetailLoading } = useProduct(product?.id ?? null);
   const variants = productDetail?.variants ?? [];
   const subscriptionConfig = productDetail?.subscriptionConfig ?? null;
   const hasSubscription = !!productDetail?.subscriptionConfig?.enabled;
@@ -331,6 +332,35 @@ export function ProductDetailModal({
             {product.description}
           </p>
 
+          {isDetailLoading ? (
+            <div className="space-y-4" data-testid="modal-detail-skeleton">
+              {/* Size row */}
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-12" />
+                <div className="flex flex-wrap gap-2">
+                  <Skeleton className="h-11 w-20 rounded-2xl" />
+                  <Skeleton className="h-11 w-20 rounded-2xl" />
+                  <Skeleton className="h-11 w-20 rounded-2xl" />
+                </div>
+              </div>
+              {/* Plan / frequency area */}
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-16" />
+                <div className="flex flex-wrap gap-2">
+                  <Skeleton className="h-12 w-24 rounded-2xl" />
+                  <Skeleton className="h-12 w-24 rounded-2xl" />
+                </div>
+              </div>
+              {/* Footer / price (price intentionally hidden in skeleton) */}
+              <div className="-mx-5 -mb-4 px-5 pt-4 pb-5 bg-gradient-to-b from-muted/30 to-muted/50 border-t border-border/40">
+                <div className="flex items-center justify-between gap-4">
+                  <Skeleton className="h-11 w-24 rounded-lg" />
+                  <Skeleton className="h-11 w-[132px] rounded-full" />
+                </div>
+              </div>
+            </div>
+          ) : (
+          <>
           {variants.length > 1 && (
             <div className="space-y-2">
               <Label className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
@@ -750,6 +780,8 @@ export function ProductDetailModal({
               </div>
             )}
           </div>
+          </>
+          )}
         </div>
       </DialogContent>
       {open && (

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductCardSkeleton } from '@/components/ProductCardSkeleton';
-import { useProducts, useProduct } from '@/hooks/use-products';
+import { useProductsWithMeta } from '@/hooks/use-products';
 import { useStaticCart } from '@/hooks/use-static-cart';
 import { useDebounce } from '@/hooks/use-debounce';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
@@ -21,19 +21,6 @@ const CATEGORIES = [
   { id: 'beverages', name: 'Beverages', icon: '🧃' },
 ];
 
-function ProductCardContainer({ product, quantity, onAdd }: { product: Product; quantity: number; onAdd: () => void }) {
-  const { data: detail } = useProduct(product.id);
-  return (
-    <ProductCard
-      product={product}
-      startingPrice={detail?.startingPrice ?? 0}
-      hasSubscription={!!detail?.subscriptionConfig?.enabled}
-      quantity={quantity}
-      onAdd={onAdd}
-    />
-  );
-}
-
 interface HomeProps {
   sidebarOpen?: boolean;
   onSidebarToggle?: () => void;
@@ -47,7 +34,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
 
-  const { data: products, isLoading: loadingProducts } = useProducts({
+  const { data: products, isLoading: loadingProducts } = useProductsWithMeta({
     category: category === 'all' ? undefined : category,
     search: debouncedSearch || undefined,
   });
@@ -214,9 +201,11 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5" data-testid="product-grid">
               {products?.map((product) => (
-                <ProductCardContainer
+                <ProductCard
                   key={product.id}
                   product={product}
+                  startingPrice={product.startingPrice}
+                  hasSubscription={product.hasSubscription}
                   quantity={getQuantity(product.id)}
                   onAdd={() => handleProductClick(product)}
                 />

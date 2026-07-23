@@ -14,9 +14,13 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: result.success ? 200 : 400,
     });
-  } catch (_error) {
+  } catch (error) {
+    // Log the real cause server-side and surface it, rather than masking every
+    // failure as an opaque 500 (see auth-verify-otp/index.ts for context).
+    const message = error instanceof Error ? error.message : "Failed to send OTP.";
+    console.error("[auth-send-otp] unhandled error:", message);
     return new Response(
-      JSON.stringify({ success: false, message: "Failed to send OTP." }),
+      JSON.stringify({ success: false, message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
     );
   }

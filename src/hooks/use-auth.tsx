@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import { FunctionsHttpError, type Session } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { normalizeIndianPhone } from '@/lib/phone';
 import type { Profile } from '@/types/auth';
 
 interface AuthContextValue {
@@ -45,12 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const profileQuery = useQuery({
     queryKey: ['profile', session?.user.id],
-    queryFn: async (): Promise<Profile> => {
+    // Return null (not throw) when the row is missing so a session whose
+    // profile was never created / was deleted resolves to a settled "no
+    // profile" state instead of an error-retry loop. maybeSingle() yields null
+    // for zero rows; a genuine query error still rejects.
+    queryFn: async (): Promise<Profile | null> => {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, name, phone, email, created_at')
         .eq('id', session!.user.id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -59,24 +64,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const profile = profileQuery.data ?? null;
   const isLoading = sessionLoading || (!!session && profileQuery.isLoading);
-  const needsProfileCompletion = !!profile && profile.name === profile.phone;
+  // "Needs onboarding" covers both a session with no profile row yet (verified
+  // OTP but never completed /register, or a profile deleted under a live
+  // session) and a stub profile where name still equals phone. Only assert this
+  // once the profile query has settled, so we don't redirect mid-load. Without
+  // it, such a session renders authenticated pages with no profile — Home shows
+  // but the header falls back to "Login" and the bottom nav is hidden.
+  const profileSettled = !!session && profileQuery.isSuccess;
+  const needsProfileCompletion =
+    profileSettled && (!profile || profile.name === profile.phone);
 
   const sendOtp = useCallback(async (phone: string) => {
-    const { data, error } = await supabase.functions.invoke<{ success: boolean; message: string }>(
+    type SendResponse = { success: boolean; message: string };
+    // The backend requires E.164 ("+91…"); the form supplies only local digits.
+    // Normalize (and validate) here so send and verify address the same value
+    // and an invalid number fails cleanly instead of as an opaque 500.
+    const e164 = normalizeIndianPhone(phone);
+    if (!e164) {
+      return { success: false, message: 'Please enter a valid 10-digit mobile number.' };
+    }
+    const { data, error } = await supabase.functions.invoke<SendResponse>(
       'auth-send-otp',
-      { body: { phone } },
+      { body: { phone: e164 } },
     );
-    if (error) throw error;
+    // A 400 (e.g. invalid phone) carries a structured failure body; unwrap it
+    // rather than throwing an opaque "non-2xx status code" error.
+    if (error) {
+      if (error instanceof FunctionsHttpError) {
+        const body = (await error.context.json().catch(() => null)) as SendResponse | null;
+        if (body && body.success === false) return body;
+      }
+      throw error;
+    }
     return data!;
   }, []);
 
   const verifyOtp = useCallback(
     async (phone: string, otp: string) => {
-      const { data, error } = await supabase.functions.invoke<
+      type VerifyResponse =
         | { success: true; isNewUser: boolean; session: { access_token: string; refresh_token: string; expires_in: number }; message: string }
-        | { success: false; isNewUser: false; message: string }
-      >('auth-verify-otp', { body: { phone, otp } });
-      if (error) throw error;
+        | { success: false; isNewUser: false; message: string };
+
+      // Normalize to the same E.164 value sendOtp used, so the otp_codes row
+      // (keyed by phone) and the auth user are matched consistently.
+      const e164 = normalizeIndianPhone(phone);
+      if (!e164) {
+        return { success: false, isNewUser: false, message: 'Please enter a valid 10-digit mobile number.' };
+      }
+      const { data, error } = await supabase.functions.invoke<VerifyResponse>(
+        'auth-verify-otp',
+        { body: { phone: e164, otp } },
+      );
+
+      // The edge function reports an invalid/expired OTP as a 400 with a
+      // structured `{ success: false, message }` body. The Supabase client
+      // surfaces any non-2xx as a FunctionsHttpError, so unwrap that body and
+      // return it as a normal failure instead of throwing — otherwise the
+      // caller sees an opaque "non-2xx status code" error and shows no toast.
+      if (error) {
+        if (error instanceof FunctionsHttpError) {
+          const body = (await error.context.json().catch(() => null)) as VerifyResponse | null;
+          if (body && body.success === false) {
+            return { success: false, isNewUser: false, message: body.message };
+          }
+        }
+        throw error;
+      }
       const result = data!;
       if (result.success) {
         const { data: setSessionData } = await supabase.auth.setSession({
@@ -98,12 +151,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = useCallback(
     async ({ name, email }: { name: string; email?: string }) => {
       if (!session) throw new Error('Not authenticated');
-      const { error } = await supabase
+      // Upsert, not update: a profile-less session (row deleted, or the
+      // on_auth_user_created trigger never ran) has no row to UPDATE, so a bare
+      // update matches zero rows and .single() 406s. Upserting on the primary
+      // key creates the row when missing and updates it when present. `phone`
+      // comes from the auth session so a freshly-created row satisfies the
+      // schema and downstream code that reads profile.phone.
+      const { data, error } = await supabase
         .from('profiles')
-        .update({ name, ...(email ? { email } : {}) })
-        .eq('id', session.user.id);
+        .upsert(
+          {
+            id: session.user.id,
+            name,
+            phone: session.user.phone ?? null,
+            ...(email ? { email } : {}),
+          },
+          { onConflict: 'id' },
+        )
+        .select('id, name, phone, email, created_at')
+        .single();
       if (error) throw error;
-      await queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+      // Write the updated row straight into the cache instead of invalidating.
+      // Invalidation triggers a refetch, during which the profile query briefly
+      // has no settled data and `needsProfileCompletion` flips back to true —
+      // so a caller that navigates to Home right after (Register) gets bounced
+      // back to /register mid-refetch. Setting the data makes the completed
+      // profile visible synchronously, with no refetch window to race.
+      queryClient.setQueryData(['profile', session.user.id], data);
     },
     [session, queryClient],
   );

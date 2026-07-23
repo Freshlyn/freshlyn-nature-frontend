@@ -1,4 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query';
 import type { Product } from '@/hooks/use-products';
+import { productDetailQuery } from '@/hooks/use-products';
 import { Button } from '@/components/ui/button';
 import { Repeat, Plus } from 'lucide-react';
 
@@ -11,15 +13,25 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, startingPrice, hasSubscription, quantity = 0, onAdd }: ProductCardProps) {
+  const queryClient = useQueryClient();
   const imageSrc = product.image_url?.startsWith('http')
     ? product.image_url
     : `https://placehold.co/400x400/f3f4f6/a3a3a3?text=${encodeURIComponent(product.name)}`;
+
+  // Warm the detail cache before the modal opens so it renders with data ready
+  // instead of popping in. prefetchQuery respects staleTime, so repeat
+  // hovers/taps don't refetch.
+  const prefetchDetail = () => {
+    queryClient.prefetchQuery(productDetailQuery(product.id));
+  };
 
   return (
     <div
       className="group relative bg-white rounded-2xl overflow-hidden transition-all duration-300 flex flex-col h-full cursor-pointer shadow-sm hover:shadow-xl hover:shadow-primary/10 border border-border/40 hover:border-primary/30 active:scale-[0.98]"
       data-testid={`product-card-${product.id}`}
       onClick={onAdd}
+      onMouseEnter={prefetchDetail}
+      onPointerDown={prefetchDetail}
     >
       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-muted/30 to-muted/10">
         <img

@@ -62,9 +62,16 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: result.success ? 200 : 400,
     });
-  } catch (_error) {
+  } catch (error) {
+    // Log the real cause server-side so failures are diagnosable (this is what
+    // previously hid an "Invalid phone number format (E.164 required)" throw
+    // behind an opaque 500). Return the message to the client too — these come
+    // from GoTrue/validation and are safe to surface, and give the user a real
+    // hint instead of a dead-end error.
+    const message = error instanceof Error ? error.message : "Failed to verify OTP.";
+    console.error("[auth-verify-otp] unhandled error:", message);
     return new Response(
-      JSON.stringify({ success: false, isNewUser: false, message: "Failed to verify OTP." }),
+      JSON.stringify({ success: false, isNewUser: false, message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
     );
   }

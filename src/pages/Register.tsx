@@ -50,14 +50,19 @@ export default function RegisterPage() {
         title: "Welcome to FreshlynNature!",
         description: "Your account has been created.",
       });
-      setLocation("/");
+      // Don't navigate imperatively here. updateProfile updates the profile
+      // cache, which flips needsProfileCompletion to false; the guard effect
+      // below then redirects to "/". Navigating manually races that cache
+      // propagation — the first render at "/" can still see the stale
+      // needsProfileCompletion=true and bounce back to /register. Leave
+      // isPending true so the button stays in its loading state until the
+      // guard unmounts this page.
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Registration Failed",
         description: error.message,
       });
-    } finally {
       setIsPending(false);
     }
   };
