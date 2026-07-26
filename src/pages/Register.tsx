@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { formatPhoneForDisplay } from "@/lib/phone";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [isPending, setIsPending] = useState(false);
 
-  const { updateProfile, profile, isAuthenticated, isLoading, needsProfileCompletion } = useAuth();
+  const { updateProfile, profile, session, isAuthenticated, isLoading, needsProfileCompletion } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -118,7 +119,7 @@ export default function RegisterPage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                +91 {profile?.phone?.replace(/^\+?91/, "") ?? ""} verified
+                {formatPhoneForDisplay(profile?.phone ?? session?.user.phone)} verified
               </div>
             </section>
 

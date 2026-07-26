@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { formatPhoneForDisplay } from "@/lib/phone";
 import { useAddresses, useAddAddress, useSetDefaultAddress, useDeleteAddress } from "@/hooks/use-addresses";
 import { useLocation } from "wouter";
 import { Header } from "@/components/Header";
@@ -248,7 +249,7 @@ export default function Profile({
               </h2>
               <div className="flex items-center gap-1.5 text-sm text-[hsl(88_35%_30%)] mt-1">
                 <Phone size={13} />
-                <span data-testid="text-user-phone">+91 {user.phone}</span>
+                <span data-testid="text-user-phone">{formatPhoneForDisplay(user.phone)}</span>
               </div>
               {user.email && (
                 <div className="flex items-center gap-1.5 text-sm text-[hsl(88_35%_30%)] mt-0.5">

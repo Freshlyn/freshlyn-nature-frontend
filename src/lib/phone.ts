@@ -37,3 +37,29 @@ export function normalizeIndianPhone(input: string): string | null {
 
   return `+${IN_COUNTRY_CODE}${digits}`;
 }
+
+/**
+ * Format a stored phone number for display as "+91 XXXXX XXXXX".
+ *
+ * Defensive about the input: `profiles.phone` may arrive as full E.164
+ * ("+919876543210"), plus-less E.164 as GoTrue stores it ("919876543210"), or
+ * a bare 10-digit local number ("9876543210") from older rows. All three
+ * collapse to the same 10 local digits before formatting, so the output is
+ * correct regardless of which convention produced the row. Anything that isn't
+ * a recognizable 10-digit Indian mobile is returned trimmed and unchanged
+ * rather than mangled.
+ */
+export function formatPhoneForDisplay(input: string | null | undefined): string {
+  if (!input) return "";
+
+  let digits = input.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith(IN_COUNTRY_CODE)) {
+    digits = digits.slice(2);
+  }
+
+  if (!/^\d{10}$/.test(digits)) {
+    return input.trim();
+  }
+
+  return `+${IN_COUNTRY_CODE} ${digits.slice(0, 5)} ${digits.slice(5)}`;
+}
