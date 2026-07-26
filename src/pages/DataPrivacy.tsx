@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useDeleteAccount } from "@/hooks/use-account-deletion";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -120,6 +121,7 @@ export default function DataPrivacy({
   onSidebarToggle,
 }: DataPrivacyProps) {
   const { mutateAsync: deleteAccount } = useDeleteAccount();
+  const { logout } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -128,6 +130,9 @@ export default function DataPrivacy({
   const handleConfirmDelete = async () => {
     try {
       await deleteAccount();
+      // Server-side revoke already ran; clear the local session too so the
+      // requesting device actually leaves instead of holding a stale token.
+      await logout();
       setLocation("/login");
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: await getErrorMessage(err) });

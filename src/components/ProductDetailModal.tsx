@@ -53,6 +53,8 @@ interface ProductDetailModalProps {
     subscriptionDuration?: number;
     subscriptionFrequency?: SubscriptionFrequency;
     subscriptionStartDate?: string;
+    productName?: string;
+    variantName?: string;
   }) => void;
   hideDeliveryToggle?: boolean;
 }
@@ -255,6 +257,8 @@ export function ProductDetailModal({
         subscriptionDuration: selectedDuration,
         subscriptionFrequency: selectedFrequency,
         subscriptionStartDate,
+        productName: product.name,
+        variantName: selectedVariant?.name,
       });
       onOpenChange(false);
       return;
@@ -268,6 +272,8 @@ export function ProductDetailModal({
       subscriptionDuration: selectedDuration,
       subscriptionFrequency: selectedFrequency,
       subscriptionStartDate,
+      productName: product.name,
+      variantName: selectedVariant?.name,
     });
     onOpenChange(false);
   };
@@ -283,6 +289,8 @@ export function ProductDetailModal({
         variantId: selectedVariantId,
         quantity: 1,
         deliveryType: "one_time",
+        productName: product.name,
+        variantName: selectedVariant?.name,
       });
     }
   };

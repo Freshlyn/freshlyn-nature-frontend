@@ -4,6 +4,8 @@ import { Header } from '@/components/Header';
 import { MobileBackButton } from '@/components/MobileBackButton';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'wouter';
 import OrderFilters, { DEFAULT_ORDER_FILTERS, hasActiveOrderFilters } from '@/components/orders/OrderFilters';
 import { filterOrders } from '@/lib/order-filters';
@@ -31,7 +33,36 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
         {!isLoading && orders.length > 0 && <OrderFilters value={filters} onChange={setFilters} />}
 
         {isLoading ? (
-          <div className="text-center py-10">Loading...</div>
+          <div className="flex flex-col gap-5" data-testid="orders-skeleton">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="overflow-hidden rounded-3xl p-0 border-border/40">
+                {/* Status strip */}
+                <div className="px-4 py-2 flex items-center justify-between bg-muted/50">
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+                <div className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 space-y-2">
+                      <Skeleton className="h-5 w-28" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                    {/* Item thumbnails */}
+                    <div className="flex -space-x-2.5 flex-shrink-0">
+                      <Skeleton className="w-10 h-10 rounded-xl border-2 border-white" />
+                      <Skeleton className="w-10 h-10 rounded-xl border-2 border-white" />
+                      <Skeleton className="w-10 h-10 rounded-xl border-2 border-white" />
+                    </div>
+                  </div>
+                  {/* Total row */}
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-6 w-20" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-border shadow-sm">
             <ShoppingBag size={48} className="mx-auto mb-4 text-muted-foreground" />

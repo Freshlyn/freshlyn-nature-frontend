@@ -7,6 +7,7 @@ import { Package, Clock, CheckCircle, Truck, XCircle, RefreshCw, Calendar, MapPi
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Link, useParams } from 'wouter';
 import { useState } from 'react';
 import type { SubscriptionFrequency } from '@/hooks/use-products';
@@ -192,12 +193,64 @@ interface OrderDetailProps {
 
 export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetailProps) {
   const params = useParams<{ id: string }>();
-  const { data: order } = useOrder(params.id || '');
+  const { data: order, isLoading } = useOrder(params.id || '');
   const [expandedScheduleId, setExpandedScheduleId] = useState<string | null>(null);
 
   const handleScheduleToggle = (id: string) => {
     setExpandedScheduleId((prev) => (prev === id ? null : id));
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-muted/10">
+        <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} />
+        <main className="container mx-auto px-4 py-6 max-w-2xl pb-24" data-testid="order-detail-skeleton">
+          <MobileBackButton to="/orders" label="Back to Orders" />
+
+          {/* Title + status badge */}
+          <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-56" />
+            </div>
+            <Skeleton className="h-6 w-24 rounded-full" />
+          </div>
+
+          {/* Delivery address card */}
+          <Card className="p-4 mb-4">
+            <Skeleton className="h-4 w-32 mb-3" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-3/4" />
+          </Card>
+
+          {/* Items card */}
+          <Card className="p-4 mb-4">
+            <Skeleton className="h-4 w-24 mb-4" />
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-14 w-14 rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                  <Skeleton className="h-4 w-14" />
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Total card */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   if (!order) {
     return (

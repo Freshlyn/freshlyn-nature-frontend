@@ -133,6 +133,11 @@ export function useStaticCart(products: Product[] = []) {
       subscriptionDuration?: number;
       subscriptionFrequency?: SubscriptionFrequency;
       subscriptionStartDate?: string;
+      // Callers that already know the display names (e.g. the product modal)
+      // pass them so the toast never has to look them up — avoids "undefined"
+      // when the ambient products list is empty or variants haven't fetched yet.
+      productName?: string;
+      variantName?: string;
     }) => {
       const { productId, variantId, quantity, deliveryType, subscriptionDuration, subscriptionFrequency, subscriptionStartDate } = params;
       const itemKey = getItemKey(productId, variantId, deliveryType, subscriptionDuration, subscriptionFrequency);
@@ -165,13 +170,14 @@ export function useStaticCart(products: Product[] = []) {
 
       emitChange();
 
-      const variant = cartVariants.find((v) => v.id === variantId);
-      const product = products.find((p) => p.id === productId);
+      const productName = params.productName ?? products.find((p) => p.id === productId)?.name ?? 'Item';
+      const variantName = params.variantName ?? cartVariants.find((v) => v.id === variantId)?.name;
+      const label = variantName ? `${productName} (${variantName})` : productName;
 
       if (deliveryType === 'subscription') {
-        toast({ title: 'Subscription added', description: `${product?.name} (${variant?.name}) - ${subscriptionDuration} deliveries` });
+        toast({ title: 'Subscription added', description: `${label} - ${subscriptionDuration} deliveries` });
       } else {
-        toast({ title: 'Added to cart', description: `${product?.name} (${variant?.name}) added to your basket.` });
+        toast({ title: 'Added to cart', description: `${label} added to your basket.` });
       }
     },
     [toast, cartVariants, products],
@@ -201,7 +207,14 @@ export function useStaticCart(products: Product[] = []) {
   const updateSubscriptionItem = useCallback(
     (
       cartItemId: string,
-      updates: { variantId: string; subscriptionDuration: number; subscriptionFrequency: SubscriptionFrequency; subscriptionStartDate?: string },
+      updates: {
+        variantId: string;
+        subscriptionDuration: number;
+        subscriptionFrequency: SubscriptionFrequency;
+        subscriptionStartDate?: string;
+        productName?: string;
+        variantName?: string;
+      },
     ) => {
       const existing = globalCart.find((item) => item.id === cartItemId);
       if (!existing) return;
@@ -219,9 +232,10 @@ export function useStaticCart(products: Product[] = []) {
       );
       emitChange();
 
-      const variant = cartVariants.find((v) => v.id === updates.variantId);
-      const product = products.find((p) => p.id === existing.product_id);
-      toast({ title: 'Subscription updated', description: `${product?.name} (${variant?.name}) - ${updates.subscriptionDuration} deliveries` });
+      const productName = updates.productName ?? products.find((p) => p.id === existing.product_id)?.name ?? 'Item';
+      const variantName = updates.variantName ?? cartVariants.find((v) => v.id === updates.variantId)?.name;
+      const label = variantName ? `${productName} (${variantName})` : productName;
+      toast({ title: 'Subscription updated', description: `${label} - ${updates.subscriptionDuration} deliveries` });
     },
     [toast, cartVariants, products],
   );
