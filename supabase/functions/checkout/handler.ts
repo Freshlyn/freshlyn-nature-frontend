@@ -89,7 +89,7 @@ export function buildDeliveryAddress(address: AddressRecord): string {
 // Dummy payment stand-in (spec Section 8): checkout today only ever produces
 // cash-on-delivery orders. This is the one function a real gateway replaces later.
 export function processPayment(_order: { id: string }): { paymentStatus: string; paymentMethod: string } {
-  return { paymentStatus: "cod_pending", paymentMethod: "cod" };
+  return { paymentStatus: "pending", paymentMethod: "cod" };
 }
 
 function round2(n: number): number {

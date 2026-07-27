@@ -3,7 +3,7 @@ import { useOrder } from '@/hooks/use-orders';
 import { Header } from '@/components/Header';
 import { MobileBackButton } from '@/components/MobileBackButton';
 import { format, addDays, isBefore, isToday, startOfDay } from 'date-fns';
-import { Package, Clock, CheckCircle, Truck, XCircle, RefreshCw, Calendar, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { Package, Clock, CheckCircle, Truck, XCircle, AlertCircle, RefreshCw, Calendar, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,6 +19,7 @@ const statusConfig: Record<string, { icon: typeof Clock; label: string; variant:
   preparing: { icon: Package, label: 'Preparing', variant: 'default' },
   out_for_delivery: { icon: Truck, label: 'On the way', variant: 'default' },
   delivered: { icon: CheckCircle, label: 'Delivered', variant: 'default' },
+  failed: { icon: AlertCircle, label: 'Delivery failed', variant: 'destructive' },
   cancelled: { icon: XCircle, label: 'Cancelled', variant: 'destructive' },
 };
 

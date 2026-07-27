@@ -1,7 +1,7 @@
-import { Truck, CheckCircle, XCircle, type LucideIcon } from 'lucide-react';
+import { Truck, CheckCircle, XCircle, AlertCircle, type LucideIcon } from 'lucide-react';
 import type { OrderStatus } from '@/hooks/use-orders';
 
-export type DisplayStatus = 'active' | 'delivered' | 'cancelled';
+export type DisplayStatus = 'active' | 'delivered' | 'failed' | 'cancelled';
 
 interface StatusMeta {
   icon: LucideIcon;
@@ -26,6 +26,13 @@ export const displayStatusMeta: Record<DisplayStatus, StatusMeta> = {
     badgeText: 'text-emerald-700',
     dot: 'bg-emerald-500',
   },
+  failed: {
+    icon: AlertCircle,
+    label: 'Delivery failed',
+    badgeBg: 'bg-amber-50',
+    badgeText: 'text-amber-700',
+    dot: 'bg-amber-500',
+  },
   cancelled: {
     icon: XCircle,
     label: 'Cancelled',
@@ -37,6 +44,7 @@ export const displayStatusMeta: Record<DisplayStatus, StatusMeta> = {
 
 export function getDisplayStatus(status: OrderStatus): DisplayStatus {
   if (status === 'delivered') return 'delivered';
+  if (status === 'failed') return 'failed';
   if (status === 'cancelled') return 'cancelled';
   return 'active';
 }

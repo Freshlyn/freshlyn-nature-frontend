@@ -1,8 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'preparing'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'failed'
+  | 'cancelled';
 export type SubscriptionFrequency = 'daily' | 'alternate' | 'every_3rd';
+export type PaymentStatus = 'pending' | 'paid' | 'collected' | 'refunded';
+export type PaymentMethod = 'cod' | 'razorpay';
 
 export interface OrderItemWithDetails {
   id: string;
@@ -30,8 +39,8 @@ export interface OrderWithItems {
   total: number;
   item_count: number;
   status: OrderStatus;
-  payment_status: string;
-  payment_method: string;
+  payment_status: PaymentStatus;
+  payment_method: PaymentMethod;
   created_at: string;
   updated_at: string;
   items: OrderItemWithDetails[];

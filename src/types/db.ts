@@ -4,11 +4,25 @@ export type OrderStatus =
   | 'preparing'
   | 'out_for_delivery'
   | 'delivered'
+  | 'failed'
   | 'cancelled';
 
 export type DeliveryType = 'one_time' | 'subscription';
 
 export type SubscriptionFrequency = 'daily' | 'alternate' | 'every_3rd';
+
+export type PaymentStatus = 'pending' | 'paid' | 'collected' | 'refunded';
+
+export type PaymentMethod = 'cod' | 'razorpay';
+
+export type SubscriptionDeliveryStatus =
+  | 'scheduled'
+  | 'delivered'
+  | 'skipped'
+  | 'failed'
+  | 'cancelled';
+
+export type AccountDeletionStatus = 'pending' | 'cancelled' | 'flagged' | 'completed';
 
 export interface DbUserAddress {
   id: string;

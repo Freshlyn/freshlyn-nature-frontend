@@ -2,6 +2,9 @@ import type { OrderWithItems } from '@/hooks/use-orders';
 import type { OrderFilterState } from '@/components/orders/orderFilterTypes';
 
 const ACTIVE_STATUSES = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
+// `failed` (delivery attempted but not completed) has no tab of its own, so it
+// rides along with Cancelled -- otherwise those orders vanish from every tab.
+const CANCELLED_STATUSES = ['cancelled', 'failed'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function filterOrders(orders: OrderWithItems[], filters: OrderFilterState): OrderWithItems[] {
@@ -13,7 +16,7 @@ export function filterOrders(orders: OrderWithItems[], filters: OrderFilterState
 
     if (filters.status === 'active' && !ACTIVE_STATUSES.includes(order.status)) return false;
     if (filters.status === 'delivered' && order.status !== 'delivered') return false;
-    if (filters.status === 'cancelled' && order.status !== 'cancelled') return false;
+    if (filters.status === 'cancelled' && !CANCELLED_STATUSES.includes(order.status)) return false;
 
     if (filters.datePreset !== 'all') {
       const created = new Date(order.created_at).getTime();
