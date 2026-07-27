@@ -7,6 +7,8 @@ dist/
 dist-ssr/
 build/
 
+docs/
+
 # Logs
 logs/
 *.log
