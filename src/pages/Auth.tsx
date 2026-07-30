@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,16 @@ export default function AuthPage() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [isPending, setIsPending] = useState(false);
+
+  // Mirrors the server's 90s per-phone cooldown. This is a UX affordance only
+  // -- auth-send-otp rejects an early resend regardless of what the client does.
+  const [resendIn, setResendIn] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const id = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendIn]);
 
   const { sendOtp, verifyOtp } = useAuth();
   const [, setLocation] = useLocation();
@@ -36,6 +46,7 @@ export default function AuthPage() {
       if (result.success) {
         toast({ title: "OTP Sent!", description: result.message });
         setPhoneStep("otp");
+        setResendIn(90);
       } else {
         toast({
           variant: "destructive",
@@ -225,10 +236,11 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={(e) => handleSendOtp(e as any)}
-                  className="text-sm text-primary font-semibold hover:underline"
+                  disabled={resendIn > 0 || isPending}
+                  className="text-sm text-primary font-semibold hover:underline disabled:text-muted-foreground disabled:no-underline disabled:cursor-not-allowed"
                   data-testid="button-resend-otp"
                 >
-                  Resend
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend"}
                 </button>
               </div>
             </form>
@@ -263,10 +275,6 @@ export default function AuthPage() {
             </div>
           </div>
 
-          <div className="text-center text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-            <p className="font-medium mb-1">Demo Mode</p>
-            <p>Check Supabase Edge Function logs for the OTP</p>
-          </div>
         </div>
       </div>
 

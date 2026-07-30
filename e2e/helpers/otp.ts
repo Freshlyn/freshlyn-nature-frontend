@@ -11,6 +11,21 @@ export function hasServiceRole(): boolean {
   return !!SUPABASE_URL && !!SERVICE_ROLE_KEY;
 }
 
+/**
+ * Convert a test number to the E.164 form the backend stores.
+ *
+ * Specs pass the bare 10 digits the login form collects, but the client
+ * normalizes to "+91XXXXXXXXXX" before calling the edge function, so that is
+ * what lands in `otp_codes.phone`. These helpers query the table directly and
+ * bypass the client, so they must apply the same normalization -- an exact
+ * string match on the bare digits silently finds nothing.
+ */
+function toE164(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+  return `+91${digits}`;
+}
+
 let admin: SupabaseClient | null = null;
 function adminClient(): SupabaseClient {
   if (!hasServiceRole()) {
@@ -26,15 +41,16 @@ function adminClient(): SupabaseClient {
 }
 
 /**
- * Read the most recent, unexpired OTP for a phone number straight from the
- * `otp_codes` table using the service-role key (bypasses RLS). The app never
- * exposes the code to the UI ("Demo Mode"), so tests fetch it here.
+ * Read the OTP for an allowlisted test number from `otp_codes` using the
+ * service-role key (bypasses RLS). Real logins now go through 2Factor and the
+ * code never touches this database -- only test-mode numbers, which skip the
+ * provider, store a readable `otp` here.
  */
 export async function fetchOtp(phone: string): Promise<string> {
   const { data, error } = await adminClient()
     .from('otp_codes')
     .select('otp, expires_at')
-    .eq('phone', phone)
+    .eq('phone', toE164(phone))
     .order('expires_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -112,7 +128,7 @@ export async function deleteProfileKeepAuthUser(phone: string): Promise<void> {
 /** Remove the test user and any leftover OTP rows so runs stay idempotent. */
 export async function cleanupPhone(phone: string): Promise<void> {
   const client = adminClient();
-  await client.from('otp_codes').delete().eq('phone', phone);
+  await client.from('otp_codes').delete().eq('phone', toE164(phone));
 
   // Deleting the auth user cascades to profiles -> addresses/orders.
   const userId = await findUserIdByPhone(phone);

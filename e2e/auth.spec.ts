@@ -11,8 +11,10 @@ test.describe('auth: phone + OTP login', () => {
     'SUPABASE_SERVICE_ROLE_KEY not set — skipping real-auth E2E.',
   );
 
-  // Random 10-digit test number so parallel/repeat runs do not collide.
-  const phone = `9${Math.floor(100000000 + Math.random() * 899999999)}`;
+  // MUST be listed in the TWOFACTOR_TEST_PHONES secret. An allowlisted number
+  // bypasses 2Factor entirely, so this suite sends no SMS and costs nothing.
+  // A random number here would text a real stranger on every run.
+  const phone = process.env.E2E_TEST_PHONE ?? '9123456789';
 
   test.beforeEach(async () => {
     await cleanupPhone(phone);
@@ -70,5 +72,16 @@ test.describe('auth: phone + OTP login', () => {
     // and were not navigated to home or the register step.
     await expect(page.getByTestId('input-otp')).toBeVisible();
     await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test('resend is disabled for 90 seconds after sending a code', async ({ page }) => {
+    await page.goto('/login');
+    await page.getByTestId('input-phone').fill(phone);
+    await page.getByTestId('button-send-otp').click();
+    await expect(page.getByTestId('input-otp')).toBeVisible();
+
+    const resend = page.getByTestId('button-resend-otp');
+    await expect(resend).toBeDisabled();
+    await expect(resend).toContainText(/Resend in \d+s/);
   });
 });

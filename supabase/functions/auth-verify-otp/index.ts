@@ -1,5 +1,6 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createAdminClient, createAnonClient } from "../_shared/supabase-admin.ts";
+import { createTwoFactorClient } from "../_shared/twofactor.ts";
 import { handleVerifyOtp, type VerifyOtpDeps } from "./handler.ts";
 
 function buildDeps(): VerifyOtpDeps {
@@ -7,13 +8,24 @@ function buildDeps(): VerifyOtpDeps {
   const anon = createAnonClient();
 
   return {
-    async getOtpCode(phone) {
+    async getOtpRecord(phone) {
       const { data } = await admin
         .from("otp_codes")
-        .select("otp, expires_at")
+        .select("otp, session_id, expires_at, attempts")
         .eq("phone", phone)
         .maybeSingle();
-      return data ? { otp: data.otp, expiresAt: data.expires_at } : null;
+      return data
+        ? {
+          otp: data.otp,
+          sessionId: data.session_id,
+          expiresAt: data.expires_at,
+          attempts: data.attempts,
+        }
+        : null;
+    },
+    async incrementAttempts(phone) {
+      const { error } = await admin.rpc("fn_increment_otp_attempts", { p_phone: phone });
+      if (error) throw new Error(error.message);
     },
     async deleteOtpCode(phone) {
       await admin.from("otp_codes").delete().eq("phone", phone);
@@ -47,6 +59,7 @@ function buildDeps(): VerifyOtpDeps {
     generatePassword() {
       return crypto.randomUUID() + crypto.randomUUID();
     },
+    twoFactor: createTwoFactorClient(),
   };
 }
 

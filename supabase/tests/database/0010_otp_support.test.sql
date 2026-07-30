@@ -1,5 +1,5 @@
 begin;
-select plan(7);
+select plan(8);
 
 select has_table('public', 'otp_codes', 'otp_codes table should exist');
 select col_is_pk('public', 'otp_codes', 'phone', 'otp_codes.phone should be the primary key');
@@ -47,6 +47,8 @@ select throws_ok(
   'fn_get_user_id_by_phone should reject calls from the anon role (service_role only)'
 );
 reset role;
+
+select col_has_default('public', 'otp_codes', 'attempts', 'otp_codes.attempts should default to 0');
 
 select * from finish();
 rollback;
