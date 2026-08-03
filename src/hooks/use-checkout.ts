@@ -6,15 +6,17 @@ import type { OrderWithItems } from '@/hooks/use-orders';
 interface CheckoutInput {
   addressId: string;
   cartItems: CartItemWithDetails[];
+  paymentMethod: 'cod' | 'razorpay';
 }
 
 export function useCheckout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ addressId, cartItems }: CheckoutInput): Promise<OrderWithItems> => {
+    mutationFn: async ({ addressId, cartItems, paymentMethod }: CheckoutInput): Promise<OrderWithItems> => {
       const { data, error } = await supabase.functions.invoke('checkout', {
         body: {
           addressId,
+          paymentMethod,
           items: cartItems.map((item) => ({
             productId: item.product_id,
             variantId: item.variant_id,

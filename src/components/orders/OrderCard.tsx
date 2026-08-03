@@ -74,7 +74,7 @@ export function OrderCardTracker({ order }: OrderCardProps) {
             <div>
               <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total</p>
               <span className="font-bold text-lg text-primary" data-testid={`text-order-total-${order.id}`}>
-                ${order.total.toFixed(2)}
+                ₹{order.total.toFixed(2)}
               </span>
             </div>
             <span className="flex items-center gap-1 text-sm font-bold text-foreground rounded-full pl-3 pr-2 py-1.5 bg-muted/70 group-hover:bg-muted">

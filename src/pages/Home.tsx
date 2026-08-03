@@ -116,7 +116,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
                   <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1">
                     <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-white text-xs font-medium">
                       <Truck size={14} />
-                      <span>Free over $50</span>
+                      <span>Free over ₹299</span>
                     </div>
                     <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-white text-xs font-medium">
                       <Clock size={14} />

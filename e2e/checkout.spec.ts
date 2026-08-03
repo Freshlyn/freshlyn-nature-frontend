@@ -52,7 +52,7 @@ test.describe('checkout: place an order', () => {
     await expect(page.getByTestId('text-selected-address')).toBeVisible();
     const grandTotal = page.getByTestId('text-grand-total');
     await expect(grandTotal).toBeVisible();
-    await expect(grandTotal).not.toHaveText('$0.00');
+    await expect(grandTotal).not.toHaveText('₹0.00');
 
     await page.getByTestId('button-checkout').click();
     await expect(page).toHaveURL(/\/orders$/, { timeout: 15000 });

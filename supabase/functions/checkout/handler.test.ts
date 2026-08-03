@@ -157,6 +157,52 @@ Deno.test("checkout returns 400 for an invalid subscription plan", async () => {
   assertEquals(result.status, 400);
 });
 
+Deno.test("checkout records the razorpay payment method the caller selected", async () => {
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 2.0, stockQuantity: 100, maxQuantityPerOrder: 100 } },
+  });
+  const input: CheckoutInput = {
+    addressId: "addr-1",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+    paymentMethod: "razorpay",
+  };
+  const result = await handleCheckout(deps, input);
+  assertEquals(result.status, 200);
+  const paymentCall = calls.applyPaymentResult[0] as { paymentStatus: string; paymentMethod: string };
+  assertEquals(paymentCall.paymentMethod, "razorpay");
+  // Nothing is captured yet, so an online order still awaits payment.
+  assertEquals(paymentCall.paymentStatus, "pending");
+});
+
+Deno.test("checkout defaults to cod when the caller omits a payment method", async () => {
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 2.0, stockQuantity: 100, maxQuantityPerOrder: 100 } },
+  });
+  const input: CheckoutInput = {
+    addressId: "addr-1",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  };
+  const result = await handleCheckout(deps, input);
+  assertEquals(result.status, 200);
+  const paymentCall = calls.applyPaymentResult[0] as { paymentMethod: string };
+  assertEquals(paymentCall.paymentMethod, "cod");
+});
+
+Deno.test("checkout returns 400 for an unrecognised payment method", async () => {
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 2.0, stockQuantity: 100, maxQuantityPerOrder: 100 } },
+  });
+  const input = {
+    addressId: "addr-1",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+    paymentMethod: "bitcoin",
+  } as unknown as CheckoutInput;
+  const result = await handleCheckout(deps, input);
+  assertEquals(result.status, 400);
+  // Rejected before any order row is written.
+  assertEquals(calls.createOrder.length, 0);
+});
+
 Deno.test("checkout computes subtotal and a flat delivery fee under the free-delivery threshold", async () => {
   const { deps, calls } = makeDeps({
     variants: { "p1/v1": { price: 2.0, stockQuantity: 100, maxQuantityPerOrder: 100 } },

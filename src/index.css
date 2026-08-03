@@ -12,6 +12,8 @@
   --primary: 88 50% 53%;
   --primary-foreground: 0 0% 100%;
   --primary-border: hsl(88 50% 43%);
+  /* Darkened primary for text on primary-tinted surfaces */
+  --primary-deep: 88 55% 32%;
 
   /* Accent: Yellow/Orange – HSL 45 100% 51% */
   --accent: 45 100% 51%;

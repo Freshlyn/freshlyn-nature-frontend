@@ -71,7 +71,7 @@ export function ProductCard({ product, startingPrice, hasSubscription, quantity 
         <div className="mt-3 pt-3 border-t border-border/50 flex items-end justify-between gap-2">
           <div className="flex flex-col">
             <span className="text-[10px] text-muted-foreground/70">From</span>
-            <span className="font-display font-bold text-lg text-foreground leading-none">${startingPrice.toFixed(2)}</span>
+            <span className="font-display font-bold text-lg text-foreground leading-none">₹{startingPrice.toFixed(2)}</span>
           </div>
 
           <Button

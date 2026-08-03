@@ -11,9 +11,12 @@ export interface CheckoutItemInput {
   subscriptionStartDate?: string;
 }
 
+export type PaymentMethod = "cod" | "razorpay";
+
 export interface CheckoutInput {
   addressId: string;
   items: CheckoutItemInput[];
+  paymentMethod?: PaymentMethod;
 }
 
 export interface RejectedItem {
@@ -86,10 +89,15 @@ export function buildDeliveryAddress(address: AddressRecord): string {
     .join(", ");
 }
 
-// Dummy payment stand-in (spec Section 8): checkout today only ever produces
-// cash-on-delivery orders. This is the one function a real gateway replaces later.
-export function processPayment(_order: { id: string }): { paymentStatus: string; paymentMethod: string } {
-  return { paymentStatus: "pending", paymentMethod: "cod" };
+// Payment stand-in (spec Section 8): records which method the customer chose, but
+// collects nothing. Both methods therefore leave the order awaiting payment —
+// "razorpay" means "online payment intended", not "money received". Capturing an
+// online payment is the gateway integration that replaces this function later.
+export function processPayment(
+  _order: { id: string },
+  paymentMethod: PaymentMethod,
+): { paymentStatus: string; paymentMethod: PaymentMethod } {
+  return { paymentStatus: "pending", paymentMethod };
 }
 
 function round2(n: number): number {
@@ -104,6 +112,12 @@ export async function handleCheckout(deps: CheckoutDeps, input: CheckoutInput): 
 
   if (!input.addressId || !Array.isArray(input.items) || input.items.length === 0) {
     return { status: 400, body: { error: "addressId and at least one item are required" } };
+  }
+
+  // Defaults to cod so existing clients that omit the field keep working.
+  const paymentMethod: PaymentMethod = input.paymentMethod ?? "cod";
+  if (paymentMethod !== "cod" && paymentMethod !== "razorpay") {
+    return { status: 400, body: { error: "paymentMethod must be 'cod' or 'razorpay'" } };
   }
 
   const address = await deps.getAddress(input.addressId);
@@ -193,7 +207,7 @@ export async function handleCheckout(deps: CheckoutDeps, input: CheckoutInput): 
     total,
   });
 
-  const paymentResult = processPayment({ id: orderId });
+  const paymentResult = processPayment({ id: orderId }, paymentMethod);
   await deps.applyPaymentResult(orderId, paymentResult.paymentStatus, paymentResult.paymentMethod);
 
   const order = await deps.fetchOrderWithItems(orderId);

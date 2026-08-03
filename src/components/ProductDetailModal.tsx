@@ -402,7 +402,7 @@ export function ProductDetailModal({
                           : "text-muted-foreground"
                       }`}
                     >
-                      ${variant.price.toFixed(2)}
+                      ₹{variant.price.toFixed(2)}
                     </div>
                   </button>
                 ))}
@@ -414,7 +414,7 @@ export function ProductDetailModal({
             <div className="flex items-center justify-between px-3.5 py-2.5 bg-muted/40 rounded-xl border border-border/40 text-sm">
               <span className="font-medium">{variants[0].name}</span>
               <span className="font-bold text-primary">
-                ${variants[0].price.toFixed(2)}
+                ₹{variants[0].price.toFixed(2)}
               </span>
             </div>
           )}
@@ -650,7 +650,7 @@ export function ProductDetailModal({
               {selectedDuration && (
                 <div className="flex items-center justify-between text-xs bg-gradient-to-r from-primary/8 to-accent/8 px-3.5 py-2.5 rounded-xl border border-primary/15">
                   <span className="text-muted-foreground">
-                    {deliveryCount} deliveries · $
+                    {deliveryCount} deliveries · ₹
                     {selectedVariant?.price.toFixed(2) || "0.00"} each
                   </span>
                   {selectedDurationOption &&
@@ -711,7 +711,7 @@ export function ProductDetailModal({
                     Price
                   </span>
                   <span className="text-2xl font-display font-bold text-primary leading-tight">
-                    ${selectedVariant ? selectedVariant.price.toFixed(2) : "0.00"}
+                    ₹{selectedVariant ? selectedVariant.price.toFixed(2) : "0.00"}
                   </span>
                   <span className="text-[11px] text-muted-foreground"> / item</span>
                 </div>
@@ -770,7 +770,7 @@ export function ProductDetailModal({
                     Total
                   </span>
                   <span className="text-2xl font-display font-bold text-primary leading-tight">
-                    ${totalPrice.toFixed(2)}
+                    ₹{totalPrice.toFixed(2)}
                   </span>
                 </div>
 

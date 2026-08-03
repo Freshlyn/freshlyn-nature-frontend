@@ -114,7 +114,7 @@ Suggested spec: `cart.spec.ts` (new, authed)
 | 5.4 | Remove item via trash button | ⬜ | `button-remove-*` |
 | 5.5 | Clear cart empties it | ⬜ | `button-clear-cart` |
 | 5.6 | Subtotal / delivery fee / grand total compute correctly | 🟡 | checkout asserts non-zero total only |
-| 5.7 | Free delivery over $50; $5 fee under; progress bar | ⬜ | `text-delivery-fee`, "add $X more" |
+| 5.7 | Free delivery over ₹299; ₹30 fee under; progress bar | ⬜ | `text-delivery-fee`, "add ₹X more" |
 | 5.8 | Subscription item shows badges + "Edit plan" | 🟡 | checkout asserts "Subscription" text |
 | 5.9 | Delivery-time slot picker appears with subscription items | ⬜ | `button-time-*` |
 | 5.10 | Cart persists across reload (localStorage) | ⬜ | reload, items remain |
