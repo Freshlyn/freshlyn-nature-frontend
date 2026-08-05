@@ -1,5 +1,8 @@
 import type { OrderItemWithDetails } from "@/hooks/use-orders";
 import { useOrder } from "@/hooks/use-orders";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import { Header } from "@/components/Header";
 import { MobileBackButton } from "@/components/MobileBackButton";
 import { format, addDays, isBefore, isToday, startOfDay } from "date-fns";
@@ -21,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useParams } from "wouter";
-import { useState } from "react";
 import type { SubscriptionFrequency } from "@/hooks/use-products";
 import {
   getFrequencyLabel,
@@ -359,6 +361,27 @@ export default function OrderDetail({
   const [expandedScheduleId, setExpandedScheduleId] = useState<string | null>(
     null,
   );
+  const queryClient = useQueryClient();
+  const orderId = params.id;
+
+  useEffect(() => {
+    if (!orderId) return;
+
+    const channel = supabase
+      .channel(`order-${orderId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId, queryClient]);
 
   const handleScheduleToggle = (id: string) => {
     setExpandedScheduleId((prev) => (prev === id ? null : id));

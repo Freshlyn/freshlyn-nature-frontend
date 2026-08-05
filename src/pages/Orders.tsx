@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useOrders } from '@/hooks/use-orders';
+import { supabase } from '@/lib/supabase';
 import { Header } from '@/components/Header';
 import { MobileBackButton } from '@/components/MobileBackButton';
 import { ShoppingBag } from 'lucide-react';
@@ -19,9 +21,34 @@ interface OrdersProps {
 export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
   const { data: orders = [], isLoading } = useOrders();
   const [filters, setFilters] = useState(DEFAULT_ORDER_FILTERS);
+  const queryClient = useQueryClient();
 
   const filteredOrders = useMemo(() => filterOrders(orders, filters), [orders, filters]);
   const filtersActive = hasActiveOrderFilters(filters);
+
+  // A payment that is authorized and later reversed is corrected by the webhook
+  // seconds after the customer already saw "Order placed!". Without this, a
+  // customer sitting on this page would keep seeing stale state.
+  //
+  // Requires public.orders to be a member of the supabase_realtime publication
+  // (migration 20260731090400) -- without it this subscribes successfully and
+  // silently receives nothing.
+  useEffect(() => {
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   return (
     <div className="min-h-screen bg-muted/10">

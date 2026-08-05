@@ -1,9 +1,22 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { FunctionsHttpError, type Session } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase, clearStoredSession } from '@/lib/supabase';
 import { normalizeIndianPhone } from '@/lib/phone';
 import type { Profile } from '@/types/auth';
+
+/**
+ * Raised when the signed-in session refers to an auth user that no longer
+ * exists (e.g. the user was deleted while their token was still in
+ * localStorage). The session is unrecoverable: the only fix is to drop the
+ * stored token and re-authenticate.
+ */
+export class StaleSessionError extends Error {
+  constructor() {
+    super('Your session has expired. Please sign in again.');
+    this.name = 'StaleSessionError';
+  }
+}
 
 interface AuthContextValue {
   session: Session | null;
@@ -170,6 +183,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         )
         .select('id, name, phone, email, created_at')
         .single();
+      // 23503 = foreign-key violation on profiles_id_fkey (id -> auth.users).
+      // The session's user row is gone, so this upsert can never succeed —
+      // PostgREST surfaces it as a 409, which reads like a duplicate-key
+      // conflict but is not one. Clear the dead token and let the caller send
+      // the user back to login rather than showing an unactionable error.
+      if (error?.code === '23503') {
+        clearStoredSession();
+        queryClient.removeQueries({ queryKey: ['profile'] });
+        setSession(null);
+        throw new StaleSessionError();
+      }
       if (error) throw error;
       // Write the updated row straight into the cache instead of invalidating.
       // Invalidation triggers a refetch, during which the profile query briefly

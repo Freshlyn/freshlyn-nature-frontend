@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, StaleSessionError } from "@/hooks/use-auth";
 import { formatPhoneForDisplay } from "@/lib/phone";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,19 @@ export default function RegisterPage() {
       // isPending true so the button stays in its loading state until the
       // guard unmounts this page.
     } catch (error: any) {
+      // The account behind this session no longer exists (deleted while the
+      // token was still in localStorage). updateProfile has already dropped
+      // the stored token, so send them to login to start over — retrying the
+      // form would fail identically every time.
+      if (error instanceof StaleSessionError) {
+        toast({
+          variant: "destructive",
+          title: "Session Expired",
+          description: "Please sign in again to continue.",
+        });
+        setLocation("/login", { replace: true });
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Registration Failed",

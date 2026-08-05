@@ -1,3 +1,5 @@
+import { RazorpayError, toPaise, type RazorpayClient } from "../_shared/razorpay.ts";
+
 export type DeliveryType = "one_time" | "subscription";
 export type SubscriptionFrequency = "daily" | "alternate" | "every_3rd";
 
@@ -65,8 +67,19 @@ export interface CheckoutDeps {
     subtotal: number;
     deliveryFee: number;
     total: number;
+    decrementStock: boolean;
+    paymentMethod: PaymentMethod;
   }): Promise<string>;
-  applyPaymentResult(orderId: string, paymentStatus: string, paymentMethod: string): Promise<void>;
+  /**
+   * Marks the caller's existing pending *razorpay* orders as failed.
+   *
+   * Scoped to razorpay deliberately: a pending COD order is awaiting collection
+   * and is perfectly healthy. Only an abandoned online attempt is dead.
+   */
+  supersedeStalePendingOrders(userId: string): Promise<void>;
+  persistRazorpayOrderId(orderId: string, razorpayOrderId: string): Promise<void>;
+  razorpay: RazorpayClient;
+  razorpayKeyId: string;
   fetchOrderWithItems(orderId: string): Promise<Record<string, unknown>>;
 }
 
@@ -74,6 +87,7 @@ export type CheckoutResult =
   | { status: 401; body: { error: string } }
   | { status: 400; body: { error: string } }
   | { status: 409; body: { error: string; rejectedItems: RejectedItem[] } }
+  | { status: 502; body: { error: string } }
   | { status: 200; body: Record<string, unknown> };
 
 export function buildDeliveryAddress(address: AddressRecord): string {
@@ -87,17 +101,6 @@ export function buildDeliveryAddress(address: AddressRecord): string {
   ]
     .filter(Boolean)
     .join(", ");
-}
-
-// Payment stand-in (spec Section 8): records which method the customer chose, but
-// collects nothing. Both methods therefore leave the order awaiting payment —
-// "razorpay" means "online payment intended", not "money received". Capturing an
-// online payment is the gateway integration that replaces this function later.
-export function processPayment(
-  _order: { id: string },
-  paymentMethod: PaymentMethod,
-): { paymentStatus: string; paymentMethod: PaymentMethod } {
-  return { paymentStatus: "pending", paymentMethod };
 }
 
 function round2(n: number): number {
@@ -187,6 +190,12 @@ export async function handleCheckout(deps: CheckoutDeps, input: CheckoutInput): 
   const total = round2(subtotal + deliveryFee);
   const deliveryAddress = buildDeliveryAddress(address);
 
+  // Retrying after an abandoned payment must not leave a trail of pending rows
+  // that are indistinguishable from healthy COD orders. Sweep before creating.
+  if (paymentMethod === "razorpay") {
+    await deps.supersedeStalePendingOrders(userId);
+  }
+
   const orderId = await deps.createOrder({
     userId,
     addressId: input.addressId,
@@ -205,11 +214,47 @@ export async function handleCheckout(deps: CheckoutDeps, input: CheckoutInput): 
     subtotal,
     deliveryFee,
     total,
+    // COD orders are real on placement. Razorpay orders exist before payment,
+    // so their stock moves only once the webhook confirms money arrived.
+    decrementStock: paymentMethod === "cod",
+    // Set in the same INSERT as the row, not in a follow-up UPDATE. The sweep
+    // above filters on payment_method, so a row that is briefly 'cod' before
+    // becoming 'razorpay' is invisible to a concurrent checkout's sweep, and two
+    // live payable orders would each get their stock decremented on confirm.
+    paymentMethod,
   });
 
-  const paymentResult = processPayment({ id: orderId }, paymentMethod);
-  await deps.applyPaymentResult(orderId, paymentResult.paymentStatus, paymentResult.paymentMethod);
+  if (paymentMethod === "cod") {
+    const order = await deps.fetchOrderWithItems(orderId);
+    return { status: 200, body: order };
+  }
+
+  let razorpayOrderId: string;
+  try {
+    // `total` is the server's own figure, computed from server-side prices. The
+    // client supplies only ids and quantities and can never influence it.
+    const rzpOrder = await deps.razorpay.createOrder({
+      amountPaise: toPaise(total),
+      receipt: orderId,
+      notes: { local_order_id: orderId },
+    });
+    razorpayOrderId = rzpOrder.id;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error("[checkout] razorpay order creation failed:", detail);
+    if (error instanceof RazorpayError) {
+      // The local order survives as pending. It holds no stock, so it is inert,
+      // and the next attempt supersedes it.
+      return { status: 502, body: { error: "Could not start payment. Please try again." } };
+    }
+    throw error;
+  }
+
+  await deps.persistRazorpayOrderId(orderId, razorpayOrderId);
 
   const order = await deps.fetchOrderWithItems(orderId);
-  return { status: 200, body: order };
+  return {
+    status: 200,
+    body: { ...order, razorpayOrderId, razorpayKeyId: deps.razorpayKeyId },
+  };
 }

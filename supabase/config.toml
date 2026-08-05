@@ -315,3 +315,11 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# Razorpay's servers hold no Supabase JWT, so the platform's default gate would
+# reject every webhook before any handler code ran. This is the only function
+# with verify_jwt disabled, and it is therefore the only publicly reachable
+# endpoint in the project -- its sole protection is the HMAC check that runs as
+# the first operation in its handler.
+[functions.razorpay-webhook]
+verify_jwt = false

@@ -2,6 +2,7 @@ import { useStaticCart } from "@/hooks/use-static-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { useAddresses } from "@/hooks/use-addresses";
 import { useCheckout } from "@/hooks/use-checkout";
+import { useRazorpay } from "@/hooks/use-razorpay";
 import { getErrorMessage } from "@/lib/errors";
 import { Header } from "@/components/Header";
 import { MobileBackButton } from "@/components/MobileBackButton";
@@ -96,9 +97,10 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
     getCartTotal,
     addToCart,
   } = useStaticCart(allProducts);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, profile } = useAuth();
   const { data: addresses = [] } = useAddresses();
   const { mutateAsync: checkout, isPending } = useCheckout();
+  const { openCheckout } = useRazorpay();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -149,11 +151,41 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
     }
     setIsCheckingOut(true);
     try {
-      await checkout({
+      const order = await checkout({
         addressId: selectedAddress.id,
         cartItems,
         paymentMethod,
       });
+
+      if (paymentMethod === "cod") {
+        toast({
+          title: "Order Placed!",
+          description: "Your groceries are on the way!",
+        });
+        clearCart();
+        setLocation("/orders");
+        return;
+      }
+
+      if (!order.razorpayOrderId || !order.razorpayKeyId) {
+        throw new Error("Could not start payment. Please try again.");
+      }
+
+      const outcome = await openCheckout({
+        razorpayOrderId: order.razorpayOrderId,
+        razorpayKeyId: order.razorpayKeyId,
+        customerPhone: profile?.phone ?? undefined,
+      });
+
+      if (outcome === "dismissed") {
+        // Cart is deliberately NOT cleared: the customer can retry immediately.
+        toast({
+          title: "Payment cancelled",
+          description: "Your cart is saved. You can try again whenever you like.",
+        });
+        return;
+      }
+
       toast({
         title: "Order Placed!",
         description: "Your groceries are on the way!",

@@ -9,10 +9,15 @@ interface CheckoutInput {
   paymentMethod: 'cod' | 'razorpay';
 }
 
+export type CheckoutResponse = OrderWithItems & {
+  razorpayOrderId?: string;
+  razorpayKeyId?: string;
+};
+
 export function useCheckout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ addressId, cartItems, paymentMethod }: CheckoutInput): Promise<OrderWithItems> => {
+    mutationFn: async ({ addressId, cartItems, paymentMethod }: CheckoutInput): Promise<CheckoutResponse> => {
       const { data, error } = await supabase.functions.invoke('checkout', {
         body: {
           addressId,
@@ -29,7 +34,7 @@ export function useCheckout() {
         },
       });
       if (error) throw error;
-      return data as OrderWithItems;
+      return data as CheckoutResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });

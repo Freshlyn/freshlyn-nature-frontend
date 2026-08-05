@@ -10,7 +10,7 @@ export type OrderStatus =
   | 'failed'
   | 'cancelled';
 export type SubscriptionFrequency = 'daily' | 'alternate' | 'every_3rd';
-export type PaymentStatus = 'pending' | 'paid' | 'collected' | 'refunded';
+export type PaymentStatus = 'pending' | 'failed' | 'paid' | 'collected' | 'refunded';
 export type PaymentMethod = 'cod' | 'razorpay';
 
 export interface OrderItemWithDetails {

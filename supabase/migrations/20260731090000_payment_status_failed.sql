@@ -1,0 +1,11 @@
+-- A dead online payment attempt and a COD order awaiting collection would
+-- otherwise both sit in 'pending', indistinguishable. `failed` separates them.
+--
+-- This value is added in its own migration deliberately: ALTER TYPE ... ADD
+-- VALUE cannot be used in the same transaction that references the new value,
+-- so any migration writing 'failed' must run strictly after this one.
+--
+-- Placed after 'pending' to preserve the lifecycle-order convention established
+-- in 20260726120000 -- enum values sort by declaration order, so ORDER BY
+-- follows the payment flow rather than the alphabet.
+alter type public.payment_status add value 'failed' after 'pending';
