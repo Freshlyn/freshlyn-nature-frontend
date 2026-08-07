@@ -4,6 +4,7 @@ import {
   seedAddress,
   cleanupPhone,
   hasServiceRole,
+  testPhoneFor,
 } from './helpers/otp';
 
 // Full authenticated purchase flows in a real browser against real Supabase:
@@ -16,7 +17,10 @@ test.describe('checkout: place an order', () => {
     'SUPABASE_SERVICE_ROLE_KEY not set — skipping real-checkout E2E.',
   );
 
-  const phone = `9${Math.floor(100000000 + Math.random() * 899999999)}`;
+  // MUST be allowlisted in TWOFACTOR_TEST_PHONES. A random number takes the
+  // real 2Factor path, which stores no readable OTP (so fetchOtp fails) and
+  // bills an SMS to a stranger.
+  const phone = testPhoneFor('checkout');
 
   test.beforeEach(async () => {
     await cleanupPhone(phone);

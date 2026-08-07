@@ -18,7 +18,7 @@ export function BottomNav({ visible = true }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-lg md:hidden" data-testid="bottom-nav">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe-b bg-white border-t border-border shadow-lg md:hidden" data-testid="bottom-nav">
       <div className="flex items-center justify-around py-2 px-4 gap-2">
         {navItems.map((item) => {
           const isActive = location === item.path;

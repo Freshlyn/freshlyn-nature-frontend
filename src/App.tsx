@@ -1,9 +1,12 @@
 import { Switch, Route, useLocation } from 'wouter';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { useAuth } from '@/hooks/use-auth';
 import { BottomNav } from '@/components/BottomNav';
 import { DesktopSidebar } from '@/components/DesktopSidebar';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { useAndroidBackButton } from '@/lib/platform/back-button';
+import { initSystemUi } from '@/lib/platform/system-ui';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PublicOnlyRoute } from '@/components/PublicOnlyRoute';
 import NotFound from '@/pages/not-found';
@@ -18,6 +21,10 @@ import AuthPage from '@/pages/Auth';
 import RegisterPage from '@/pages/Register';
 
 function App() {
+  useAndroidBackButton();
+  useEffect(() => {
+    void initSystemUi();
+  }, []);
   const { user } = useAuth();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -28,6 +35,7 @@ function App() {
 
   return (
     <div className="min-h-screen">
+      <OfflineBanner />
       {showDesktopSidebar && <DesktopSidebar isOpen={sidebarOpen} />}
 
       <div className={`${showDesktopSidebar ? 'md:ml-56' : ''} transition-all duration-200`}>

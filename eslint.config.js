@@ -6,7 +6,10 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // `android/` is generated native output (Capacitor's native-bridge.js, build
+  // intermediates); `.claude/worktrees` holds copies of the tree from other
+  // branches. Neither is source we lint.
+  globalIgnores(['dist', 'android', '.claude']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

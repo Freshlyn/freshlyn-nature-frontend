@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { fetchOtp, cleanupPhone, hasServiceRole } from './helpers/otp';
+import { fetchOtp, cleanupPhone, hasServiceRole, testPhoneFor } from './helpers/otp';
 
 // Full phone -> OTP login against real Supabase. The OTP is random and never
 // shown in the UI, so we read it back from the otp_codes table with the
@@ -14,7 +14,7 @@ test.describe('auth: phone + OTP login', () => {
   // MUST be listed in the TWOFACTOR_TEST_PHONES secret. An allowlisted number
   // bypasses 2Factor entirely, so this suite sends no SMS and costs nothing.
   // A random number here would text a real stranger on every run.
-  const phone = process.env.E2E_TEST_PHONE ?? '9123456789';
+  const phone = testPhoneFor('auth');
 
   test.beforeEach(async () => {
     await cleanupPhone(phone);
@@ -47,6 +47,21 @@ test.describe('auth: phone + OTP login', () => {
     await page.getByTestId('input-name').fill('E2E Test User');
     await page.getByTestId('button-register').click();
     await expect(page).toHaveURL(/\/$/);
+
+    // Safe-area utilities (pt-safe-t / pb-safe-b) must resolve to 0px in a
+    // browser, so adding them for Android did not shift the web layout.
+    // Asserted here rather than in a spec of its own because Header and
+    // BottomNav only exist for a signed-in user, and this test already has
+    // one -- a separate file would need a fourth allowlisted number and would
+    // race with this one under fullyParallel.
+    const header = page.locator('header').first();
+    await expect(header).toBeVisible();
+    expect(await header.evaluate((el) => getComputedStyle(el).paddingTop)).toBe('0px');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const nav = page.getByTestId('bottom-nav');
+    await expect(nav).toBeVisible();
+    expect(await nav.evaluate((el) => getComputedStyle(el).paddingBottom)).toBe('0px');
   });
 
   test('wrong OTP shows a verification error and stays on /login', async ({

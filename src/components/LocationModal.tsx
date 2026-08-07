@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { MapPin, Navigation } from 'lucide-react';
 import { useState } from 'react';
+import { getCurrentPosition } from '@/lib/platform/geolocation';
 
 interface LocationModalProps {
   open: boolean;
@@ -12,25 +13,21 @@ interface LocationModalProps {
 export function LocationModal({ open, onOpenChange, onSelectLocation }: LocationModalProps) {
   const [loading, setLoading] = useState(false);
 
-  const handleGeolocation = () => {
+  const handleGeolocation = async () => {
     setLoading(true);
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          setTimeout(() => {
-            onSelectLocation('Current Location');
-            setLoading(false);
-            onOpenChange(false);
-          }, 1000);
-        },
-        () => {
-          setLoading(false);
-          alert('Could not access location. Please enter manually.');
-        },
-      );
-    } else {
+    try {
+      // Coordinates are deliberately discarded: turning them into a real
+      // address is a separate feature. The visible behaviour -- a brief
+      // "Detecting..." then the hardcoded label -- is unchanged.
+      await getCurrentPosition();
+      setTimeout(() => {
+        onSelectLocation('Current Location');
+        setLoading(false);
+        onOpenChange(false);
+      }, 1000);
+    } catch (err) {
       setLoading(false);
-      alert('Geolocation is not supported by your browser');
+      alert(err instanceof Error ? err.message : 'Could not access location. Please enter manually.');
     }
   };
 

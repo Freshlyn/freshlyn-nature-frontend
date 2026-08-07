@@ -189,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // conflict but is not one. Clear the dead token and let the caller send
       // the user back to login rather than showing an unactionable error.
       if (error?.code === '23503') {
-        clearStoredSession();
+        await clearStoredSession();
         queryClient.removeQueries({ queryKey: ['profile'] });
         setSession(null);
         throw new StaleSessionError();

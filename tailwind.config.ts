@@ -46,6 +46,15 @@ export default {
           foreground: 'hsl(var(--destructive-foreground) / <alpha-value>)',
         },
       },
+      spacing: {
+        // env(safe-area-inset-*) is 0 in every browser without a notch and
+        // when viewport-fit=cover is absent, so the explicit 0px fallback
+        // keeps the web build's rendering identical.
+        'safe-t': 'env(safe-area-inset-top, 0px)',
+        'safe-b': 'env(safe-area-inset-bottom, 0px)',
+        'safe-l': 'env(safe-area-inset-left, 0px)',
+        'safe-r': 'env(safe-area-inset-right, 0px)',
+      },
       fontFamily: {
         sans: ['var(--font-sans)'],
         display: ['var(--font-display)'],

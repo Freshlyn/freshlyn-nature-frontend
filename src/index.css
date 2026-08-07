@@ -1,4 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@500;600;700;800&display=swap');
+/* Self-hosted so text renders on a cold start with no connection, and with no
+   blank-text flash while a remote stylesheet is fetched.
+
+   Both families ship as variable fonts: Google serves one file per family
+   covering the whole weight axis, and splits it into per-weight @font-face
+   rules only by unicode-range. Declaring a `font-weight` RANGE against the
+   single file gives every weight the app uses (DM Sans 400/500/700, Outfit
+   500/600/700/800) from 69KB total -- downloading a copy per weight would be
+   the same bytes repeated seven times. */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+  src: url('/fonts/dm-sans-variable.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/outfit-variable.woff2') format('woff2-variations');
+}
 
 @tailwind base;
 @tailwind components;

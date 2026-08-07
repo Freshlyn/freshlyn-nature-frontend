@@ -1,8 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
+import { platformStorage } from '@/lib/platform/storage';
 
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY,
+  {
+    auth: {
+      // On web this is localStorage, i.e. exactly the previous default. On
+      // native it is Preferences, so the session survives a cache clear.
+      storage: platformStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  },
 );
 
 /**
@@ -30,10 +40,13 @@ export function authStorageKey(): string | null {
  *
  * signOut() is the normal path, but it POSTs /logout with the current token —
  * and when the underlying auth user has been deleted that call can fail,
- * leaving the stale token in localStorage and the user stuck in a broken
+ * leaving the stale token in storage and the user stuck in a broken
  * half-signed-in state. Removing the key directly always succeeds.
+ *
+ * Async because the native storage adapter is async. Callers must await it,
+ * or a subsequent read can still see the stale token.
  */
-export function clearStoredSession(): void {
+export async function clearStoredSession(): Promise<void> {
   const key = authStorageKey();
-  if (key) localStorage.removeItem(key);
+  if (key) await platformStorage.removeItem(key);
 }

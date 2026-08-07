@@ -4,6 +4,7 @@ import {
   cleanupPhone,
   deleteProfileKeepAuthUser,
   hasServiceRole,
+  testPhoneFor,
 } from './helpers/otp';
 
 // A signed-in session whose `profiles` row is gone (verified OTP but abandoned
@@ -19,7 +20,10 @@ test.describe('route guards: session without a profile', () => {
     'SUPABASE_SERVICE_ROLE_KEY not set — skipping real-auth E2E.',
   );
 
-  const phone = `9${Math.floor(100000000 + Math.random() * 899999999)}`;
+  // MUST be allowlisted in TWOFACTOR_TEST_PHONES. A random number takes the
+  // real 2Factor path, which stores no readable OTP (so fetchOtp fails) and
+  // bills an SMS to a stranger.
+  const phone = testPhoneFor('route-guards');
 
   test.beforeEach(async () => {
     await cleanupPhone(phone);

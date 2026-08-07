@@ -52,3 +52,10 @@ coverage/
 /playwright/.cache/
 
 .mcp.json
+
+# Capacitor (Android)
+android/.gradle/
+android/local.properties
+android/.idea/
+android/app/src/main/assets/public/
+android/captures/

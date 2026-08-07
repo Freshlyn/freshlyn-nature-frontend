@@ -54,7 +54,7 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border/50 shadow-sm">
+    <header className="sticky top-0 z-50 pt-safe-t bg-white/95 backdrop-blur-md border-b border-border/50 shadow-sm">
       <div className="container mx-auto px-3 md:px-4 py-2.5 md:py-3 flex items-center justify-between gap-3 md:gap-4">
         <div className="flex items-center gap-3 md:gap-4">
           {user && onSidebarToggle && (
