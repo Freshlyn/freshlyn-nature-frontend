@@ -1,7 +1,7 @@
 import { RazorpayError, toPaise, type RazorpayClient } from "../_shared/razorpay.ts";
 
 export type DeliveryType = "one_time" | "subscription";
-export type SubscriptionFrequency = "daily" | "alternate" | "every_3rd";
+export type SubscriptionFrequency = "daily" | "alternate";
 
 export interface CheckoutItemInput {
   productId: string;

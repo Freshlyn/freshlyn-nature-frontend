@@ -1,7 +1,7 @@
 import { useQuery, queryOptions } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
-export type SubscriptionFrequency = 'daily' | 'alternate' | 'every_3rd';
+export type SubscriptionFrequency = 'daily' | 'alternate';
 
 export interface SubscriptionOption {
   duration_days: number;
@@ -49,7 +49,6 @@ export function getFrequencyLabel(frequency: SubscriptionFrequency): string {
   const labels: Record<SubscriptionFrequency, string> = {
     daily: 'Everyday',
     alternate: 'Every 2 days',
-    every_3rd: 'Every 3 days',
   };
   return labels[frequency];
 }
@@ -58,7 +57,6 @@ export function getFrequencyIntervalDays(frequency: SubscriptionFrequency): numb
   const intervals: Record<SubscriptionFrequency, number> = {
     daily: 1,
     alternate: 2,
-    every_3rd: 3,
   };
   return intervals[frequency];
 }

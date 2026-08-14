@@ -12,7 +12,7 @@ select throws_ok(
      values ('c1111111-1111-1111-1111-111111111111', true, array['weekly']) $$,
   '23514',
   null,
-  'frequencies should reject a value outside {daily,alternate,every_3rd}'
+  'frequencies should reject a value outside {daily,alternate}'
 );
 
 insert into public.subscription_configs (product_id, enabled, frequencies)

@@ -9,7 +9,7 @@ export type OrderStatus =
 
 export type DeliveryType = 'one_time' | 'subscription';
 
-export type SubscriptionFrequency = 'daily' | 'alternate' | 'every_3rd';
+export type SubscriptionFrequency = 'daily' | 'alternate';
 
 export type PaymentStatus = 'pending' | 'failed' | 'paid' | 'collected' | 'refunded';
 

@@ -1,17 +1,22 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
 export type OrderStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'preparing'
-  | 'out_for_delivery'
-  | 'delivered'
-  | 'failed'
-  | 'cancelled';
-export type SubscriptionFrequency = 'daily' | 'alternate' | 'every_3rd';
-export type PaymentStatus = 'pending' | 'failed' | 'paid' | 'collected' | 'refunded';
-export type PaymentMethod = 'cod' | 'razorpay';
+  | "pending"
+  | "confirmed"
+  | "preparing"
+  | "out_for_delivery"
+  | "delivered"
+  | "failed"
+  | "cancelled";
+export type SubscriptionFrequency = "daily" | "alternate";
+export type PaymentStatus =
+  | "pending"
+  | "failed"
+  | "paid"
+  | "collected"
+  | "refunded";
+export type PaymentMethod = "cod" | "razorpay";
 
 export interface OrderItemWithDetails {
   id: string;
@@ -20,7 +25,7 @@ export interface OrderItemWithDetails {
   variant_id: string;
   quantity: number;
   unit_price: number;
-  delivery_type: 'one_time' | 'subscription';
+  delivery_type: "one_time" | "subscription";
   subscription_duration_days?: number;
   subscription_frequency?: SubscriptionFrequency;
   discount_percent?: number;
@@ -60,25 +65,27 @@ const ORDER_SELECT = `
 
 export function useOrders() {
   return useQuery({
-    queryKey: ['orders'],
+    queryKey: ["orders"],
     queryFn: async (): Promise<OrderWithItems[]> => {
       const { data: orders, error: ordersError } = await supabase
-        .from('orders')
+        .from("orders")
         .select(ORDER_SELECT)
-        .order('created_at', { ascending: false });
+        .order("created_at", { ascending: false });
       if (ordersError) throw ordersError;
       if (!orders || orders.length === 0) return [];
 
       const orderIds = orders.map((o) => o.id);
       const { data: items, error: itemsError } = await supabase
-        .from('order_items')
+        .from("order_items")
         .select(ORDER_ITEM_SELECT)
-        .in('order_id', orderIds);
+        .in("order_id", orderIds);
       if (itemsError) throw itemsError;
 
       return orders.map((order) => ({
         ...order,
-        items: (items ?? []).filter((item) => item.order_id === order.id) as unknown as OrderItemWithDetails[],
+        items: (items ?? []).filter(
+          (item) => item.order_id === order.id,
+        ) as unknown as OrderItemWithDetails[],
       })) as OrderWithItems[];
     },
   });
@@ -86,24 +93,27 @@ export function useOrders() {
 
 export function useOrder(orderId: string) {
   return useQuery({
-    queryKey: ['order', orderId],
+    queryKey: ["order", orderId],
     enabled: !!orderId,
     queryFn: async (): Promise<OrderWithItems | null> => {
       const { data: order, error: orderError } = await supabase
-        .from('orders')
+        .from("orders")
         .select(ORDER_SELECT)
-        .eq('id', orderId)
+        .eq("id", orderId)
         .maybeSingle();
       if (orderError) throw orderError;
       if (!order) return null;
 
       const { data: items, error: itemsError } = await supabase
-        .from('order_items')
+        .from("order_items")
         .select(ORDER_ITEM_SELECT)
-        .eq('order_id', orderId);
+        .eq("order_id", orderId);
       if (itemsError) throw itemsError;
 
-      return { ...order, items: (items ?? []) as unknown as OrderItemWithDetails[] } as OrderWithItems;
+      return {
+        ...order,
+        items: (items ?? []) as unknown as OrderItemWithDetails[],
+      } as OrderWithItems;
     },
   });
 }

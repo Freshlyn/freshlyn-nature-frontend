@@ -21,8 +21,8 @@ select is(
 
 select is(
   (select count(*)::int from public.subscription_durations),
-  16,
-  'seed data should insert all 16 subscription duration options'
+  28,
+  'seed data should insert all 28 subscription duration options (7 products x 15/30/60/90)'
 );
 
 select results_eq(
