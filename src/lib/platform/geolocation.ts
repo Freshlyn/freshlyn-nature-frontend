@@ -4,19 +4,24 @@ import { isNative } from '@/lib/platform';
 export interface Coordinates {
   latitude: number;
   longitude: number;
+  /**
+   * Radius of 68% confidence, in metres, as reported by the platform.
+   *
+   * Carried through rather than discarded because a position is only useful
+   * if it is precise enough to sit inside a delivery polygon. A desktop
+   * browser without GPS hardware returns an IP-derived fix that can name the
+   * wrong city; callers apply isUsableFix() from @/lib/serviceability before
+   * trusting the coordinates.
+   */
+  accuracy: number;
 }
 
 /**
  * One position fix.
  *
  * Native goes through @capacitor/geolocation, which handles the Android
- * runtime permission prompt; web uses navigator.geolocation, which is exactly
- * what LocationModal did before. Both reject on denial or unavailability, so
- * the caller has a single failure path.
- *
- * The coordinates are currently discarded by the only consumer -- turning them
- * into an address is a separate feature with its own provider and cost
- * decisions.
+ * runtime permission prompt; web uses navigator.geolocation. Both reject on
+ * denial or unavailability, so the caller has a single failure path.
  */
 export async function getCurrentPosition(): Promise<Coordinates> {
   if (isNative()) {
@@ -31,6 +36,7 @@ export async function getCurrentPosition(): Promise<Coordinates> {
     return {
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
+      accuracy: position.coords.accuracy,
     };
   }
 
@@ -44,6 +50,7 @@ export async function getCurrentPosition(): Promise<Coordinates> {
         resolve({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
         }),
       () => reject(new Error('Could not access location. Please enter manually.')),
     );

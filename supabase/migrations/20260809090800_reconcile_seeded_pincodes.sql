@@ -1,0 +1,33 @@
+-- Deactivate seeded pincodes whose centroid falls outside every placeholder
+-- hub polygon.
+--
+-- The README's curation rule for `serviceable_pincodes` says a pincode
+-- belongs there only when it is MOSTLY inside one of the `delivery_zones`
+-- polygons. Four of the eleven pincodes seeded in
+-- 20260809090600_seed_delivery_zones.sql violate that rule: 700031
+-- (Dhakuria), 700053 (Kidderpore), 700068 (Jodhpur Park) and 700106 (New
+-- Town) all sit outside every seeded polygon.
+--
+-- That mismatch made the two serviceability tiers disagree for the same
+-- physical address: check_serviceability(null, null, pincode) approved the
+-- order (pincode-tier, ignores the polygon) while
+-- check_serviceability(lat, lng, pincode) rejected it (GPS-tier, bound by
+-- the polygon). A customer who had been ordering fine on the pincode tier
+-- could tap "Confirm location" in AddressModal, upgrade to GPS-tier, and be
+-- silently locked out of their own address with no self-service way back
+-- (see the AddressModal.tsx guard added alongside this migration, which now
+-- checks serviceability before ever writing that upgrade).
+--
+-- Deactivating rather than deleting preserves the record of intent -- these
+-- pincodes were deliberately chosen as roughly-serviceable when the seed was
+-- written -- and matches the `active` flag the schema already carries for
+-- exactly this kind of "temporarily not offered" state.
+--
+-- 20260809090600_seed_delivery_zones.sql must never be edited after being
+-- applied (see its own header), hence this separate migration.
+--
+-- When the real rider-reach polygons replace these placeholders, these four
+-- pincodes should be re-evaluated and reactivated if they then fall inside.
+update public.serviceable_pincodes
+set active = false
+where pincode in ('700031', '700053', '700068', '700106');

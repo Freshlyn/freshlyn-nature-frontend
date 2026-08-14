@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductCardSkeleton } from '@/components/ProductCardSkeleton';
@@ -6,6 +6,8 @@ import { useProductsWithMeta } from '@/hooks/use-products';
 import { useStaticCart } from '@/hooks/use-static-cart';
 import { useDebounce } from '@/hooks/use-debounce';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
+import { LocationModal } from '@/components/LocationModal';
+import { readLocationPreference, writeLocationPreference, type LocationPreference } from '@/lib/location-preference';
 import type { Product, SubscriptionFrequency } from '@/hooks/use-products';
 import { Truck, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,9 +32,39 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
   const [category, setCategory] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const debouncedSearch = useDebounce(search, 300);
-  const [location] = useState('Set Location');
+  const [preference, setPreference] = useState<LocationPreference | null>(null);
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const location = preference?.label ?? 'Set Location';
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
+
+  // Shown ONCE per device. A stored preference -- including a stored rejection
+  // -- means the question has been answered and the screen stays closed; the
+  // header then shows the answer with a tap to change it.
+  useEffect(() => {
+    let cancelled = false;
+    readLocationPreference()
+      .then((stored) => {
+        if (cancelled) return;
+        if (stored) {
+          setPreference(stored);
+        } else {
+          setLocationModalOpen(true);
+        }
+      })
+      .catch(() => {
+        // Failing to READ the preference must SHOW the screen, not skip it --
+        // on native this goes through Capacitor Preferences.get, which can
+        // reject, and an unhandled rejection here would otherwise leave
+        // neither branch run: the modal never opens and the header is stuck
+        // showing "Set Location" forever.
+        if (cancelled) return;
+        setLocationModalOpen(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const { data: products, isLoading: loadingProducts } = useProductsWithMeta({
     category: category === 'all' ? undefined : category,
@@ -65,6 +97,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
       <Header
         onSearch={setSearch}
         location={location}
+        onLocationClick={() => setLocationModalOpen(true)}
         sidebarOpen={sidebarOpen}
         onSidebarToggle={onSidebarToggle}
       />
@@ -216,6 +249,19 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
           </>
         )}
       </main>
+
+      <LocationModal
+        open={locationModalOpen}
+        onOpenChange={setLocationModalOpen}
+        onResolved={(pref) => {
+          // A null result is a skip: store nothing, so the question can be
+          // asked again next launch. Nothing here influences checkout either
+          // way -- the address row is what decides an order.
+          if (!pref) return;
+          setPreference(pref);
+          void writeLocationPreference(pref);
+        }}
+      />
     </div>
   );
 }

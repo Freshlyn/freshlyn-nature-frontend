@@ -7,6 +7,19 @@ insert into auth.users (id, phone, email) values
 insert into public.addresses (id, user_id, label, flat_house, city, state, pincode, is_default)
 values ('b0000000-0000-0000-0000-00000000000b', 'a0000000-0000-0000-0000-00000000000a', 'Home', 'Flat 1', 'Mumbai', 'Maharashtra', '400001', true);
 
+-- create_order now refuses an address outside every coverage area, so this
+-- fixture needs a zone that covers it. Its coordinates are null, so it is
+-- pincode-tier and only needs an allowlist entry.
+insert into public.delivery_zones (id, name, area) values
+  (
+    'f1000000-0000-4000-8000-00000000000f',
+    'Fixture Zone',
+    st_geomfromgeojson('{"type":"Polygon","coordinates":[[[72.80,18.90],[73.00,18.90],[73.00,19.10],[72.80,19.10],[72.80,18.90]]]}')::geography
+  );
+
+insert into public.serviceable_pincodes (pincode, zone_id) values
+  ('400001', 'f1000000-0000-4000-8000-00000000000f');
+
 insert into public.products (id, name, category, unit) values
   ('c0000000-0000-0000-0000-00000000000c', 'Test Milk', 'dairy', 'L');
 

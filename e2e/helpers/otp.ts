@@ -191,9 +191,13 @@ export async function seedAddress(phone: string): Promise<void> {
     flat_house: '42',
     building: 'Test Residency',
     street: 'MG Road',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    pincode: '560001',
+    // create_order rejects any address outside a hub coverage area, so this
+    // fixture has to sit inside one or every checkout spec fails at the gate.
+    // Coordinates are left null, making it pincode-tier: 700019 (Ballygunge) is
+    // on the seeded allowlist in 20260809090600_seed_delivery_zones.sql.
+    city: 'Kolkata',
+    state: 'West Bengal',
+    pincode: '700019',
     is_default: true,
   });
   if (error) throw new Error(`Failed to seed address: ${error.message}`);
@@ -258,4 +262,29 @@ export async function cleanupPhone(phone: string): Promise<void> {
         'number and skip the /register step.',
     );
   }
+}
+
+/**
+ * Pre-answer the app-open location screen for a page.
+ *
+ * `LocationModal` is shown once per device, gated on a stored preference read
+ * from localStorage at Home mount. A fresh browser context has none, so the
+ * screen opens over the catalogue and its overlay intercepts every click --
+ * which is correct product behaviour but makes the modal an unavoidable
+ * interstitial for tests that are not about it.
+ *
+ * Seeding the preference is the E2E equivalent of a returning user who has
+ * already answered the question, and it mirrors how `seedAddress` sidesteps
+ * the address modal. Must run BEFORE the first navigation, so the value is
+ * present when Home's effect reads it.
+ */
+export async function seedLocationPreference(
+  page: import('@playwright/test').Page,
+): Promise<void> {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'freshlyn.location-preference',
+      JSON.stringify({ serviceable: true, label: '700019', matchedBy: 'pincode' }),
+    );
+  });
 }

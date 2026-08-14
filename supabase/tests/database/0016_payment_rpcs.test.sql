@@ -6,6 +6,19 @@ insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000aa
 insert into public.addresses (id, user_id, label, flat_house, city, state, pincode)
   values ('00000000-0000-0000-0000-0000000000bb', '00000000-0000-0000-0000-0000000000aa', 'Home', 'Flat 1', 'Mumbai', 'MH', '400001');
 
+-- create_order now refuses an address outside every coverage area, so this
+-- fixture needs a zone that covers it. Its coordinates are null, so it is
+-- pincode-tier and only needs an allowlist entry.
+insert into public.delivery_zones (id, name, area) values
+  (
+    'f2000000-0000-4000-8000-00000000000f',
+    'Fixture Zone',
+    st_geomfromgeojson('{"type":"Polygon","coordinates":[[[72.80,18.90],[73.00,18.90],[73.00,19.10],[72.80,19.10],[72.80,18.90]]]}')::geography
+  );
+
+insert into public.serviceable_pincodes (pincode, zone_id) values
+  ('400001', 'f2000000-0000-4000-8000-00000000000f');
+
 -- Stock starts at 100 for this seeded variant.
 select is(
   (select stock_quantity from public.product_variants where id = '00000000-0000-0001-0000-000000000002'),

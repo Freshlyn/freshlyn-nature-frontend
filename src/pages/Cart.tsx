@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useAddresses } from "@/hooks/use-addresses";
 import { useCheckout } from "@/hooks/use-checkout";
 import { useRazorpay } from "@/hooks/use-razorpay";
+import { useAddressServiceability } from "@/hooks/use-serviceability";
 import { getErrorMessage } from "@/lib/errors";
 import { Header } from "@/components/Header";
 import { MobileBackButton } from "@/components/MobileBackButton";
@@ -130,6 +131,14 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
     return addresses.find((a) => a.is_default) || addresses[0];
   }, [addresses, selectedAddressId]);
 
+  // Advisory only. The binding check runs inside create_order against these
+  // same stored values, so this exists purely so the customer learns before
+  // tapping rather than after. It can be stale if a zone changed mid-session,
+  // in which case the server rejects and the toast tells them to re-check.
+  const { data: serviceability, isLoading: serviceabilityLoading } =
+    useAddressServiceability(selectedAddress);
+  const addressNotServiceable = serviceability?.serviceable === false;
+
   const handleCheckout = async () => {
     if (!isAuthenticated) {
       toast({
@@ -144,6 +153,16 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
       toast({
         title: "Add an address",
         description: "Please add a delivery address before checkout",
+        variant: "destructive",
+      });
+      setAddressModalOpen(true);
+      return;
+    }
+    if (addressNotServiceable) {
+      toast({
+        title: "We don't deliver here yet",
+        description:
+          "FreshLyn covers parts of Kolkata. Choose another address to continue.",
         variant: "destructive",
       });
       setAddressModalOpen(true);
@@ -602,9 +621,33 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                   })}
                 </div>
 
+                {addressNotServiceable && (
+                  <div
+                    className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3"
+                    role="alert"
+                    data-testid="banner-address-not-serviceable"
+                  >
+                    <p className="text-sm font-semibold text-destructive">
+                      We don't deliver to this address yet
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      FreshLyn covers parts of Kolkata and is expanding.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => setAddressModalOpen(true)}
+                      data-testid="button-choose-another-address"
+                    >
+                      Choose another address
+                    </Button>
+                  </div>
+                )}
+
                 <Button
                   onClick={handleCheckout}
-                  disabled={isPending || isCheckingOut}
+                  disabled={isPending || isCheckingOut || serviceabilityLoading || addressNotServiceable}
                   className="w-full h-14 text-base rounded-xl font-bold bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/25 hover:shadow-xl transition-all active:scale-[0.98]"
                   data-testid="button-checkout"
                 >

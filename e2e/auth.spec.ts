@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { fetchOtp, cleanupPhone, hasServiceRole, testPhoneFor } from './helpers/otp';
+import {
+  fetchOtp,
+  cleanupPhone,
+  seedLocationPreference,
+  hasServiceRole,
+  testPhoneFor,
+} from './helpers/otp';
 
 // Full phone -> OTP login against real Supabase. The OTP is random and never
 // shown in the UI, so we read it back from the otp_codes table with the
@@ -26,6 +32,10 @@ test.describe('auth: phone + OTP login', () => {
   test('new user logs in via OTP and lands on the register step', async ({
     page,
   }) => {
+    // This test ends up on Home. Today its assertions only read visibility and
+    // computed styles, which the location screen's overlay does not block, but
+    // seeding keeps it consistent with the other Home-reaching specs.
+    await seedLocationPreference(page);
     await page.goto('/login');
 
     await page.getByTestId('input-phone').fill(phone);

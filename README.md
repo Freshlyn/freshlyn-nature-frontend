@@ -130,6 +130,53 @@ allowlisted takes the real 2Factor path, which stores no readable OTP **and
 sends a real SMS**. `e2e/helpers/otp.ts` allocates one number per spec file and
 throws rather than falling back to a random number.
 
+### Delivery areas
+
+An order is accepted only when its delivery address falls inside a hub's
+coverage area. The verdict comes from the **address row**, never from where
+the phone is at order time — that is what makes scheduled subscription
+deliveries work with no special case.
+
+Two tiers, fixed at address-save time and visible in the data:
+
+| Tier | Condition | Check |
+|---|---|---|
+| GPS | `addresses.latitude`/`longitude` non-null | PostGIS containment against `delivery_zones` |
+| Pincode | coordinates null | allowlist lookup in `serviceable_pincodes` |
+
+`public.check_serviceability(p_lat, p_lng, p_pincode)` answers for every
+caller. A GPS rejection does **not** fall through to the pincode tier —
+coordinates are authoritative. `create_order` calls the same function before
+any write, so a rejected order leaves no order row, no decremented stock and
+no `subscription_deliveries`.
+
+**Editing zones.** There is no admin UI, by design. Draw the coverage area on
+[geojson.io](https://geojson.io) (free, no account), copy the feature's
+`geometry` object, and write a new migration:
+
+```sql
+update public.delivery_zones
+set area = st_geomfromgeojson('<paste the geometry object>')::geography
+where id = 'd0000000-0000-4000-8000-000000000001';
+```
+
+GeoJSON coordinates are `[longitude, latitude]` — the opposite of how people
+say them. Getting it backwards puts a Kolkata polygon in the Indian Ocean, and
+the only symptom is that every address is rejected.
+
+The polygons seeded by `20260809090600_seed_delivery_zones.sql` are
+**placeholders** — rough boxes around Ballygunge, Salt Lake and Behala. Replace
+them with real rider-reach boundaries before launch.
+
+**Curating pincodes.** Add a pincode to `serviceable_pincodes` only when it is
+mostly inside a polygon: a failed delivery costs a refund, a wasted rider trip
+and customer trust, while a missed order costs one order.
+
+**Accuracy guard.** A reading worse than 2000 m is discarded and handled like a
+permission denial. `navigator.geolocation` is also blocked on insecure origins,
+so on a plain-HTTP LAN IP GPS always fails and the pincode fallback always
+appears — expected, not a defect. Use `localhost` or HTTPS in dev.
+
 ### Notes
 
 - `server.androidScheme` is `https`, so the WebView origin is

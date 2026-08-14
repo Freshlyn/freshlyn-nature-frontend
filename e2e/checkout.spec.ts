@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import {
   fetchOtp,
   seedAddress,
+  seedLocationPreference,
   cleanupPhone,
   hasServiceRole,
   testPhoneFor,
@@ -32,6 +33,9 @@ test.describe('checkout: place an order', () => {
   // Log in a fresh user via phone + OTP, complete the register step, and seed a
   // default delivery address (checkout otherwise stalls on the address modal).
   async function loginAndPrepare(page: Page) {
+    // The app-open location screen would otherwise overlay the catalogue and
+    // intercept every click. Answering it up front is the returning-user state.
+    await seedLocationPreference(page);
     await page.goto('/login');
     await page.getByTestId('input-phone').fill(phone);
     await page.getByTestId('button-send-otp').click();

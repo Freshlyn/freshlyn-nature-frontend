@@ -394,3 +394,51 @@ Deno.test("a razorpay API failure returns 502", async () => {
 
   assertEquals(result.status, 502);
 });
+
+Deno.test("returns 422 when create_order rejects the address as unserviceable", async () => {
+  const { deps } = makeDeps({
+    variants: { "p1/v1": { price: 50, stockQuantity: 10, maxQuantityPerOrder: 5 } },
+  });
+  // create_order raises P0001 before it writes anything, so supabase-js's
+  // .rpc() returns an error and index.ts rethrows its message.
+  deps.createOrder = () => Promise.reject(new Error("address not serviceable"));
+
+  const input: CheckoutInput = {
+    addressId: "addr-1",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+    paymentMethod: "cod",
+  };
+
+  const result = await handleCheckout(deps, input);
+
+  assertEquals(result.status, 422);
+  assertEquals(
+    (result.body as { code?: string }).code,
+    "address_not_serviceable",
+  );
+});
+
+Deno.test("a non-serviceability create_order failure still surfaces as a 500", async () => {
+  // Only the named rejection is a 422. Everything else must keep bubbling to
+  // the catch-all in index.ts, so a genuine database fault is never reported
+  // to the customer as "we don't deliver here".
+  const { deps } = makeDeps({
+    variants: { "p1/v1": { price: 50, stockQuantity: 10, maxQuantityPerOrder: 5 } },
+  });
+  deps.createOrder = () => Promise.reject(new Error("deadlock detected"));
+
+  const input: CheckoutInput = {
+    addressId: "addr-1",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+    paymentMethod: "cod",
+  };
+
+  let threw = false;
+  try {
+    await handleCheckout(deps, input);
+  } catch (error) {
+    threw = true;
+    assertEquals((error as Error).message, "deadlock detected");
+  }
+  assertEquals(threw, true);
+});

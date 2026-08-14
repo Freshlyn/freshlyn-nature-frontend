@@ -14,6 +14,8 @@ interface AddressRow {
   city: string;
   state: string;
   pincode: string;
+  latitude: number | null;
+  longitude: number | null;
   is_default: boolean;
 }
 
@@ -28,6 +30,8 @@ function toUserAddress(row: AddressRow): UserAddress {
     city: row.city,
     state: row.state,
     pincode: row.pincode,
+    latitude: row.latitude,
+    longitude: row.longitude,
     is_default: row.is_default,
   };
 }
@@ -38,7 +42,7 @@ export function useAddresses() {
     queryFn: async (): Promise<UserAddress[]> => {
       const { data, error } = await supabase
         .from('addresses')
-        .select('id, label, flat_house, building, street, landmark, city, state, pincode, is_default')
+        .select('id, label, flat_house, building, street, landmark, city, state, pincode, latitude, longitude, is_default')
         .order('is_default', { ascending: false });
       if (error) throw error;
       return (data as AddressRow[]).map(toUserAddress);
@@ -49,7 +53,13 @@ export function useAddresses() {
 export function useAddAddress() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Omit<UserAddress, 'id' | 'is_default'> & { is_default?: boolean }): Promise<UserAddress> => {
+    mutationFn: async (
+      input: Omit<UserAddress, 'id' | 'is_default' | 'latitude' | 'longitude'> & {
+        is_default?: boolean;
+        latitude?: number | null;
+        longitude?: number | null;
+      },
+    ): Promise<UserAddress> => {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) throw new Error('Not authenticated');
 
@@ -65,9 +75,13 @@ export function useAddAddress() {
           city: input.city,
           state: input.state,
           pincode: input.pincode,
+          // Null unless the user confirmed they were standing here. The
+          // nullability IS the tier: null means the pincode fallback decides.
+          latitude: input.latitude ?? null,
+          longitude: input.longitude ?? null,
           is_default: input.is_default ?? false,
         })
-        .select('id, label, flat_house, building, street, landmark, city, state, pincode, is_default')
+        .select('id, label, flat_house, building, street, landmark, city, state, pincode, latitude, longitude, is_default')
         .single();
       if (error) throw error;
       return toUserAddress(data as AddressRow);
@@ -96,6 +110,38 @@ export function useDeleteAddress() {
   return useMutation({
     mutationFn: async (addressId: string): Promise<void> => {
       const { error } = await supabase.from('addresses').delete().eq('id', addressId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ADDRESSES_KEY });
+    },
+  });
+}
+
+/**
+ * Upgrades a pincode-tier address to GPS-tier.
+ *
+ * Backs the "confirm location" action in the address list: a user standing at
+ * an address they typed elsewhere can pin it accurately, and every future
+ * order to it -- including scheduled subscription deliveries -- uses the
+ * polygon rather than the coarse pincode allowlist.
+ */
+export function useUpdateAddressCoordinates() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      addressId,
+      latitude,
+      longitude,
+    }: {
+      addressId: string;
+      latitude: number;
+      longitude: number;
+    }): Promise<void> => {
+      const { error } = await supabase
+        .from('addresses')
+        .update({ latitude, longitude })
+        .eq('id', addressId);
       if (error) throw error;
     },
     onSuccess: () => {

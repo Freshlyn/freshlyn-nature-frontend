@@ -33,6 +33,15 @@ export function useCheckout() {
           })),
         },
       });
+      // LOAD-BEARING: rethrow the raw FunctionsHttpError as-is, do not wrap it
+      // (e.g. `throw new Error(error.message)`). getErrorMessage in
+      // src/lib/errors.ts reads the ORIGINAL response body (`body.error`) off
+      // this exact error object to surface the edge function's user-facing
+      // 422 message (e.g. "we don't deliver to this address"). Wrapping it
+      // loses that body, and every caller would silently degrade to the
+      // generic "Edge Function returned a non-2xx status code" toast -- with
+      // every existing test still green, since only handler.ts covers the
+      // 422 contract today.
       if (error) throw error;
       return data as CheckoutResponse;
     },

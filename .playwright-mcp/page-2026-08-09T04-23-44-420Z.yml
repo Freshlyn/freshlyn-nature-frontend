@@ -1,0 +1,23 @@
+- generic [ref=e3]:
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - link [ref=e9] [cursor=pointer]:
+        - /url: /
+        - img "Freshlyn Nature" [ref=e10]
+      - heading "Login or Sign Up" [level=1] [ref=e11]
+      - paragraph [ref=e12]: Enter your phone number to login or create a new account
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - text: Phone Number
+        - generic [ref=e15]:
+          - generic [ref=e16]: "+91"
+          - textbox "Phone Number" [ref=e17]:
+            - /placeholder: 10-digit mobile number
+      - button "Continue" [disabled]
+      - paragraph [ref=e18]: By continuing, you agree to our Terms of Service and Privacy Policy
+    - generic [ref=e20]:
+      - paragraph [ref=e28]: Fast Delivery
+      - paragraph [ref=e34]: Fresh Products
+      - paragraph [ref=e39]: Secure Payments
+  - region "Notifications (F8)":
+    - list

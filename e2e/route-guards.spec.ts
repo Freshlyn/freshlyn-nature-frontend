@@ -3,6 +3,7 @@ import {
   fetchOtp,
   cleanupPhone,
   deleteProfileKeepAuthUser,
+  seedLocationPreference,
   hasServiceRole,
   testPhoneFor,
 } from './helpers/otp';
@@ -67,6 +68,8 @@ test.describe('route guards: session without a profile', () => {
     page,
   }) => {
     // Reach the "session but no profile row" state: log in, then delete the row.
+    // Answer the app-open location screen first so its overlay never blocks Home.
+    await seedLocationPreference(page);
     await page.goto('/login');
     await page.getByTestId('input-phone').fill(phone);
     await page.getByTestId('button-send-otp').click();
@@ -93,6 +96,8 @@ test.describe('route guards: session without a profile', () => {
   test('completing registration lands on Home without bouncing back to /register', async ({
     page,
   }) => {
+    // This test asserts on Home; the location screen's overlay would intercept.
+    await seedLocationPreference(page);
     await page.goto('/login');
     await page.getByTestId('input-phone').fill(phone);
     await page.getByTestId('button-send-otp').click();

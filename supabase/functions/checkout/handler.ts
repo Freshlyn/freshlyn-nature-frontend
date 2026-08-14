@@ -87,6 +87,7 @@ export type CheckoutResult =
   | { status: 401; body: { error: string } }
   | { status: 400; body: { error: string } }
   | { status: 409; body: { error: string; rejectedItems: RejectedItem[] } }
+  | { status: 422; body: { error: string; code: "address_not_serviceable" } }
   | { status: 502; body: { error: string } }
   | { status: 200; body: Record<string, unknown> };
 
@@ -196,33 +197,57 @@ export async function handleCheckout(deps: CheckoutDeps, input: CheckoutInput): 
     await deps.supersedeStalePendingOrders(userId);
   }
 
-  const orderId = await deps.createOrder({
-    userId,
-    addressId: input.addressId,
-    deliveryAddress,
-    items: resolvedItems.map((r) => ({
-      product_id: r.input.productId,
-      variant_id: r.input.variantId,
-      quantity: r.input.quantity,
-      unit_price: r.unitPrice,
-      delivery_type: r.input.deliveryType,
-      subscription_duration_days: r.input.subscriptionDurationDays,
-      subscription_frequency: r.input.subscriptionFrequency,
-      subscription_start_date: r.input.subscriptionStartDate,
-      discount_percent: r.discountPercent,
-    })),
-    subtotal,
-    deliveryFee,
-    total,
-    // COD orders are real on placement. Razorpay orders exist before payment,
-    // so their stock moves only once the webhook confirms money arrived.
-    decrementStock: paymentMethod === "cod",
-    // Set in the same INSERT as the row, not in a follow-up UPDATE. The sweep
-    // above filters on payment_method, so a row that is briefly 'cod' before
-    // becoming 'razorpay' is invisible to a concurrent checkout's sweep, and two
-    // live payable orders would each get their stock decremented on confirm.
-    paymentMethod,
-  });
+  let orderId: string;
+  try {
+    orderId = await deps.createOrder({
+      userId,
+      addressId: input.addressId,
+      deliveryAddress,
+      items: resolvedItems.map((r) => ({
+        product_id: r.input.productId,
+        variant_id: r.input.variantId,
+        quantity: r.input.quantity,
+        unit_price: r.unitPrice,
+        delivery_type: r.input.deliveryType,
+        subscription_duration_days: r.input.subscriptionDurationDays,
+        subscription_frequency: r.input.subscriptionFrequency,
+        subscription_start_date: r.input.subscriptionStartDate,
+        discount_percent: r.discountPercent,
+      })),
+      subtotal,
+      deliveryFee,
+      total,
+      // COD orders are real on placement. Razorpay orders exist before payment,
+      // so their stock moves only once the webhook confirms money arrived.
+      decrementStock: paymentMethod === "cod",
+      // Set in the same INSERT as the row, not in a follow-up UPDATE. The sweep
+      // above filters on payment_method, so a row that is briefly 'cod' before
+      // becoming 'razorpay' is invisible to a concurrent checkout's sweep, and two
+      // live payable orders would each get their stock decremented on confirm.
+      paymentMethod,
+    });
+  } catch (error) {
+    // create_order raises P0001 'address not serviceable' BEFORE it writes
+    // anything, so there is no order row, no reserved stock and no
+    // subscription_deliveries to clean up here.
+    //
+    // Matched on the message rather than the code because supabase-js flattens
+    // a Postgres exception into a plain Error by the time index.ts rethrows it.
+    // Narrow deliberately: every other failure must keep bubbling to the
+    // catch-all in index.ts, so a genuine database fault is never mis-reported
+    // to the customer as an out-of-area address.
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("address not serviceable")) {
+      return {
+        status: 422,
+        body: {
+          error: "We don't deliver to this address yet.",
+          code: "address_not_serviceable",
+        },
+      };
+    }
+    throw error;
+  }
 
   if (paymentMethod === "cod") {
     const order = await deps.fetchOrderWithItems(orderId);

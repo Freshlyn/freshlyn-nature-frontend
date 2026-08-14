@@ -8,6 +8,13 @@ export interface UserAddress {
   city: string;
   state: string;
   pincode: string;
+  /**
+   * Captured once, only when the user confirmed they were standing at this
+   * address. Null means pincode-tier: not an error, and never backfilled --
+   * the coordinates of an address nobody visited do not exist.
+   */
+  latitude: number | null;
+  longitude: number | null;
   is_default: boolean;
 }
 
