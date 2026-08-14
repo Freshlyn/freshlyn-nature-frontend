@@ -199,7 +199,8 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
         // Cart is deliberately NOT cleared: the customer can retry immediately.
         toast({
           title: "Payment cancelled",
-          description: "Your cart is saved. You can try again whenever you like.",
+          description:
+            "Your cart is saved. You can try again whenever you like.",
         });
         return;
       }
@@ -223,7 +224,12 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/20 to-background">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/" backLabel="Continue Shopping" />
+      <Header
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={onSidebarToggle}
+        backTo="/"
+        backLabel="Continue Shopping"
+      />
 
       <main className="container mx-auto px-3 md:px-4 py-4 md:py-8 max-w-4xl">
         <div className="flex items-center justify-between mb-5 md:mb-8 gap-3 flex-wrap">
@@ -238,7 +244,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
               </p>
             )}
           </div>
-          {cartItems.length > 0 && (
+          {/* {cartItems.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
@@ -249,7 +255,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
               <Trash2 size={14} className="mr-1.5" />
               Clear
             </Button>
-          )}
+          )} */}
         </div>
 
         {cartItems.length === 0 ? (
@@ -488,7 +494,9 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                             ? "bg-primary text-primary-foreground shadow-sm"
                             : "bg-muted/50 text-foreground hover:bg-muted"
                         }`}
-                        data-testid={`button-time-${time.replace(/[: ]/g, "-").toLowerCase()}`}
+                        data-testid={`button-time-${time
+                          .replace(/[: ]/g, "-")
+                          .toLowerCase()}`}
                       >
                         {time}
                       </button>
@@ -549,7 +557,10 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                         <div
                           className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all"
                           style={{
-                            width: `${Math.min((total / FREE_DELIVERY_THRESHOLD) * 100, 100)}%`,
+                            width: `${Math.min(
+                              (total / FREE_DELIVERY_THRESHOLD) * 100,
+                              100,
+                            )}%`,
                           }}
                         />
                       </div>
@@ -602,7 +613,11 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                         </span>
                         <span className="flex flex-col gap-px">
                           <span
-                            className={`text-sm font-semibold ${isSelected ? "text-primary-deep" : "text-foreground"}`}
+                            className={`text-sm font-semibold ${
+                              isSelected
+                                ? "text-primary-deep"
+                                : "text-foreground"
+                            }`}
                           >
                             {method.title}
                           </span>
@@ -612,7 +627,11 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                         </span>
                         <Icon
                           size={17}
-                          className={`ml-auto ${isSelected ? "text-primary-deep" : "text-muted-foreground"}`}
+                          className={`ml-auto ${
+                            isSelected
+                              ? "text-primary-deep"
+                              : "text-muted-foreground"
+                          }`}
                         />
                       </button>
                     );
@@ -645,7 +664,12 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
 
                 <Button
                   onClick={handleCheckout}
-                  disabled={isPending || isCheckingOut || serviceabilityLoading || addressNotServiceable}
+                  disabled={
+                    isPending ||
+                    isCheckingOut ||
+                    serviceabilityLoading ||
+                    addressNotServiceable
+                  }
                   className="w-full h-14 text-base rounded-xl font-bold bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/25 hover:shadow-xl transition-all active:scale-[0.98]"
                   data-testid="button-checkout"
                 >
