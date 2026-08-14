@@ -16,7 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MobileBackButton } from "@/components/MobileBackButton";
 import {
   Phone,
   Mail,
@@ -222,11 +221,9 @@ export default function Profile({
 
   return (
     <div className="min-h-screen bg-background">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} />
+      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/" backLabel="Back to Shop" />
 
       <main className="container mx-auto px-4 py-6 max-w-lg pb-28 md:pb-6">
-        <MobileBackButton to="/" label="Back to Shop" />
-
         <div
           className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[hsl(88_58%_93%)] to-[hsl(88_54%_86%)] px-5 pt-6 pb-6 mb-5"
           data-testid="card-user-info"

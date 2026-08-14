@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Header } from "@/components/Header";
-import { MobileBackButton } from "@/components/MobileBackButton";
 import { format, addDays, isBefore, isToday, startOfDay } from "date-fns";
 import {
   Package,
@@ -390,13 +389,11 @@ export default function OrderDetail({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-muted/10">
-        <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} />
+        <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/orders" backLabel="Back to Orders" />
         <main
           className="container mx-auto px-4 py-6 max-w-2xl pb-24"
           data-testid="order-detail-skeleton"
         >
-          <MobileBackButton to="/orders" label="Back to Orders" />
-
           {/* Title + status badge */}
           <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
             <div className="space-y-2">
@@ -445,9 +442,8 @@ export default function OrderDetail({
   if (!order) {
     return (
       <div className="min-h-screen bg-muted/10">
-        <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} />
+        <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/orders" backLabel="Back to Orders" />
         <main className="container mx-auto px-4 py-8 max-w-2xl">
-          <MobileBackButton to="/orders" label="Back to Orders" />
           <div className="text-center py-20">
             <Package size={48} className="mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-bold">Order not found</h2>
@@ -489,10 +485,8 @@ export default function OrderDetail({
 
   return (
     <div className="min-h-screen bg-muted/10">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} />
+      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/orders" backLabel="Back to Orders" />
       <main className="container mx-auto px-4 py-6 max-w-2xl pb-24">
-        <MobileBackButton to="/orders" label="Back to Orders" />
-
         <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
           <div>
             <h1

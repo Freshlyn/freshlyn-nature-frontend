@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Header } from "@/components/Header";
-import { MobileBackButton } from "@/components/MobileBackButton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,10 +140,8 @@ export default function DataPrivacy({
 
   return (
     <div className="min-h-screen bg-muted/10">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} />
+      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/profile" backLabel="Back to Profile" />
       <main className="container mx-auto px-4 py-6 max-w-2xl pb-24">
-        <MobileBackButton to="/profile" label="Back to Profile" />
-
         <h1
           className="text-xl font-display font-bold"
           data-testid="text-privacy-title"

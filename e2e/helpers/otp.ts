@@ -76,7 +76,12 @@ export function testPhoneFor(specName: string): string {
  * Fixed allocation order. Each spec that logs in gets its own number so
  * parallel files never contend for the same auth user.
  */
-const SPEC_PHONE_ORDER = ['auth', 'checkout', 'route-guards'] as const;
+const SPEC_PHONE_ORDER = [
+  'auth',
+  'checkout',
+  'route-guards',
+  'back-button',
+] as const;
 
 /**
  * Convert a test number to the E.164 form the backend stores.

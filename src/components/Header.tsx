@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { ShoppingCart, Search, MapPin, Menu, X } from 'lucide-react';
+import { ShoppingCart, Search, MapPin, Menu, X, ArrowLeft } from 'lucide-react';
 import { useStaticCart } from '@/hooks/use-static-cart';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect, useRef, useState } from 'react';
@@ -12,9 +12,13 @@ interface HeaderProps {
   onLocationClick?: () => void;
   sidebarOpen?: boolean;
   onSidebarToggle?: () => void;
+  /** Destination for the mobile back button. The button renders only when set. */
+  backTo?: string;
+  /** aria-label for the back button, e.g. "Back to Orders". Not rendered visually. */
+  backLabel?: string;
 }
 
-export function Header({ onSearch, location = 'Select Location', onLocationClick, sidebarOpen, onSidebarToggle }: HeaderProps) {
+export function Header({ onSearch, location = 'Select Location', onLocationClick, sidebarOpen, onSidebarToggle, backTo, backLabel = 'Back' }: HeaderProps) {
   const [term, setTerm] = useState('');
   const { getCartCount } = useStaticCart();
   const { user } = useAuth();
@@ -67,6 +71,21 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
             >
               {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </Button>
+          )}
+
+          {backTo && (
+            <Link
+              href={backTo}
+              aria-label={backLabel}
+              /* The -m-[5px] cancels the p-[5px], so the 34px circle keeps its
+                 visual size while the tap target reaches 44px. */
+              className="lg:hidden shrink-0 p-[5px] -m-[5px] rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              data-testid="button-header-back"
+            >
+              <span className="flex items-center justify-center h-[34px] w-[34px] rounded-full bg-white border border-border text-foreground transition-transform active:scale-95 motion-reduce:active:scale-100">
+                <ArrowLeft size={17} />
+              </span>
+            </Link>
           )}
 
           <Link href="/" className="flex items-center">

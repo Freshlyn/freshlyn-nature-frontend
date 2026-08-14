@@ -6,7 +6,6 @@ import { useRazorpay } from "@/hooks/use-razorpay";
 import { useAddressServiceability } from "@/hooks/use-serviceability";
 import { getErrorMessage } from "@/lib/errors";
 import { Header } from "@/components/Header";
-import { MobileBackButton } from "@/components/MobileBackButton";
 import { AddressModal } from "@/components/AddressModal";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { Button } from "@/components/ui/button";
@@ -224,10 +223,9 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/20 to-background">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} />
+      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/" backLabel="Continue Shopping" />
 
       <main className="container mx-auto px-3 md:px-4 py-4 md:py-8 max-w-4xl">
-        <MobileBackButton to="/" label="Continue Shopping" />
         <div className="flex items-center justify-between mb-5 md:mb-8 gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold">

@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useOrders } from '@/hooks/use-orders';
 import { supabase } from '@/lib/supabase';
 import { Header } from '@/components/Header';
-import { MobileBackButton } from '@/components/MobileBackButton';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -52,9 +51,8 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
 
   return (
     <div className="min-h-screen bg-muted/10">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} />
+      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/" backLabel="Back to Shop" />
       <main className="container mx-auto px-4 py-6 max-w-2xl">
-        <MobileBackButton to="/" label="Back to Shop" />
         <h1 className="text-2xl font-display font-bold mb-4" data-testid="text-orders-title">Your Orders</h1>
 
         {!isLoading && orders.length > 0 && <OrderFilters value={filters} onChange={setFilters} />}

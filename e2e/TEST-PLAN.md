@@ -58,7 +58,8 @@ Suggested spec: `smoke.spec.ts` (exists — extend) + `navigation.spec.ts` (new,
 | 2.6 | Bottom nav visible on `/`, `/orders`, `/profile` (mobile) only | ⬜ | `bottom-nav`, `nav-*` |
 | 2.7 | Bottom nav links navigate to each tab | ⬜ | `nav-home`, `nav-orders`, `nav-profile` |
 | 2.8 | Desktop sidebar toggles via hamburger | ⬜ | `button-hamburger`; layout margin shifts; `desktop-sidebar` + `sidebar-*` links |
-| 2.9 | Mobile back button returns to expected page | ⬜ | `button-mobile-back` on Cart/Orders/Profile/etc |
+| 2.9 | Header back button returns to expected page, stays visible when scrolled | ⬜ | `button-header-back` on Cart/Orders/OrderDetail/Profile/Terms/Privacy; absent on `/`; covered by `back-button.spec.ts` |
+| 2.9a | Register header clears the status bar on a notched device | ⬜ | `button-back` on `/register`; Capacitor build — verify `pt-safe-t`, not reproducible in a browser |
 | 2.10 | Header cart button navigates to `/cart` | ⬜ | `button-cart` |
 | 2.11 | Header "Login" button shows for signed-out users | ⬜ | `button-login` (absent when authed) |
 | 2.12 | Header location button (desktop) | 🟡 | `button-location` — opens `LocationModal` (currently static "Set Location") |

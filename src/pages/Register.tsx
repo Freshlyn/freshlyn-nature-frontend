@@ -83,14 +83,19 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <header className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
+      <header className="sticky top-0 z-50 pt-safe-t bg-white border-b border-border shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Link
             href="/login"
-            className="w-9 h-9 rounded-xl border border-border bg-white flex items-center justify-center hover:bg-muted transition-colors"
+            aria-label="Back to Login"
+            /* The -m-[5px] cancels the p-[5px], so the 34px circle keeps its
+               visual size while the tap target reaches 44px. */
+            className="shrink-0 p-[5px] -m-[5px] rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             data-testid="button-back"
           >
-            <ArrowLeft size={18} />
+            <span className="flex items-center justify-center h-[34px] w-[34px] rounded-full bg-white border border-border text-foreground transition-transform active:scale-95 motion-reduce:active:scale-100">
+              <ArrowLeft size={17} />
+            </span>
           </Link>
           <Link href="/">
             <img
