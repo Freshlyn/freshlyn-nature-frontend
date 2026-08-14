@@ -4,6 +4,8 @@ import { formatPhoneForDisplay } from "@/lib/phone";
 import { useAddresses, useAddAddress, useSetDefaultAddress, useDeleteAddress } from "@/hooks/use-addresses";
 import { useLocation } from "wouter";
 import { Header } from "@/components/Header";
+import { ContactUsModal } from "@/components/ContactUsModal";
+import { openExternalUrl } from "@/lib/platform/external-link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -34,7 +36,10 @@ import {
   Briefcase,
   Tag,
   ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
+
+const WEBSITE_URL = "https://freshlynnature.com/";
 
 interface ProfileProps {
   sidebarOpen?: boolean;
@@ -72,6 +77,7 @@ export default function Profile({
   } | null>(null);
   const [newLabel, setNewLabel] = useState("Home");
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const [newAddress, setNewAddress] = useState({
     flat_house: "",
     building: "",
@@ -164,12 +170,7 @@ export default function Profile({
           icon: MessageCircle,
           label: "Contact Us",
           subtitle: "Get help with your orders",
-          action: () =>
-            setInfoDialog({
-              title: "Contact Us",
-              content:
-                "Need help? Reach out to us!\n\nEmail: support@freshlynature.com\nPhone: 1800-123-4567 (Toll Free)\nWorking Hours: 6:00 AM - 10:00 PM\n\nYou can also chat with us through the app for faster support.",
-            }),
+          action: () => setContactOpen(true),
           testId: "menu-contact-us",
         },
         {
@@ -207,12 +208,8 @@ export default function Profile({
           icon: Info,
           label: "About Us",
           subtitle: "Learn more about our story",
-          action: () =>
-            setInfoDialog({
-              title: "About FreshlynNature",
-              content:
-                "FreshlynNature - Fresh Groceries Delivered\nVersion 1.0.0\n\nFreshlynNature brings fresh groceries and daily essentials to your doorstep. With our subscription model, never run out of milk, bread, or other everyday items.\n\nFeatures:\n- Wide range of fresh products\n- Flexible subscription plans\n- Multiple delivery addresses\n- Fast and reliable delivery\n\nMade with care for your daily needs.",
-            }),
+          action: () => openExternalUrl(WEBSITE_URL),
+          external: true,
           testId: "menu-about",
         },
       ],
@@ -289,10 +286,17 @@ export default function Profile({
                           {item.subtitle}
                         </p>
                       </div>
-                      <ChevronRight
-                        size={16}
-                        className="text-muted-foreground flex-shrink-0"
-                      />
+                      {item.external ? (
+                        <ExternalLink
+                          size={16}
+                          className="text-muted-foreground flex-shrink-0"
+                        />
+                      ) : (
+                        <ChevronRight
+                          size={16}
+                          className="text-muted-foreground flex-shrink-0"
+                        />
+                      )}
                     </button>
                   );
                 })}
@@ -643,6 +647,8 @@ export default function Profile({
           </div>
         </DialogContent>
       </Dialog>
+
+      <ContactUsModal open={contactOpen} onOpenChange={setContactOpen} />
 
       <Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
         <DialogContent className="w-[calc(100%-2rem)] rounded-2xl sm:max-w-sm">
