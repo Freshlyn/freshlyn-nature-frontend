@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { WifiOff } from 'lucide-react';
-import { getInitialNetworkStatus, subscribeToNetworkStatus } from '@/lib/platform/network';
+import { useEffect, useState } from "react";
+import { WifiOff } from "lucide-react";
+import { getInitialNetworkStatus, subscribeToNetworkStatus } from "@/lib/platform/network";
 
 /**
  * Makes a lost connection legible. Requests still fail and TanStack Query

@@ -1,9 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Phone, Mail, Clock, ChevronRight } from "lucide-react";
 
 /**
@@ -46,9 +41,7 @@ export function ContactUsModal({ open, onOpenChange }: ContactUsModalProps) {
             <Phone size={26} className="text-[hsl(var(--primary-deep))]" />
           </div>
           <DialogTitle className="text-xl">Contact Us</DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            We're here to help, {SUPPORT_HOURS}
-          </p>
+          <p className="text-sm text-muted-foreground">We're here to help, {SUPPORT_HOURS}</p>
         </DialogHeader>
 
         <div className="mt-2 space-y-3">
@@ -67,10 +60,7 @@ export function ContactUsModal({ open, onOpenChange }: ContactUsModalProps) {
                 {SUPPORT_PHONE_DISPLAY}
               </span>
             </span>
-            <ChevronRight
-              size={18}
-              className="shrink-0 text-muted-foreground"
-            />
+            <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
           </a>
 
           <a
@@ -84,14 +74,9 @@ export function ContactUsModal({ open, onOpenChange }: ContactUsModalProps) {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium">Email us</span>
-              <span className="block truncate text-sm text-muted-foreground">
-                {SUPPORT_EMAIL}
-              </span>
+              <span className="block truncate text-sm text-muted-foreground">{SUPPORT_EMAIL}</span>
             </span>
-            <ChevronRight
-              size={18}
-              className="shrink-0 text-muted-foreground"
-            />
+            <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
           </a>
 
           <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/40 p-4">
@@ -100,9 +85,7 @@ export function ContactUsModal({ open, onOpenChange }: ContactUsModalProps) {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium">Support hours</span>
-              <span className="block text-sm text-muted-foreground">
-                {SUPPORT_HOURS}, all days
-              </span>
+              <span className="block text-sm text-muted-foreground">{SUPPORT_HOURS}, all days</span>
             </span>
           </div>
         </div>

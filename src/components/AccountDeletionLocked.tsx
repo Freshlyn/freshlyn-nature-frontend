@@ -54,15 +54,11 @@ export function AccountDeletionLocked({ scheduledFor }: AccountDeletionLockedPro
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           This account has started the deletion process
-          {scheduledDate ? ` and is scheduled to be removed on ${scheduledDate}` : ""}.
-          You can restore it now to keep your account, or log out.
+          {scheduledDate ? ` and is scheduled to be removed on ${scheduledDate}` : ""}. You can
+          restore it now to keep your account, or log out.
         </p>
         <div className="flex flex-col gap-2 pt-2">
-          <Button
-            onClick={handleRestore}
-            disabled={isPending}
-            data-testid="button-restore-account"
-          >
+          <Button onClick={handleRestore} disabled={isPending} data-testid="button-restore-account">
             {isPending ? "Restoring…" : "Restore my account"}
           </Button>
           <Button

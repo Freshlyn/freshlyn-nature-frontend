@@ -115,18 +115,14 @@ export default function AuthPage() {
 
             {phoneStep === "phone" ? (
               <>
-                <h1 className="text-3xl font-bold tracking-tight">
-                  Login or Sign Up
-                </h1>
+                <h1 className="text-3xl font-bold tracking-tight">Login or Sign Up</h1>
                 <p className="text-muted-foreground text-lg">
                   Enter your phone number to login or create a new account
                 </p>
               </>
             ) : (
               <>
-                <h1 className="text-3xl font-bold tracking-tight">
-                  Verify your number
-                </h1>
+                <h1 className="text-3xl font-bold tracking-tight">Verify your number</h1>
                 <p className="text-muted-foreground text-lg">
                   Enter the code we sent to +91 {phone}
                 </p>
@@ -149,9 +145,7 @@ export default function AuthPage() {
                     type="tel"
                     placeholder="10-digit mobile number"
                     value={phone}
-                    onChange={(e) =>
-                      setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
-                    }
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     className="h-12 rounded-xl flex-1 text-base"
                     maxLength={10}
                     required
@@ -168,8 +162,7 @@ export default function AuthPage() {
               >
                 {isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending
-                    OTP...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending OTP...
                   </>
                 ) : (
                   "Continue"
@@ -177,8 +170,7 @@ export default function AuthPage() {
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">
-                By continuing, you agree to our Terms of Service and Privacy
-                Policy
+                By continuing, you agree to our Terms of Service and Privacy Policy
               </p>
             </form>
           ) : (
@@ -202,9 +194,7 @@ export default function AuthPage() {
                   type="text"
                   placeholder="------"
                   value={otp}
-                  onChange={(e) =>
-                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   className="h-14 rounded-xl text-center text-2xl tracking-[0.5em] font-mono"
                   maxLength={6}
                   required
@@ -221,8 +211,7 @@ export default function AuthPage() {
               >
                 {isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                    Verifying...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...
                   </>
                 ) : (
                   "Verify & Continue"
@@ -230,9 +219,7 @@ export default function AuthPage() {
               </Button>
 
               <div className="text-center">
-                <span className="text-sm text-muted-foreground">
-                  Didn't receive the code?{" "}
-                </span>
+                <span className="text-sm text-muted-foreground">Didn't receive the code? </span>
                 <button
                   type="button"
                   onClick={(e) => handleSendOtp(e as any)}
@@ -252,29 +239,22 @@ export default function AuthPage() {
                 <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                   <Truck className="h-5 w-5 text-primary" />
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Fast Delivery
-                </p>
+                <p className="text-xs text-muted-foreground font-medium">Fast Delivery</p>
               </div>
               <div className="space-y-2">
                 <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                   <ShoppingBag className="h-5 w-5 text-primary" />
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Fresh Products
-                </p>
+                <p className="text-xs text-muted-foreground font-medium">Fresh Products</p>
               </div>
               <div className="space-y-2">
                 <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                   <Shield className="h-5 w-5 text-primary" />
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Secure Payments
-                </p>
+                <p className="text-xs text-muted-foreground font-medium">Secure Payments</p>
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -289,8 +269,8 @@ export default function AuthPage() {
               Fresh groceries delivered in minutes
             </h2>
             <p className="text-xl text-white/80">
-              Shop from thousands of products and get them delivered to your
-              doorstep. Quick, easy, and reliable.
+              Shop from thousands of products and get them delivered to your doorstep. Quick, easy,
+              and reliable.
             </p>
             <div className="flex gap-8 pt-4">
               <div className="space-y-1">

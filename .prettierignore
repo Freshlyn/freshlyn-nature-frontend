@@ -1,0 +1,20 @@
+# Build output
+dist
+build
+
+# Capacitor generated native projects
+android
+ios
+
+# Dependencies
+node_modules
+
+# Test + tooling artifacts
+playwright-report
+test-results
+.playwright-mcp
+.claude
+
+# Lockfiles
+package-lock.json
+deno.lock

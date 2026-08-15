@@ -24,15 +24,9 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useParams } from "wouter";
 import type { SubscriptionFrequency } from "@/hooks/use-products";
-import {
-  getFrequencyLabel,
-  getFrequencyIntervalDays,
-} from "@/hooks/use-products";
+import { getFrequencyLabel, getFrequencyIntervalDays } from "@/hooks/use-products";
 
-const statusConfig: Record<
-  string,
-  { icon: typeof Clock; label: string; variant: string }
-> = {
+const statusConfig: Record<string, { icon: typeof Clock; label: string; variant: string }> = {
   pending: { icon: Clock, label: "Pending", variant: "secondary" },
   confirmed: { icon: CheckCircle, label: "Confirmed", variant: "default" },
   preparing: { icon: Package, label: "Preparing", variant: "default" },
@@ -52,9 +46,7 @@ function generateDeliveryDates(
   frequency: SubscriptionFrequency,
 ): Date[] {
   const gap = getFrequencyIntervalDays(frequency);
-  return Array.from({ length: deliveryCount }, (_, i) =>
-    addDays(startDate, i * gap),
-  );
+  return Array.from({ length: deliveryCount }, (_, i) => addDays(startDate, i * gap));
 }
 
 function DeliverySchedule({
@@ -89,10 +81,7 @@ function DeliverySchedule({
   const pivotIndex = deliveryDates.findIndex((date) => !isBefore(date, today));
   const effectivePivot = pivotIndex === -1 ? deliveryDates.length : pivotIndex;
   // Collapsed: show 2 past + 2 upcoming, clamped so we always get 4 rows
-  const collapseStart = Math.max(
-    0,
-    Math.min(effectivePivot - 2, deliveryDates.length - 4),
-  );
+  const collapseStart = Math.max(0, Math.min(effectivePivot - 2, deliveryDates.length - 4));
   const visibleDates = expanded
     ? deliveryDates
     : deliveryDates.slice(collapseStart, collapseStart + 4);
@@ -105,27 +94,19 @@ function DeliverySchedule({
     >
       <div className="flex items-center gap-2 mb-3">
         <Calendar size={16} className="text-emerald-600" />
-        <h4 className="font-semibold text-sm text-emerald-800">
-          Delivery Schedule
-        </h4>
+        <h4 className="font-semibold text-sm text-emerald-800">Delivery Schedule</h4>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
         <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
           <span className="text-muted-foreground block">Frequency</span>
-          <span
-            className="font-semibold text-foreground"
-            data-testid={`text-frequency-${item.id}`}
-          >
+          <span className="font-semibold text-foreground" data-testid={`text-frequency-${item.id}`}>
             {getFrequencyLabel(item.subscription_frequency!)}
           </span>
         </div>
         <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
           <span className="text-muted-foreground block">Plan</span>
-          <span
-            className="font-semibold text-foreground"
-            data-testid={`text-duration-${item.id}`}
-          >
+          <span className="font-semibold text-foreground" data-testid={`text-duration-${item.id}`}>
             {item.subscription_duration_days} Deliveries
           </span>
         </div>
@@ -140,10 +121,7 @@ function DeliverySchedule({
         </div>
         <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
           <span className="text-muted-foreground block">Ends on</span>
-          <span
-            className="font-semibold text-foreground"
-            data-testid={`text-end-date-${item.id}`}
-          >
+          <span className="font-semibold text-foreground" data-testid={`text-end-date-${item.id}`}>
             {format(endDate, "MMM d, yyyy")}
           </span>
         </div>
@@ -151,9 +129,7 @@ function DeliverySchedule({
 
       <div className="space-y-0">
         {visibleDates.map((date, sliceIndex) => {
-          const globalIndex = expanded
-            ? sliceIndex
-            : collapseStart + sliceIndex;
+          const globalIndex = expanded ? sliceIndex : collapseStart + sliceIndex;
           const isPast = isBefore(date, today) && !isToday(date);
           const isTodayDate = isToday(date);
           const isMissed = isPast && missedSet.has(format(date, "yyyy-MM-dd"));
@@ -245,10 +221,7 @@ function DeliverySchedule({
 function OneTimeItemCard({ item }: { item: OrderItemWithDetails }) {
   if (!item.product) return null;
   return (
-    <div
-      className="flex items-center gap-3 py-3"
-      data-testid={`order-item-${item.id}`}
-    >
+    <div className="flex items-center gap-3 py-3" data-testid={`order-item-${item.id}`}>
       <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
         <img
           src={item.product.image_url ?? undefined}
@@ -257,16 +230,10 @@ function OneTimeItemCard({ item }: { item: OrderItemWithDetails }) {
         />
       </div>
       <div className="flex-1 min-w-0">
-        <p
-          className="font-medium text-sm truncate"
-          data-testid={`text-item-name-${item.id}`}
-        >
+        <p className="font-medium text-sm truncate" data-testid={`text-item-name-${item.id}`}>
           {item.product.name}
         </p>
-        <p
-          className="text-xs text-muted-foreground"
-          data-testid={`text-item-variant-${item.id}`}
-        >
+        <p className="text-xs text-muted-foreground" data-testid={`text-item-variant-${item.id}`}>
           {item.variant?.name} x {item.quantity}
         </p>
       </div>
@@ -293,9 +260,7 @@ function SubscriptionItemCard({
 }) {
   if (!item.product) return null;
   const totalCost = item.subscription_duration_days
-    ? item.unit_price *
-      item.subscription_duration_days *
-      (1 - (item.discount_percent || 0) / 100)
+    ? item.unit_price * item.subscription_duration_days * (1 - (item.discount_percent || 0) / 100)
     : item.unit_price * item.quantity;
 
   return (
@@ -310,10 +275,7 @@ function SubscriptionItemCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p
-              className="font-medium text-sm"
-              data-testid={`text-item-name-${item.id}`}
-            >
+            <p className="font-medium text-sm" data-testid={`text-item-name-${item.id}`}>
               {item.product.name}
             </p>
             <Badge
@@ -351,15 +313,10 @@ interface OrderDetailProps {
   onSidebarToggle?: () => void;
 }
 
-export default function OrderDetail({
-  sidebarOpen,
-  onSidebarToggle,
-}: OrderDetailProps) {
+export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetailProps) {
   const params = useParams<{ id: string }>();
   const { data: order, isLoading } = useOrder(params.id || "");
-  const [expandedScheduleId, setExpandedScheduleId] = useState<string | null>(
-    null,
-  );
+  const [expandedScheduleId, setExpandedScheduleId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const orderId = params.id;
 
@@ -389,7 +346,12 @@ export default function OrderDetail({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-muted/10">
-        <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/orders" backLabel="Back to Orders" />
+        <Header
+          sidebarOpen={sidebarOpen}
+          onSidebarToggle={onSidebarToggle}
+          backTo="/orders"
+          backLabel="Back to Orders"
+        />
         <main
           className="container mx-auto px-4 py-6 max-w-2xl pb-24"
           data-testid="order-detail-skeleton"
@@ -442,7 +404,12 @@ export default function OrderDetail({
   if (!order) {
     return (
       <div className="min-h-screen bg-muted/10">
-        <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/orders" backLabel="Back to Orders" />
+        <Header
+          sidebarOpen={sidebarOpen}
+          onSidebarToggle={onSidebarToggle}
+          backTo="/orders"
+          backLabel="Back to Orders"
+        />
         <main className="container mx-auto px-4 py-8 max-w-2xl">
           <div className="text-center py-20">
             <Package size={48} className="mx-auto mb-4 text-muted-foreground" />
@@ -461,23 +428,14 @@ export default function OrderDetail({
 
   const config = statusConfig[order.status] || statusConfig.pending;
   const StatusIcon = config.icon;
-  const oneTimeItems = order.items.filter(
-    (item) => item.delivery_type === "one_time",
-  );
-  const subscriptionItems = order.items.filter(
-    (item) => item.delivery_type === "subscription",
-  );
+  const oneTimeItems = order.items.filter((item) => item.delivery_type === "one_time");
+  const subscriptionItems = order.items.filter((item) => item.delivery_type === "subscription");
 
   const computedSubtotal = order.items.reduce((sum, item) => {
-    if (
-      item.delivery_type === "subscription" &&
-      item.subscription_duration_days
-    ) {
+    if (item.delivery_type === "subscription" && item.subscription_duration_days) {
       return (
         sum +
-        item.unit_price *
-          item.subscription_duration_days *
-          (1 - (item.discount_percent || 0) / 100)
+        item.unit_price * item.subscription_duration_days * (1 - (item.discount_percent || 0) / 100)
       );
     }
     return sum + item.unit_price * item.quantity;
@@ -485,14 +443,16 @@ export default function OrderDetail({
 
   return (
     <div className="min-h-screen bg-muted/10">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/orders" backLabel="Back to Orders" />
+      <Header
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={onSidebarToggle}
+        backTo="/orders"
+        backLabel="Back to Orders"
+      />
       <main className="container mx-auto px-4 py-6 max-w-2xl pb-24">
         <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
           <div>
-            <h1
-              className="text-xl font-display font-bold"
-              data-testid="text-order-detail-id"
-            >
+            <h1 className="text-xl font-display font-bold" data-testid="text-order-detail-id">
               Order #{order.id.replace("ord_", "")}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -507,16 +467,10 @@ export default function OrderDetail({
 
         <Card className="p-4 mb-4" data-testid="card-delivery-address">
           <div className="flex items-start gap-3">
-            <MapPin
-              size={18}
-              className="text-muted-foreground flex-shrink-0 mt-0.5"
-            />
+            <MapPin size={18} className="text-muted-foreground flex-shrink-0 mt-0.5" />
             <div>
               <h3 className="font-semibold text-sm mb-0.5">Delivery Address</h3>
-              <p
-                className="text-xs text-muted-foreground"
-                data-testid="text-delivery-address"
-              >
+              <p className="text-xs text-muted-foreground" data-testid="text-delivery-address">
                 {order.delivery_address}
               </p>
             </div>
@@ -562,16 +516,12 @@ export default function OrderDetail({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
-              <span data-testid="text-subtotal">
-                ₹{computedSubtotal.toFixed(2)}
-              </span>
+              <span data-testid="text-subtotal">₹{computedSubtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Delivery Fee</span>
               <span data-testid="text-delivery-fee">
-                {order.delivery_fee > 0
-                  ? `₹${order.delivery_fee.toFixed(2)}`
-                  : "Free"}
+                {order.delivery_fee > 0 ? `₹${order.delivery_fee.toFixed(2)}` : "Free"}
               </span>
             </div>
             <div className="flex justify-between font-bold text-base pt-2 border-t border-border">

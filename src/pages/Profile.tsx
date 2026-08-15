@@ -1,19 +1,19 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { formatPhoneForDisplay } from "@/lib/phone";
-import { useAddresses, useAddAddress, useSetDefaultAddress, useDeleteAddress } from "@/hooks/use-addresses";
+import {
+  useAddresses,
+  useAddAddress,
+  useSetDefaultAddress,
+  useDeleteAddress,
+} from "@/hooks/use-addresses";
 import { useLocation } from "wouter";
 import { Header } from "@/components/Header";
 import { ContactUsModal } from "@/components/ContactUsModal";
 import { openExternalUrl } from "@/lib/platform/external-link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,10 +59,7 @@ function getLabelIcon(label: string) {
   }
 }
 
-export default function Profile({
-  sidebarOpen,
-  onSidebarToggle,
-}: ProfileProps) {
+export default function Profile({ sidebarOpen, onSidebarToggle }: ProfileProps) {
   const { user, logout } = useAuth();
   const { data: addresses = [] } = useAddresses();
   const { mutateAsync: addAddress } = useAddAddress();
@@ -96,12 +93,7 @@ export default function Profile({
   };
 
   const handleAddAddress = async () => {
-    if (
-      !newAddress.flat_house ||
-      !newAddress.street ||
-      !newAddress.city ||
-      !newAddress.pincode
-    )
+    if (!newAddress.flat_house || !newAddress.street || !newAddress.city || !newAddress.pincode)
       return;
     await addAddress({
       label: newLabel,
@@ -218,7 +210,12 @@ export default function Profile({
 
   return (
     <div className="min-h-screen bg-background">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/" backLabel="Back to Shop" />
+      <Header
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={onSidebarToggle}
+        backTo="/"
+        backLabel="Back to Shop"
+      />
 
       <main className="container mx-auto px-4 py-6 max-w-lg pb-28 md:pb-6">
         <div
@@ -282,20 +279,12 @@ export default function Profile({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold">{item.label}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {item.subtitle}
-                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
                       </div>
                       {item.external ? (
-                        <ExternalLink
-                          size={16}
-                          className="text-muted-foreground flex-shrink-0"
-                        />
+                        <ExternalLink size={16} className="text-muted-foreground flex-shrink-0" />
                       ) : (
-                        <ChevronRight
-                          size={16}
-                          className="text-muted-foreground flex-shrink-0"
-                        />
+                        <ChevronRight size={16} className="text-muted-foreground flex-shrink-0" />
                       )}
                     </button>
                   );
@@ -316,9 +305,7 @@ export default function Profile({
           </Button>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          FreshlynNature v1.0.0
-        </p>
+        <p className="text-center text-xs text-muted-foreground mt-4">FreshlynNature v1.0.0</p>
       </main>
 
       <Dialog
@@ -344,9 +331,7 @@ export default function Profile({
                 <div className="w-14 h-14 mx-auto rounded-full bg-muted flex items-center justify-center mb-3">
                   <MapPin size={24} className="text-muted-foreground" />
                 </div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  No saved addresses
-                </p>
+                <p className="text-sm font-medium text-muted-foreground">No saved addresses</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Add your first delivery address
                 </p>
@@ -367,14 +352,9 @@ export default function Profile({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm">
-                        {addr.label}
-                      </span>
+                      <span className="font-semibold text-sm">{addr.label}</span>
                       {addr.is_default && (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] h-4 px-1.5"
-                        >
+                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">
                           Default
                         </Badge>
                       )}
@@ -398,7 +378,9 @@ export default function Profile({
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground"
-                        onClick={() => { void setDefaultAddress(addr.id); }}
+                        onClick={() => {
+                          void setDefaultAddress(addr.id);
+                        }}
                         data-testid={`button-set-default-${addr.id}`}
                       >
                         <Check size={14} />
@@ -409,7 +391,9 @@ export default function Profile({
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground"
-                        onClick={() => { void deleteAddress(addr.id); }}
+                        onClick={() => {
+                          void deleteAddress(addr.id);
+                        }}
                         data-testid={`button-delete-address-${addr.id}`}
                       >
                         <Trash2 size={14} />
@@ -438,9 +422,7 @@ export default function Profile({
                 </h4>
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-xs mb-1.5 block">
-                      Address Label
-                    </Label>
+                    <Label className="text-xs mb-1.5 block">Address Label</Label>
                     <div className="flex gap-2">
                       {LABEL_OPTIONS.map((label) => (
                         <Button
@@ -504,9 +486,7 @@ export default function Profile({
                       id="profile-new-street"
                       placeholder="e.g., 123 Main Street"
                       value={newAddress.street}
-                      onChange={(e) =>
-                        setNewAddress((p) => ({ ...p, street: e.target.value }))
-                      }
+                      onChange={(e) => setNewAddress((p) => ({ ...p, street: e.target.value }))}
                       className="min-h-[50px] resize-none"
                       data-testid="input-profile-new-street"
                     />
@@ -539,9 +519,7 @@ export default function Profile({
                         id="profile-new-city"
                         placeholder="Mumbai"
                         value={newAddress.city}
-                        onChange={(e) =>
-                          setNewAddress((p) => ({ ...p, city: e.target.value }))
-                        }
+                        onChange={(e) => setNewAddress((p) => ({ ...p, city: e.target.value }))}
                         data-testid="input-profile-new-city"
                       />
                     </div>
@@ -573,9 +551,7 @@ export default function Profile({
                         onChange={(e) =>
                           setNewAddress((p) => ({
                             ...p,
-                            pincode: e.target.value
-                              .replace(/\D/g, "")
-                              .slice(0, 6),
+                            pincode: e.target.value.replace(/\D/g, "").slice(0, 6),
                           }))
                         }
                         maxLength={6}

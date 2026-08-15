@@ -1,27 +1,33 @@
-import { useState } from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { SlidersHorizontal, X, CalendarDays } from 'lucide-react';
-import type { OrderFilterState, OrderFiltersProps, OrderTypeFilter, OrderStatusFilter, DatePreset } from './orderFilterTypes';
+import { useState } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { SlidersHorizontal, X, CalendarDays } from "lucide-react";
+import type {
+  OrderFilterState,
+  OrderFiltersProps,
+  OrderTypeFilter,
+  OrderStatusFilter,
+  DatePreset,
+} from "./orderFilterTypes";
 
 const TYPE_OPTIONS: { id: OrderTypeFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'subscription', label: 'Subscription' },
-  { id: 'one_time', label: 'One-Time' },
+  { id: "all", label: "All" },
+  { id: "subscription", label: "Subscription" },
+  { id: "one_time", label: "One-Time" },
 ];
 
 const STATUS_OPTIONS: { id: OrderStatusFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'active', label: 'Active' },
-  { id: 'delivered', label: 'Delivered' },
-  { id: 'cancelled', label: 'Cancelled' },
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "delivered", label: "Delivered" },
+  { id: "cancelled", label: "Cancelled" },
 ];
 
 const DATE_OPTIONS: { id: DatePreset; label: string }[] = [
-  { id: 'all', label: 'All Time' },
-  { id: '7d', label: 'Last 7 days' },
-  { id: '30d', label: 'Last 30 days' },
-  { id: '3m', label: 'Last 3 months' },
-  { id: 'custom', label: 'Custom' },
+  { id: "all", label: "All Time" },
+  { id: "7d", label: "Last 7 days" },
+  { id: "30d", label: "Last 30 days" },
+  { id: "3m", label: "Last 3 months" },
+  { id: "custom", label: "Custom" },
 ];
 
 function SheetPill<T extends string>({
@@ -44,8 +50,8 @@ function SheetPill<T extends string>({
             onClick={() => onSelect(opt.id)}
             className={`px-3 py-2 rounded-xl font-semibold text-xs transition-all duration-300 border whitespace-nowrap ${
               isActive
-                ? 'bg-primary text-white border-primary shadow-lg shadow-primary/30'
-                : 'bg-white text-muted-foreground border-border hover:border-primary/30 hover:text-foreground active:scale-95'
+                ? "bg-primary text-white border-primary shadow-lg shadow-primary/30"
+                : "bg-white text-muted-foreground border-border hover:border-primary/30 hover:text-foreground active:scale-95"
             }`}
           >
             {opt.label}
@@ -59,7 +65,8 @@ function SheetPill<T extends string>({
 export default function OrderFilters({ value, onChange }: OrderFiltersProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<OrderFilterState>(value);
-  const secondaryActiveCount = (value.status !== 'all' ? 1 : 0) + (value.datePreset !== 'all' ? 1 : 0);
+  const secondaryActiveCount =
+    (value.status !== "all" ? 1 : 0) + (value.datePreset !== "all" ? 1 : 0);
 
   const typeIndex = TYPE_OPTIONS.findIndex((opt) => opt.id === value.type);
 
@@ -92,7 +99,7 @@ export default function OrderFilters({ value, onChange }: OrderFiltersProps) {
               data-testid={`order-filter-segment-${opt.id}`}
               onClick={() => onChange({ ...value, type: opt.id })}
               className={`relative z-10 flex-1 px-3 py-2 rounded-full text-xs font-semibold transition-colors duration-300 whitespace-nowrap ${
-                isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {opt.label}
@@ -123,7 +130,9 @@ export default function OrderFilters({ value, onChange }: OrderFiltersProps) {
             data-testid="order-filter-sheet"
           >
             <div className="flex items-center justify-between mb-5">
-              <DialogPrimitive.Title className="text-lg font-display font-bold">Filters</DialogPrimitive.Title>
+              <DialogPrimitive.Title className="text-lg font-display font-bold">
+                Filters
+              </DialogPrimitive.Title>
               <DialogPrimitive.Close className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted/60">
                 <X size={16} />
               </DialogPrimitive.Close>
@@ -131,20 +140,32 @@ export default function OrderFilters({ value, onChange }: OrderFiltersProps) {
 
             <div className="space-y-5">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Status</p>
-                <SheetPill options={STATUS_OPTIONS} active={draft.status} onSelect={(status) => setDraft({ ...draft, status })} />
+                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                  Status
+                </p>
+                <SheetPill
+                  options={STATUS_OPTIONS}
+                  active={draft.status}
+                  onSelect={(status) => setDraft({ ...draft, status })}
+                />
               </div>
 
               <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Date Range</p>
-                <SheetPill options={DATE_OPTIONS} active={draft.datePreset} onSelect={(datePreset) => setDraft({ ...draft, datePreset })} />
+                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                  Date Range
+                </p>
+                <SheetPill
+                  options={DATE_OPTIONS}
+                  active={draft.datePreset}
+                  onSelect={(datePreset) => setDraft({ ...draft, datePreset })}
+                />
 
-                {draft.datePreset === 'custom' && (
+                {draft.datePreset === "custom" && (
                   <div className="flex items-center gap-2 flex-wrap pt-3">
                     <CalendarDays size={14} className="text-muted-foreground" />
                     <input
                       type="date"
-                      value={draft.customFrom ?? ''}
+                      value={draft.customFrom ?? ""}
                       onChange={(e) => setDraft({ ...draft, customFrom: e.target.value })}
                       className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-white"
                       data-testid="order-filter-date-from"
@@ -152,7 +173,7 @@ export default function OrderFilters({ value, onChange }: OrderFiltersProps) {
                     <span className="text-xs text-muted-foreground">to</span>
                     <input
                       type="date"
-                      value={draft.customTo ?? ''}
+                      value={draft.customTo ?? ""}
                       onChange={(e) => setDraft({ ...draft, customTo: e.target.value })}
                       className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-white"
                       data-testid="order-filter-date-to"
@@ -164,7 +185,15 @@ export default function OrderFilters({ value, onChange }: OrderFiltersProps) {
 
             <div className="flex gap-3 mt-7">
               <button
-                onClick={() => setDraft({ ...draft, status: 'all', datePreset: 'all', customFrom: undefined, customTo: undefined })}
+                onClick={() =>
+                  setDraft({
+                    ...draft,
+                    status: "all",
+                    datePreset: "all",
+                    customFrom: undefined,
+                    customTo: undefined,
+                  })
+                }
                 className="flex-1 py-2.5 rounded-xl font-semibold text-sm border border-border text-muted-foreground hover:border-primary/30 hover:text-foreground transition-all"
                 data-testid="order-filter-sheet-clear"
               >
@@ -178,8 +207,8 @@ export default function OrderFilters({ value, onChange }: OrderFiltersProps) {
                 disabled={!isDirty}
                 className={`flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${
                   isDirty
-                    ? 'bg-primary text-white shadow-lg shadow-primary/30 opacity-100 hover:scale-[1.02]'
-                    : 'bg-muted text-muted-foreground opacity-60 cursor-not-allowed'
+                    ? "bg-primary text-white shadow-lg shadow-primary/30 opacity-100 hover:scale-[1.02]"
+                    : "bg-muted text-muted-foreground opacity-60 cursor-not-allowed"
                 }`}
                 data-testid="order-filter-sheet-apply"
               >
@@ -193,4 +222,4 @@ export default function OrderFilters({ value, onChange }: OrderFiltersProps) {
   );
 }
 
-export { DEFAULT_ORDER_FILTERS, hasActiveOrderFilters } from './orderFilterTypes';
+export { DEFAULT_ORDER_FILTERS, hasActiveOrderFilters } from "./orderFilterTypes";

@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { useAuth } from '@/hooks/use-auth';
-import { useHasPendingDeletion } from '@/hooks/use-account-deletion';
-import { AccountDeletionLocked } from '@/components/AccountDeletionLocked';
+import { useEffect } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import { useHasPendingDeletion } from "@/hooks/use-account-deletion";
+import { AccountDeletionLocked } from "@/components/AccountDeletionLocked";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,15 +14,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Only meaningful once the user is authenticated; the query is enabled
   // regardless but resolves to null for signed-out sessions.
-  const { data: pendingDeletion, isLoading: deletionLoading } =
-    useHasPendingDeletion();
+  const { data: pendingDeletion, isLoading: deletionLoading } = useHasPendingDeletion();
 
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
     } else if (needsProfileCompletion) {
-      navigate('/register', { replace: true });
+      navigate("/register", { replace: true });
     }
   }, [isLoading, isAuthenticated, needsProfileCompletion, navigate]);
 

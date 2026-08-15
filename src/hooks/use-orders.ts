@@ -2,20 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
 export type OrderStatus =
-  | "pending"
-  | "confirmed"
-  | "preparing"
-  | "out_for_delivery"
-  | "delivered"
-  | "failed"
-  | "cancelled";
+  "pending" | "confirmed" | "preparing" | "out_for_delivery" | "delivered" | "failed" | "cancelled";
 export type SubscriptionFrequency = "daily" | "alternate";
-export type PaymentStatus =
-  | "pending"
-  | "failed"
-  | "paid"
-  | "collected"
-  | "refunded";
+export type PaymentStatus = "pending" | "failed" | "paid" | "collected" | "refunded";
 export type PaymentMethod = "cod" | "razorpay";
 
 export interface OrderItemWithDetails {

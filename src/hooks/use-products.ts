@@ -1,7 +1,7 @@
-import { useQuery, queryOptions } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { useQuery, queryOptions } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
-export type SubscriptionFrequency = 'daily' | 'alternate';
+export type SubscriptionFrequency = "daily" | "alternate";
 
 export interface SubscriptionOption {
   duration_days: number;
@@ -47,8 +47,8 @@ export interface ProductWithVariants extends Product {
 
 export function getFrequencyLabel(frequency: SubscriptionFrequency): string {
   const labels: Record<SubscriptionFrequency, string> = {
-    daily: 'Everyday',
-    alternate: 'Every 2 days',
+    daily: "Everyday",
+    alternate: "Every 2 days",
   };
   return labels[frequency];
 }
@@ -65,15 +65,15 @@ export function useProducts(options?: { category?: string; search?: string }) {
   const category = options?.category;
   const search = options?.search;
   return useQuery({
-    queryKey: ['products', category ?? 'all', search ?? ''],
+    queryKey: ["products", category ?? "all", search ?? ""],
     queryFn: async (): Promise<Product[]> => {
       let query = supabase
-        .from('products')
-        .select('id, name, description, category, image_url, unit, is_available, created_at')
-        .eq('is_available', true);
-      if (category) query = query.eq('category', category);
-      if (search) query = query.ilike('name', `%${search}%`);
-      const { data, error } = await query.order('name');
+        .from("products")
+        .select("id, name, description, category, image_url, unit, is_available, created_at")
+        .eq("is_available", true);
+      if (category) query = query.eq("category", category);
+      if (search) query = query.ilike("name", `%${search}%`);
+      const { data, error } = await query.order("name");
       if (error) throw error;
       return data as Product[];
     },
@@ -97,15 +97,15 @@ export function useProductsWithMeta(options?: { category?: string; search?: stri
   const category = options?.category;
   const search = options?.search;
   return useQuery({
-    queryKey: ['products-with-meta', category ?? 'all', search ?? ''],
+    queryKey: ["products-with-meta", category ?? "all", search ?? ""],
     queryFn: async (): Promise<ProductWithMeta[]> => {
       let query = supabase
-        .from('products')
-        .select('id, name, description, category, image_url, unit, is_available, created_at')
-        .eq('is_available', true);
-      if (category) query = query.eq('category', category);
-      if (search) query = query.ilike('name', `%${search}%`);
-      const { data: products, error } = await query.order('name');
+        .from("products")
+        .select("id, name, description, category, image_url, unit, is_available, created_at")
+        .eq("is_available", true);
+      if (category) query = query.eq("category", category);
+      if (search) query = query.ilike("name", `%${search}%`);
+      const { data: products, error } = await query.order("name");
       if (error) throw error;
 
       const typedProducts = (products ?? []) as Product[];
@@ -113,23 +113,19 @@ export function useProductsWithMeta(options?: { category?: string; search?: stri
 
       const ids = typedProducts.map((p) => p.id);
 
-      const [{ data: variants, error: variantsError }, { data: configs, error: configsError }] = await Promise.all([
-        supabase
-          .from('product_variants')
-          .select('product_id, price')
-          .in('product_id', ids),
-        supabase
-          .from('subscription_configs')
-          .select('product_id, enabled')
-          .in('product_id', ids),
-      ]);
+      const [{ data: variants, error: variantsError }, { data: configs, error: configsError }] =
+        await Promise.all([
+          supabase.from("product_variants").select("product_id, price").in("product_id", ids),
+          supabase.from("subscription_configs").select("product_id, enabled").in("product_id", ids),
+        ]);
       if (variantsError) throw variantsError;
       if (configsError) throw configsError;
 
       const minPriceByProduct = new Map<string, number>();
       for (const v of (variants ?? []) as { product_id: string; price: number }[]) {
         const current = minPriceByProduct.get(v.product_id);
-        if (current === undefined || v.price < current) minPriceByProduct.set(v.product_id, v.price);
+        if (current === undefined || v.price < current)
+          minPriceByProduct.set(v.product_id, v.price);
       }
 
       const subscriptionEnabled = new Set<string>();
@@ -165,21 +161,21 @@ interface ProductDetailRow extends Product {
  */
 export function productDetailQuery(id: string | null) {
   return queryOptions({
-    queryKey: ['product', id],
+    queryKey: ["product", id],
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // reopening the same product is instant, no refetch
     queryFn: async (): Promise<ProductWithVariants | null> => {
       if (!id) return null;
 
       const { data, error } = await supabase
-        .from('products')
+        .from("products")
         .select(
           `id, name, description, category, image_url, unit, is_available, created_at,
            product_variants(id, product_id, name, quantity_value, quantity_unit, price, stock_quantity, max_quantity_per_order, is_default),
            subscription_configs(enabled, frequencies,
              subscription_durations(duration_days, label, discount_percent))`,
         )
-        .eq('id', id)
+        .eq("id", id)
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
@@ -202,7 +198,8 @@ export function productDetailQuery(id: string | null) {
         };
       }
 
-      const startingPrice = typedVariants.length > 0 ? Math.min(...typedVariants.map((v) => v.price)) : 0;
+      const startingPrice =
+        typedVariants.length > 0 ? Math.min(...typedVariants.map((v) => v.price)) : 0;
 
       const product: Product = {
         id: row.id,

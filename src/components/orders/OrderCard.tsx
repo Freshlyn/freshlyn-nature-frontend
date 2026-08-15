@@ -1,10 +1,10 @@
-import type { OrderWithItems } from '@/hooks/use-orders';
-import { format } from 'date-fns';
-import { ChevronRight, RefreshCw } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Link } from 'wouter';
-import { displayStatusMeta, getDisplayStatus } from './orderCardStatus';
+import type { OrderWithItems } from "@/hooks/use-orders";
+import { format } from "date-fns";
+import { ChevronRight, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Link } from "wouter";
+import { displayStatusMeta, getDisplayStatus } from "./orderCardStatus";
 
 interface OrderCardProps {
   order: OrderWithItems;
@@ -16,7 +16,7 @@ export function OrderCardTracker({ order }: OrderCardProps) {
   const StatusIcon = meta.icon;
   const thumbnails = order.items.slice(0, 3).filter((item) => item.product);
   const extraItemCount = Math.max(0, order.items.length - thumbnails.length);
-  const hasSubscription = order.items.some((item) => item.delivery_type === 'subscription');
+  const hasSubscription = order.items.some((item) => item.delivery_type === "subscription");
 
   return (
     <Link href={`/orders/${order.id}`}>
@@ -27,15 +27,20 @@ export function OrderCardTracker({ order }: OrderCardProps) {
         <div className={`px-4 py-2 flex items-center justify-between ${meta.badgeBg}`}>
           <div className={`flex items-center gap-2 text-sm font-bold ${meta.badgeText}`}>
             <span className="relative flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm">
-              {displayStatus === 'active' && (
-                <span className={`absolute inline-flex h-full w-full rounded-full ${meta.dot} opacity-20 animate-ping`} />
+              {displayStatus === "active" && (
+                <span
+                  className={`absolute inline-flex h-full w-full rounded-full ${meta.dot} opacity-20 animate-ping`}
+                />
               )}
               <StatusIcon size={13} />
             </span>
             {meta.label}
           </div>
           {hasSubscription && (
-            <Badge variant="outline" className="text-[11px] font-bold border-emerald-300 text-emerald-700 bg-white/80">
+            <Badge
+              variant="outline"
+              className="text-[11px] font-bold border-emerald-300 text-emerald-700 bg-white/80"
+            >
               <RefreshCw size={10} className="mr-1" />
               Subscription
             </Badge>
@@ -45,11 +50,15 @@ export function OrderCardTracker({ order }: OrderCardProps) {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <span className="font-bold text-base text-foreground tracking-tight" data-testid={`text-order-id-${order.id}`}>
-                Order #{order.id.replace('ord_', '')}
+              <span
+                className="font-bold text-base text-foreground tracking-tight"
+                data-testid={`text-order-id-${order.id}`}
+              >
+                Order #{order.id.replace("ord_", "")}
               </span>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {order.item_count} {order.item_count === 1 ? 'item' : 'items'} · {format(new Date(order.created_at), 'MMM d, yyyy')}
+                {order.item_count} {order.item_count === 1 ? "item" : "items"} ·{" "}
+                {format(new Date(order.created_at), "MMM d, yyyy")}
               </p>
             </div>
 
@@ -59,7 +68,11 @@ export function OrderCardTracker({ order }: OrderCardProps) {
                   key={item.id}
                   className="w-10 h-10 rounded-xl overflow-hidden border-2 border-white bg-muted flex-shrink-0 shadow-sm"
                 >
-                  <img src={item.product!.image_url ?? undefined} alt={item.product!.name} className="w-full h-full object-cover" />
+                  <img
+                    src={item.product!.image_url ?? undefined}
+                    alt={item.product!.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               ))}
               {extraItemCount > 0 && (
@@ -72,8 +85,13 @@ export function OrderCardTracker({ order }: OrderCardProps) {
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
             <div>
-              <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total</p>
-              <span className="font-bold text-lg text-primary" data-testid={`text-order-total-${order.id}`}>
+              <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
+                Total
+              </p>
+              <span
+                className="font-bold text-lg text-primary"
+                data-testid={`text-order-total-${order.id}`}
+              >
                 ₹{order.total.toFixed(2)}
               </span>
             </div>

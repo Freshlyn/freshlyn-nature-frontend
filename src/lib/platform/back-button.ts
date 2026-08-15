@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
-import { App as CapacitorApp } from '@capacitor/app';
-import { isNative } from '@/lib/platform';
-import { useToast } from '@/hooks/use-toast';
+import { useEffect, useRef } from "react";
+import { App as CapacitorApp } from "@capacitor/app";
+import { isNative } from "@/lib/platform";
+import { useToast } from "@/hooks/use-toast";
 
 /** Routes where "back" means "leave the app" rather than "go up". */
-const ROOT_ROUTES = ['/', '/orders', '/profile'];
+const ROOT_ROUTES = ["/", "/orders", "/profile"];
 
 /** How long the second press counts as confirming the exit. */
 const EXIT_CONFIRM_WINDOW_MS = 2000;
@@ -22,7 +22,7 @@ export function useAndroidBackButton(): void {
   useEffect(() => {
     if (!isNative()) return;
 
-    const handlePromise = CapacitorApp.addListener('backButton', () => {
+    const handlePromise = CapacitorApp.addListener("backButton", () => {
       // 1. A dialog is open -- close it and consume the press. Radix renders
       // open dialog content with data-state="open", so this finds any of them
       // without every dialog having to register itself.
@@ -31,9 +31,7 @@ export function useAndroidBackButton(): void {
         // Radix closes on Escape, which also runs onOpenChange, so component
         // state stays in sync. Dispatching to the dialog node itself rather
         // than document keeps focus-scoped handlers working.
-        openDialog.dispatchEvent(
-          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
-        );
+        openDialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
         return;
       }
 
@@ -53,7 +51,7 @@ export function useAndroidBackButton(): void {
       }
       exitArmedAt.current = now;
       toast({
-        title: 'Press back again to exit',
+        title: "Press back again to exit",
       });
     });
 

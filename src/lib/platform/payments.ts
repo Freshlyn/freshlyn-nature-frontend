@@ -1,7 +1,7 @@
-import { Checkout } from 'capacitor-razorpay';
-import { supabase } from '@/lib/supabase';
-import { isNative } from '@/lib/platform';
-import { isRazorpayCancellation } from '@/lib/platform/razorpay-error';
+import { Checkout } from "capacitor-razorpay";
+import { supabase } from "@/lib/supabase";
+import { isNative } from "@/lib/platform";
+import { isRazorpayCancellation } from "@/lib/platform/razorpay-error";
 
 /**
  * capacitor-razorpay's shipped .d.ts does not describe what the plugin
@@ -31,7 +31,7 @@ const NativeCheckout = Checkout as unknown as {
   open(options: NativeCheckoutOptions): Promise<{ response?: RazorpayHandlerResponse }>;
 };
 
-const CHECKOUT_SCRIPT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
+const CHECKOUT_SCRIPT_URL = "https://checkout.razorpay.com/v1/checkout.js";
 
 export interface RazorpayCheckoutParams {
   razorpayOrderId: string;
@@ -71,13 +71,13 @@ function loadCheckoutScript(): Promise<void> {
   if (scriptPromise) return scriptPromise;
 
   scriptPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
+    const script = document.createElement("script");
     script.src = CHECKOUT_SCRIPT_URL;
     script.async = true;
     script.onload = () => resolve();
     script.onerror = () => {
       scriptPromise = null;
-      reject(new Error('Could not load the payment provider. Check your connection.'));
+      reject(new Error("Could not load the payment provider. Check your connection."));
     };
     document.body.appendChild(script);
   });
@@ -94,7 +94,7 @@ function loadCheckoutScript(): Promise<void> {
  */
 export async function notifyPaymentVerified(response: RazorpayHandlerResponse): Promise<void> {
   try {
-    await supabase.functions.invoke('payment-verify', {
+    await supabase.functions.invoke("payment-verify", {
       body: {
         razorpayOrderId: response.razorpay_order_id,
         razorpayPaymentId: response.razorpay_payment_id,
@@ -106,31 +106,31 @@ export async function notifyPaymentVerified(response: RazorpayHandlerResponse): 
   }
 }
 
-function openWebCheckout(params: RazorpayCheckoutParams): Promise<'paid' | 'dismissed'> {
+function openWebCheckout(params: RazorpayCheckoutParams): Promise<"paid" | "dismissed"> {
   const { razorpayOrderId, razorpayKeyId, customerPhone } = params;
 
-  return new Promise<'paid' | 'dismissed'>((resolve, reject) => {
+  return new Promise<"paid" | "dismissed">((resolve, reject) => {
     loadCheckoutScript()
       .then(() => {
         if (!window.Razorpay) {
-          reject(new Error('Payment provider unavailable.'));
+          reject(new Error("Payment provider unavailable."));
           return;
         }
 
         const rzp = new window.Razorpay({
           key: razorpayKeyId,
           order_id: razorpayOrderId,
-          name: 'Freshlyn Nature',
-          description: 'Order payment',
+          name: "Freshlyn Nature",
+          description: "Order payment",
           prefill: customerPhone ? { contact: customerPhone } : undefined,
-          theme: { color: '#16a34a' },
+          theme: { color: "#16a34a" },
           handler: (response) => {
-            notifyPaymentVerified(response).then(() => resolve('paid'));
+            notifyPaymentVerified(response).then(() => resolve("paid"));
           },
           modal: {
             // Customer closed the sheet. The order stays pending, holds no
             // stock, and is superseded on their next attempt.
-            ondismiss: () => resolve('dismissed'),
+            ondismiss: () => resolve("dismissed"),
           },
         });
 
@@ -140,20 +140,18 @@ function openWebCheckout(params: RazorpayCheckoutParams): Promise<'paid' | 'dism
   });
 }
 
-async function openNativeCheckout(
-  params: RazorpayCheckoutParams,
-): Promise<'paid' | 'dismissed'> {
+async function openNativeCheckout(params: RazorpayCheckoutParams): Promise<"paid" | "dismissed"> {
   const { razorpayOrderId, razorpayKeyId, customerPhone } = params;
 
   try {
     const result = await NativeCheckout.open({
       key: razorpayKeyId,
       order_id: razorpayOrderId,
-      name: 'Freshlyn Nature',
-      description: 'Order payment',
-      currency: 'INR',
+      name: "Freshlyn Nature",
+      description: "Order payment",
+      currency: "INR",
       ...(customerPhone ? { prefill: { contact: customerPhone } } : {}),
-      theme: { color: '#16a34a' },
+      theme: { color: "#16a34a" },
     });
 
     // The plugin nests the payload one level deeper than the web handler's
@@ -165,18 +163,18 @@ async function openNativeCheckout(
       !response?.razorpay_payment_id ||
       !response?.razorpay_signature
     ) {
-      throw new Error('Payment could not be confirmed. Please check your orders.');
+      throw new Error("Payment could not be confirmed. Please check your orders.");
     }
 
     // Same contract as web: the webhook is authoritative, so resolve "paid"
     // whatever payment-verify does.
     await notifyPaymentVerified(response);
-    return 'paid';
+    return "paid";
   } catch (err) {
     // The Android SDK reports user dismissal as an *error* (code 2), not a
     // clean callback. Mapping it here is what produces the "Payment
     // cancelled -- your cart is saved" toast instead of a red error toast.
-    if (isRazorpayCancellation(err)) return 'dismissed';
+    if (isRazorpayCancellation(err)) return "dismissed";
     throw err;
   }
 }
@@ -192,7 +190,7 @@ async function openNativeCheckout(
  */
 export async function openRazorpayCheckout(
   params: RazorpayCheckoutParams,
-): Promise<'paid' | 'dismissed'> {
+): Promise<"paid" | "dismissed"> {
   if (isNative()) return openNativeCheckout(params);
   return openWebCheckout(params);
 }

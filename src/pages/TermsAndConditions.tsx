@@ -201,12 +201,14 @@ export default function TermsAndConditions({
 }: TermsAndConditionsProps) {
   return (
     <div className="min-h-screen bg-muted/10">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/profile" backLabel="Back to Profile" />
+      <Header
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={onSidebarToggle}
+        backTo="/profile"
+        backLabel="Back to Profile"
+      />
       <main className="container mx-auto px-4 py-6 max-w-2xl pb-24">
-        <h1
-          className="text-xl font-display font-bold"
-          data-testid="text-terms-title"
-        >
+        <h1 className="text-xl font-display font-bold" data-testid="text-terms-title">
           Terms & Conditions
         </h1>
         <p className="text-xs text-muted-foreground mt-1 mb-4" data-testid="text-terms-updated">
@@ -214,16 +216,17 @@ export default function TermsAndConditions({
         </p>
 
         <Card className="p-4 space-y-6">
-          <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-terms-intro">
+          <p
+            className="text-sm text-muted-foreground leading-relaxed"
+            data-testid="text-terms-intro"
+          >
             {INTRO}
           </p>
 
           {TERMS_SECTIONS.map((section, index) => (
             <div key={index} data-testid={`section-terms-${index}`}>
               {section.heading && (
-                <h2 className="text-sm font-semibold text-foreground mb-2">
-                  {section.heading}
-                </h2>
+                <h2 className="text-sm font-semibold text-foreground mb-2">{section.heading}</h2>
               )}
               {section.paragraphs?.map((paragraph, pIndex) => (
                 <p
@@ -236,10 +239,7 @@ export default function TermsAndConditions({
               {section.list && (
                 <ul className="list-disc pl-5 space-y-1">
                   {section.list.map((item, lIndex) => (
-                    <li
-                      key={lIndex}
-                      className="text-sm text-muted-foreground leading-relaxed"
-                    >
+                    <li key={lIndex} className="text-sm text-muted-foreground leading-relaxed">
                       {item}
                     </li>
                   ))}
@@ -249,29 +249,27 @@ export default function TermsAndConditions({
           ))}
 
           <div data-testid="section-terms-contact">
-            <h2 className="text-sm font-semibold text-foreground mb-2">
-              18. Contact Information
-            </h2>
+            <h2 className="text-sm font-semibold text-foreground mb-2">18. Contact Information</h2>
             <p className="text-sm text-muted-foreground leading-relaxed mb-2">
               For any questions regarding these Terms and Conditions, please contact us:
             </p>
             <ul className="text-sm text-muted-foreground leading-relaxed space-y-1">
               <li>
-                <span className="font-medium text-foreground">Address:</span>{" "}
-                {CONTACT.address}
+                <span className="font-medium text-foreground">Address:</span> {CONTACT.address}
               </li>
               <li>
-                <span className="font-medium text-foreground">Email:</span>{" "}
-                {CONTACT.email}
+                <span className="font-medium text-foreground">Email:</span> {CONTACT.email}
               </li>
               <li>
-                <span className="font-medium text-foreground">Website:</span>{" "}
-                {CONTACT.website}
+                <span className="font-medium text-foreground">Website:</span> {CONTACT.website}
               </li>
             </ul>
           </div>
 
-          <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-terms-closing">
+          <p
+            className="text-sm text-muted-foreground leading-relaxed"
+            data-testid="text-terms-closing"
+          >
             {CLOSING}
           </p>
         </Card>

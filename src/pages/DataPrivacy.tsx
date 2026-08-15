@@ -64,9 +64,7 @@ const PRIVACY_SECTIONS: PrivacySection[] = [
   },
   {
     heading: "4. Sharing of Information",
-    paragraphs: [
-      "We do not sell your personal information. We may share limited data with:",
-    ],
+    paragraphs: ["We do not sell your personal information. We may share limited data with:"],
     list: [
       "Delivery partners, to fulfill and track your orders.",
       "Payment providers, to process transactions securely.",
@@ -115,10 +113,7 @@ const CLOSING =
 
 const DELETE_CONFIRMATION_WORD = "DELETE";
 
-export default function DataPrivacy({
-  sidebarOpen,
-  onSidebarToggle,
-}: DataPrivacyProps) {
+export default function DataPrivacy({ sidebarOpen, onSidebarToggle }: DataPrivacyProps) {
   const { mutateAsync: deleteAccount } = useDeleteAccount();
   const { logout } = useAuth();
   const { toast } = useToast();
@@ -140,12 +135,14 @@ export default function DataPrivacy({
 
   return (
     <div className="min-h-screen bg-muted/10">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/profile" backLabel="Back to Profile" />
+      <Header
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={onSidebarToggle}
+        backTo="/profile"
+        backLabel="Back to Profile"
+      />
       <main className="container mx-auto px-4 py-6 max-w-2xl pb-24">
-        <h1
-          className="text-xl font-display font-bold"
-          data-testid="text-privacy-title"
-        >
+        <h1 className="text-xl font-display font-bold" data-testid="text-privacy-title">
           Data Privacy & Protection
         </h1>
         <p className="text-xs text-muted-foreground mt-1 mb-4" data-testid="text-privacy-updated">
@@ -153,15 +150,16 @@ export default function DataPrivacy({
         </p>
 
         <Card className="p-4 space-y-6">
-          <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-privacy-intro">
+          <p
+            className="text-sm text-muted-foreground leading-relaxed"
+            data-testid="text-privacy-intro"
+          >
             {INTRO}
           </p>
 
           {PRIVACY_SECTIONS.map((section, index) => (
             <div key={index} data-testid={`section-privacy-${index}`}>
-              <h2 className="text-sm font-semibold text-foreground mb-2">
-                {section.heading}
-              </h2>
+              <h2 className="text-sm font-semibold text-foreground mb-2">{section.heading}</h2>
               {section.paragraphs?.map((paragraph, pIndex) => (
                 <p
                   key={pIndex}
@@ -173,10 +171,7 @@ export default function DataPrivacy({
               {section.list && (
                 <ul className="list-disc pl-5 space-y-1">
                   {section.list.map((item, lIndex) => (
-                    <li
-                      key={lIndex}
-                      className="text-sm text-muted-foreground leading-relaxed"
-                    >
+                    <li key={lIndex} className="text-sm text-muted-foreground leading-relaxed">
                       {item}
                     </li>
                   ))}
@@ -186,29 +181,27 @@ export default function DataPrivacy({
           ))}
 
           <div data-testid="section-privacy-contact">
-            <h2 className="text-sm font-semibold text-foreground mb-2">
-              9. Contact Us
-            </h2>
+            <h2 className="text-sm font-semibold text-foreground mb-2">9. Contact Us</h2>
             <p className="text-sm text-muted-foreground leading-relaxed mb-2">
               For any questions about this policy or your data, please reach out:
             </p>
             <ul className="text-sm text-muted-foreground leading-relaxed space-y-1">
               <li>
-                <span className="font-medium text-foreground">Address:</span>{" "}
-                {CONTACT.address}
+                <span className="font-medium text-foreground">Address:</span> {CONTACT.address}
               </li>
               <li>
-                <span className="font-medium text-foreground">Email:</span>{" "}
-                {CONTACT.email}
+                <span className="font-medium text-foreground">Email:</span> {CONTACT.email}
               </li>
               <li>
-                <span className="font-medium text-foreground">Website:</span>{" "}
-                {CONTACT.website}
+                <span className="font-medium text-foreground">Website:</span> {CONTACT.website}
               </li>
             </ul>
           </div>
 
-          <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-privacy-closing">
+          <p
+            className="text-sm text-muted-foreground leading-relaxed"
+            data-testid="text-privacy-closing"
+          >
             {CLOSING}
           </p>
         </Card>
@@ -237,11 +230,12 @@ export default function DataPrivacy({
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              This permanently deletes your profile, saved addresses, and order history. This
-              action cannot be undone.
+              This permanently deletes your profile, saved addresses, and order history. This action
+              cannot be undone.
             </p>
             <p className="text-sm text-muted-foreground">
-              Type <span className="font-semibold text-foreground">{DELETE_CONFIRMATION_WORD}</span> below to confirm.
+              Type <span className="font-semibold text-foreground">{DELETE_CONFIRMATION_WORD}</span>{" "}
+              below to confirm.
             </p>
             <Input
               value={confirmText}

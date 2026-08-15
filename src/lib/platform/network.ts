@@ -1,5 +1,5 @@
-import { Network } from '@capacitor/network';
-import { isNative } from '@/lib/platform';
+import { Network } from "@capacitor/network";
+import { isNative } from "@/lib/platform";
 
 /**
  * Current connectivity, once.
@@ -25,7 +25,7 @@ export function subscribeToNetworkStatus(listener: (online: boolean) => void): (
     // addListener resolves to the handle asynchronously, so cleanup has to
     // wait on that promise rather than assume a handle already exists --
     // otherwise a fast unmount leaks the listener.
-    const handlePromise = Network.addListener('networkStatusChange', (status) =>
+    const handlePromise = Network.addListener("networkStatusChange", (status) =>
       listener(status.connected),
     );
     return () => {
@@ -35,10 +35,10 @@ export function subscribeToNetworkStatus(listener: (online: boolean) => void): (
 
   const onOnline = () => listener(true);
   const onOffline = () => listener(false);
-  window.addEventListener('online', onOnline);
-  window.addEventListener('offline', onOffline);
+  window.addEventListener("online", onOnline);
+  window.addEventListener("offline", onOffline);
   return () => {
-    window.removeEventListener('online', onOnline);
-    window.removeEventListener('offline', onOffline);
+    window.removeEventListener("online", onOnline);
+    window.removeEventListener("offline", onOffline);
   };
 }

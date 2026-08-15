@@ -1,13 +1,13 @@
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { MapPin, Navigation } from 'lucide-react';
-import { useState } from 'react';
-import { getCurrentPosition } from '@/lib/platform/geolocation';
-import { isUsableFix, checkServiceability } from '@/lib/serviceability';
-import { useWaitlistSignup } from '@/hooks/use-serviceability';
-import { normalizeIndianPhone } from '@/lib/phone';
-import type { LocationPreference } from '@/lib/location-preference';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { MapPin, Navigation } from "lucide-react";
+import { useState } from "react";
+import { getCurrentPosition } from "@/lib/platform/geolocation";
+import { isUsableFix, checkServiceability } from "@/lib/serviceability";
+import { useWaitlistSignup } from "@/hooks/use-serviceability";
+import { normalizeIndianPhone } from "@/lib/phone";
+import type { LocationPreference } from "@/lib/location-preference";
 
 interface LocationModalProps {
   open: boolean;
@@ -33,9 +33,9 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
   // actually failed. Showing both at once invites the user to type a pincode
   // and skip the accurate tier entirely.
   const [showPincode, setShowPincode] = useState(false);
-  const [pincode, setPincode] = useState('');
+  const [pincode, setPincode] = useState("");
   const [outOfArea, setOutOfArea] = useState(false);
-  const [waitlistPhone, setWaitlistPhone] = useState('');
+  const [waitlistPhone, setWaitlistPhone] = useState("");
   const [waitlistDone, setWaitlistDone] = useState(false);
   const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
   const [waitlistError, setWaitlistError] = useState<string | null>(null);
@@ -74,8 +74,8 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
       if (verdict.serviceable) {
         resolve({
           serviceable: true,
-          label: 'Your location',
-          matchedBy: 'gps',
+          label: "Your location",
+          matchedBy: "gps",
           latitude: coords.latitude,
           longitude: coords.longitude,
         });
@@ -99,7 +99,7 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
       setLastSignal({ latitude: null, longitude: null, pincode });
       const verdict = await checkServiceability({ pincode });
       if (verdict.serviceable) {
-        resolve({ serviceable: true, label: pincode, matchedBy: 'pincode' });
+        resolve({ serviceable: true, label: pincode, matchedBy: "pincode" });
         return;
       }
       setOutOfArea(true);
@@ -115,7 +115,7 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
     // waitlist consistent with how the auth flow addresses a phone number.
     const normalized = normalizeIndianPhone(waitlistPhone);
     if (!normalized) {
-      setWaitlistError('Please enter a valid 10-digit mobile number.');
+      setWaitlistError("Please enter a valid 10-digit mobile number.");
       return;
     }
     setWaitlistSubmitting(true);
@@ -137,8 +137,8 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
     // an out-of-area user on every launch is the behaviour this replaces.
     resolve({
       serviceable: false,
-      label: lastSignal.pincode ?? 'Out of area',
-      matchedBy: lastSignal.pincode ? 'pincode' : 'gps',
+      label: lastSignal.pincode ?? "Out of area",
+      matchedBy: lastSignal.pincode ? "pincode" : "gps",
     });
   };
 
@@ -150,11 +150,11 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
             <MapPin size={32} />
           </div>
           <DialogTitle className="text-2xl font-bold font-display">
-            {outOfArea ? "We're not in your area yet" : 'Where should we deliver?'}
+            {outOfArea ? "We're not in your area yet" : "Where should we deliver?"}
           </DialogTitle>
           <DialogDescription className="text-base mt-2">
             {outOfArea
-              ? 'FreshLyn covers parts of Kolkata and is expanding.'
+              ? "FreshLyn covers parts of Kolkata and is expanding."
               : "We'll check if we deliver to your area."}
           </DialogDescription>
         </div>
@@ -163,7 +163,10 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
           {outOfArea ? (
             <>
               {waitlistDone ? (
-                <p className="text-sm text-center text-muted-foreground" data-testid="text-waitlist-done">
+                <p
+                  className="text-sm text-center text-muted-foreground"
+                  data-testid="text-waitlist-done"
+                >
                   Thanks — we'll text you when we reach you.
                 </p>
               ) : (
@@ -172,11 +175,16 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
                     placeholder="Phone number"
                     inputMode="tel"
                     value={waitlistPhone}
-                    onChange={(e) => setWaitlistPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    onChange={(e) =>
+                      setWaitlistPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+                    }
                     data-testid="input-waitlist-phone"
                   />
                   {waitlistError && (
-                    <p className="text-xs text-destructive text-center" data-testid="text-waitlist-error">
+                    <p
+                      className="text-xs text-destructive text-center"
+                      data-testid="text-waitlist-error"
+                    >
                       {waitlistError}
                     </p>
                   )}
@@ -186,7 +194,7 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
                     onClick={handleJoinWaitlist}
                     data-testid="button-join-waitlist"
                   >
-                    {waitlistSubmitting ? 'Saving…' : "Tell me when you're here"}
+                    {waitlistSubmitting ? "Saving…" : "Tell me when you're here"}
                   </Button>
                 </div>
               )}
@@ -213,7 +221,7 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
                 data-testid="button-use-current-location"
               >
                 <Navigation size={18} />
-                {loading ? 'Checking…' : 'Use my current location'}
+                {loading ? "Checking…" : "Use my current location"}
               </Button>
 
               {showPincode && (
@@ -226,7 +234,7 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
                     inputMode="numeric"
                     maxLength={6}
                     value={pincode}
-                    onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     data-testid="input-pincode"
                   />
                   <Button
@@ -243,7 +251,10 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
               <div className="flex justify-center">
                 <Button
                   variant="ghost"
-                  onClick={() => { onResolved(null); onOpenChange(false); }}
+                  onClick={() => {
+                    onResolved(null);
+                    onOpenChange(false);
+                  }}
                   className="text-muted-foreground hover:text-foreground"
                   data-testid="button-skip-location"
                 >

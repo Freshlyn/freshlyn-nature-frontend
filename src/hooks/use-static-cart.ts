@@ -1,15 +1,15 @@
-import { useCallback, useSyncExternalStore, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import type { Product, ProductVariant, SubscriptionFrequency } from '@/hooks/use-products';
-import { useToast } from '@/hooks/use-toast';
+import { useCallback, useSyncExternalStore, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import type { Product, ProductVariant, SubscriptionFrequency } from "@/hooks/use-products";
+import { useToast } from "@/hooks/use-toast";
 
 export interface LocalCartItem {
   id: string;
   product_id: string;
   variant_id: string;
   quantity: number;
-  delivery_type: 'one_time' | 'subscription';
+  delivery_type: "one_time" | "subscription";
   subscription_duration?: number;
   subscription_frequency?: SubscriptionFrequency;
   subscription_start_date?: string;
@@ -20,7 +20,7 @@ export interface CartItemWithDetails {
   product_id: string;
   variant_id: string;
   quantity: number;
-  delivery_type: 'one_time' | 'subscription';
+  delivery_type: "one_time" | "subscription";
   subscription_duration?: number;
   subscription_frequency?: SubscriptionFrequency;
   subscription_start_date?: string;
@@ -31,8 +31,8 @@ export interface CartItemWithDetails {
   discount_percent?: number;
 }
 
-const CART_KEY = 'freshlyn_cart';
-const CART_ID_KEY = 'freshlyn_cart_id';
+const CART_KEY = "freshlyn_cart";
+const CART_ID_KEY = "freshlyn_cart_id";
 
 function loadCart(): LocalCartItem[] {
   try {
@@ -82,11 +82,11 @@ function getSnapshot() {
 function getItemKey(
   productId: string,
   variantId: string,
-  deliveryType: 'one_time' | 'subscription',
+  deliveryType: "one_time" | "subscription",
   subscriptionDuration?: number,
   subscriptionFrequency?: SubscriptionFrequency,
 ): string {
-  if (deliveryType === 'subscription') {
+  if (deliveryType === "subscription") {
     return `${productId}_${variantId}_sub_${subscriptionDuration}_${subscriptionFrequency}`;
   }
   return `${productId}_${variantId}_onetime`;
@@ -99,26 +99,30 @@ export function useStaticCart(products: Product[] = []) {
   const cartProductIds = useMemo(() => [...new Set(cart.map((i) => i.product_id))], [cart]);
 
   const { data: cartVariants = [] } = useQuery({
-    queryKey: ['cart-variants', cartProductIds],
+    queryKey: ["cart-variants", cartProductIds],
     enabled: cartProductIds.length > 0,
     queryFn: async (): Promise<ProductVariant[]> => {
       const { data, error } = await supabase
-        .from('product_variants')
-        .select('id, product_id, name, quantity_value, quantity_unit, price, stock_quantity, max_quantity_per_order, is_default')
-        .in('product_id', cartProductIds);
+        .from("product_variants")
+        .select(
+          "id, product_id, name, quantity_value, quantity_unit, price, stock_quantity, max_quantity_per_order, is_default",
+        )
+        .in("product_id", cartProductIds);
       if (error) throw error;
       return data as ProductVariant[];
     },
   });
 
   const { data: cartDurations = [] } = useQuery({
-    queryKey: ['cart-sub-durations', cartProductIds],
+    queryKey: ["cart-sub-durations", cartProductIds],
     enabled: cartProductIds.length > 0,
-    queryFn: async (): Promise<{ product_id: string; duration_days: number; discount_percent: number }[]> => {
+    queryFn: async (): Promise<
+      { product_id: string; duration_days: number; discount_percent: number }[]
+    > => {
       const { data, error } = await supabase
-        .from('subscription_durations')
-        .select('product_id, duration_days, discount_percent')
-        .in('product_id', cartProductIds);
+        .from("subscription_durations")
+        .select("product_id, duration_days, discount_percent")
+        .in("product_id", cartProductIds);
       if (error) throw error;
       return data as { product_id: string; duration_days: number; discount_percent: number }[];
     },
@@ -129,7 +133,7 @@ export function useStaticCart(products: Product[] = []) {
       productId: string;
       variantId: string;
       quantity: number;
-      deliveryType: 'one_time' | 'subscription';
+      deliveryType: "one_time" | "subscription";
       subscriptionDuration?: number;
       subscriptionFrequency?: SubscriptionFrequency;
       subscriptionStartDate?: string;
@@ -139,16 +143,44 @@ export function useStaticCart(products: Product[] = []) {
       productName?: string;
       variantName?: string;
     }) => {
-      const { productId, variantId, quantity, deliveryType, subscriptionDuration, subscriptionFrequency, subscriptionStartDate } = params;
-      const itemKey = getItemKey(productId, variantId, deliveryType, subscriptionDuration, subscriptionFrequency);
+      const {
+        productId,
+        variantId,
+        quantity,
+        deliveryType,
+        subscriptionDuration,
+        subscriptionFrequency,
+        subscriptionStartDate,
+      } = params;
+      const itemKey = getItemKey(
+        productId,
+        variantId,
+        deliveryType,
+        subscriptionDuration,
+        subscriptionFrequency,
+      );
 
       const existing = globalCart.find((item) => {
-        return getItemKey(item.product_id, item.variant_id, item.delivery_type, item.subscription_duration, item.subscription_frequency) === itemKey;
+        return (
+          getItemKey(
+            item.product_id,
+            item.variant_id,
+            item.delivery_type,
+            item.subscription_duration,
+            item.subscription_frequency,
+          ) === itemKey
+        );
       });
 
       if (existing) {
         globalCart = globalCart.map((item) =>
-          getItemKey(item.product_id, item.variant_id, item.delivery_type, item.subscription_duration, item.subscription_frequency) === itemKey
+          getItemKey(
+            item.product_id,
+            item.variant_id,
+            item.delivery_type,
+            item.subscription_duration,
+            item.subscription_frequency,
+          ) === itemKey
             ? { ...item, quantity: item.quantity + quantity }
             : item,
         );
@@ -170,14 +202,18 @@ export function useStaticCart(products: Product[] = []) {
 
       emitChange();
 
-      const productName = params.productName ?? products.find((p) => p.id === productId)?.name ?? 'Item';
+      const productName =
+        params.productName ?? products.find((p) => p.id === productId)?.name ?? "Item";
       const variantName = params.variantName ?? cartVariants.find((v) => v.id === variantId)?.name;
       const label = variantName ? `${productName} (${variantName})` : productName;
 
-      if (deliveryType === 'subscription') {
-        toast({ title: 'Subscription added', description: `${label} - ${subscriptionDuration} deliveries` });
+      if (deliveryType === "subscription") {
+        toast({
+          title: "Subscription added",
+          description: `${label} - ${subscriptionDuration} deliveries`,
+        });
       } else {
-        toast({ title: 'Added to cart', description: `${label} added to your basket.` });
+        toast({ title: "Added to cart", description: `${label} added to your basket.` });
       }
     },
     [toast, cartVariants, products],
@@ -185,7 +221,7 @@ export function useStaticCart(products: Product[] = []) {
 
   const addToCartSimple = useCallback(
     (productId: string, variantId: string, quantity = 1) => {
-      addToCart({ productId, variantId, quantity, deliveryType: 'one_time' });
+      addToCart({ productId, variantId, quantity, deliveryType: "one_time" });
     },
     [addToCart],
   );
@@ -194,7 +230,9 @@ export function useStaticCart(products: Product[] = []) {
     if (quantity <= 0) {
       globalCart = globalCart.filter((i) => i.id !== cartItemId);
     } else {
-      globalCart = globalCart.map((item) => (item.id === cartItemId ? { ...item, quantity } : item));
+      globalCart = globalCart.map((item) =>
+        item.id === cartItemId ? { ...item, quantity } : item,
+      );
     }
     emitChange();
   }, []);
@@ -232,10 +270,15 @@ export function useStaticCart(products: Product[] = []) {
       );
       emitChange();
 
-      const productName = updates.productName ?? products.find((p) => p.id === existing.product_id)?.name ?? 'Item';
-      const variantName = updates.variantName ?? cartVariants.find((v) => v.id === updates.variantId)?.name;
+      const productName =
+        updates.productName ?? products.find((p) => p.id === existing.product_id)?.name ?? "Item";
+      const variantName =
+        updates.variantName ?? cartVariants.find((v) => v.id === updates.variantId)?.name;
       const label = variantName ? `${productName} (${variantName})` : productName;
-      toast({ title: 'Subscription updated', description: `${label} - ${updates.subscriptionDuration} deliveries` });
+      toast({
+        title: "Subscription updated",
+        description: `${label} - ${updates.subscriptionDuration} deliveries`,
+      });
     },
     [toast, cartVariants, products],
   );
@@ -247,7 +290,9 @@ export function useStaticCart(products: Product[] = []) {
 
   const getQuantity = useCallback(
     (productId: string): number => {
-      return cart.filter((i) => i.product_id === productId).reduce((sum, item) => sum + item.quantity, 0);
+      return cart
+        .filter((i) => i.product_id === productId)
+        .reduce((sum, item) => sum + item.quantity, 0);
     },
     [cart],
   );
@@ -263,7 +308,11 @@ export function useStaticCart(products: Product[] = []) {
       let deliveryCount: number | undefined;
       let discountPercent: number | undefined;
 
-      if (item.delivery_type === 'subscription' && item.subscription_duration && item.subscription_frequency) {
+      if (
+        item.delivery_type === "subscription" &&
+        item.subscription_duration &&
+        item.subscription_frequency
+      ) {
         // subscription_duration is the chosen number of deliveries, independent of frequency.
         deliveryCount = item.subscription_duration;
         discountPercent = cartDurations.find(
@@ -291,7 +340,10 @@ export function useStaticCart(products: Product[] = []) {
     return result;
   }, [cart, products, cartVariants, cartDurations]);
 
-  const cartTotal = useMemo(() => cartWithProducts.reduce((t, item) => t + item.item_total, 0), [cartWithProducts]);
+  const cartTotal = useMemo(
+    () => cartWithProducts.reduce((t, item) => t + item.item_total, 0),
+    [cartWithProducts],
+  );
   const cartCount = useMemo(() => cart.reduce((c, item) => c + item.quantity, 0), [cart]);
 
   return {

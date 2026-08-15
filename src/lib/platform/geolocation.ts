@@ -1,5 +1,5 @@
-import { Geolocation } from '@capacitor/geolocation';
-import { isNative } from '@/lib/platform';
+import { Geolocation } from "@capacitor/geolocation";
+import { isNative } from "@/lib/platform";
 
 export interface Coordinates {
   latitude: number;
@@ -29,8 +29,8 @@ export async function getCurrentPosition(): Promise<Coordinates> {
     // Android system prompt otherwise. A denial rejects, which the caller
     // handles identically to a positioning failure.
     const status = await Geolocation.requestPermissions();
-    if (status.location === 'denied' && status.coarseLocation === 'denied') {
-      throw new Error('Location permission denied.');
+    if (status.location === "denied" && status.coarseLocation === "denied") {
+      throw new Error("Location permission denied.");
     }
     const position = await Geolocation.getCurrentPosition();
     return {
@@ -40,8 +40,8 @@ export async function getCurrentPosition(): Promise<Coordinates> {
     };
   }
 
-  if (!('geolocation' in navigator)) {
-    throw new Error('Geolocation is not supported by your browser');
+  if (!("geolocation" in navigator)) {
+    throw new Error("Geolocation is not supported by your browser");
   }
 
   return new Promise<Coordinates>((resolve, reject) => {
@@ -52,7 +52,7 @@ export async function getCurrentPosition(): Promise<Coordinates> {
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
         }),
-      () => reject(new Error('Could not access location. Please enter manually.')),
+      () => reject(new Error("Could not access location. Please enter manually.")),
     );
   });
 }

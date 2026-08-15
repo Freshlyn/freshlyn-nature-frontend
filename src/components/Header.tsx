@@ -1,10 +1,10 @@
-import { Link, useLocation } from 'wouter';
-import { ShoppingCart, Search, MapPin, Menu, X, ArrowLeft } from 'lucide-react';
-import { useStaticCart } from '@/hooks/use-static-cart';
-import { useAuth } from '@/hooks/use-auth';
-import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import { Link, useLocation } from "wouter";
+import { ShoppingCart, Search, MapPin, Menu, X, ArrowLeft } from "lucide-react";
+import { useStaticCart } from "@/hooks/use-static-cart";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
   onSearch?: (term: string) => void;
@@ -18,12 +18,20 @@ interface HeaderProps {
   backLabel?: string;
 }
 
-export function Header({ onSearch, location = 'Select Location', onLocationClick, sidebarOpen, onSidebarToggle, backTo, backLabel = 'Back' }: HeaderProps) {
-  const [term, setTerm] = useState('');
+export function Header({
+  onSearch,
+  location = "Select Location",
+  onLocationClick,
+  sidebarOpen,
+  onSidebarToggle,
+  backTo,
+  backLabel = "Back",
+}: HeaderProps) {
+  const [term, setTerm] = useState("");
   const { getCartCount } = useStaticCart();
   const { user } = useAuth();
   const [currentPath] = useLocation();
-  const isHomePage = currentPath === '/';
+  const isHomePage = currentPath === "/";
 
   const itemCount = getCartCount();
   const [displayCount, setDisplayCount] = useState(itemCount);
@@ -89,7 +97,11 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
           )}
 
           <Link href="/" className="flex items-center">
-            <img src="/logo.png" alt="Freshlyn Nature" className="h-11 md:h-14 w-auto object-contain" />
+            <img
+              src="/logo.png"
+              alt="Freshlyn Nature"
+              className="h-11 md:h-14 w-auto object-contain"
+            />
           </Link>
 
           <button
@@ -101,7 +113,9 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
               <MapPin size={14} />
             </div>
             <div className="flex flex-col items-start leading-none">
-              <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Delivering to</span>
+              <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">
+                Delivering to
+              </span>
               <span className="truncate max-w-[120px] text-xs font-semibold">{location}</span>
             </div>
           </button>
@@ -110,7 +124,10 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
         {isHomePage && (
           <div className="flex-1 max-w-xl mx-2 md:mx-4 hidden sm:block">
             <form onSubmit={handleSearch} className="relative group">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
+              <Search
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors"
+                size={18}
+              />
               <input
                 type="text"
                 placeholder="Search for 'milk', 'bread', 'chips'..."
@@ -126,7 +143,12 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
         <div className="flex items-center gap-2 md:gap-3">
           {!user && (
             <Link href="/login">
-              <Button variant="default" size="sm" className="font-semibold" data-testid="button-login">
+              <Button
+                variant="default"
+                size="sm"
+                className="font-semibold"
+                data-testid="button-login"
+              >
                 Login
               </Button>
             </Link>
@@ -145,8 +167,13 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
                       key={dropId}
                       className="absolute left-1/2 top-0 -translate-x-1/2 w-2.5 h-2.5 rounded-[3px] bg-accent shadow-md z-10"
                       initial={{ y: -22, opacity: 0, scale: 0.6, rotate: -20 }}
-                      animate={{ y: [-22, -20, 2, 0], opacity: [0, 1, 1, 0], scale: [0.6, 1, 0.7, 0.3], rotate: [-20, 8, 0, 0] }}
-                      transition={{ duration: 0.55, times: [0, 0.25, 0.75, 1], ease: 'easeIn' }}
+                      animate={{
+                        y: [-22, -20, 2, 0],
+                        opacity: [0, 1, 1, 0],
+                        scale: [0.6, 1, 0.7, 0.3],
+                        rotate: [-20, 8, 0, 0],
+                      }}
+                      transition={{ duration: 0.55, times: [0, 0.25, 0.75, 1], ease: "easeIn" }}
                     />
                   )}
                 </AnimatePresence>
@@ -159,7 +186,7 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
                       className="absolute inset-0 rounded-full bg-accent"
                       initial={{ scale: 0.6, opacity: 0 }}
                       animate={{ scale: [0.6, 0.6, 1.7], opacity: [0, 0.7, 0] }}
-                      transition={{ duration: 0.5, times: [0, 0.55, 1], ease: 'easeOut' }}
+                      transition={{ duration: 0.5, times: [0, 0.55, 1], ease: "easeOut" }}
                     />
                   )}
                 </AnimatePresence>
@@ -171,7 +198,7 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
                       ? { scaleY: [1, 1, 0.75, 1.08, 1], scaleX: [1, 1, 1.1, 0.96, 1] }
                       : { scaleY: 1, scaleX: 1 }
                   }
-                  transition={{ duration: 0.55, times: [0, 0.55, 0.7, 0.85, 1], ease: 'easeInOut' }}
+                  transition={{ duration: 0.55, times: [0, 0.55, 0.7, 0.85, 1], ease: "easeInOut" }}
                 >
                   <ShoppingCart size={16} />
                 </motion.div>
@@ -179,15 +206,17 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
 
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
-                  key={displayCount > 0 ? `count-${displayCount}` : 'label'}
+                  key={displayCount > 0 ? `count-${displayCount}` : "label"}
                   initial={{ y: -10, opacity: 0, scale: 0.6 }}
                   animate={{ y: 0, opacity: 1, scale: 1 }}
                   exit={{ y: 10, opacity: 0, scale: 0.6 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                  className={`text-sm font-bold whitespace-nowrap ${displayCount > 0 ? 'inline-block' : 'hidden md:inline-block'}`}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className={`text-sm font-bold whitespace-nowrap ${displayCount > 0 ? "inline-block" : "hidden md:inline-block"}`}
                   data-testid="text-cart-count"
                 >
-                  {displayCount > 0 ? `${displayCount} ${displayCount === 1 ? 'item' : 'items'}` : 'Cart'}
+                  {displayCount > 0
+                    ? `${displayCount} ${displayCount === 1 ? "item" : "items"}`
+                    : "Cart"}
                 </motion.span>
               </AnimatePresence>
             </Button>
@@ -198,7 +227,10 @@ export function Header({ onSearch, location = 'Select Location', onLocationClick
       {isHomePage && (
         <div className="sm:hidden px-3 pb-3">
           <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={16}
+            />
             <input
               type="text"
               placeholder="Search products..."

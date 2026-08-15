@@ -18,7 +18,9 @@ export interface UserAddress {
   is_default: boolean;
 }
 
-export function formatAddress(address: UserAddress | Omit<UserAddress, 'id' | 'label' | 'is_default'>): string {
+export function formatAddress(
+  address: UserAddress | Omit<UserAddress, "id" | "label" | "is_default">,
+): string {
   const parts = [
     address.flat_house,
     address.building,
@@ -27,10 +29,12 @@ export function formatAddress(address: UserAddress | Omit<UserAddress, 'id' | 'l
     address.city,
     `${address.state} ${address.pincode}`,
   ].filter(Boolean);
-  return parts.join(', ');
+  return parts.join(", ");
 }
 
 export function formatAddressShort(address: UserAddress): string {
-  const parts = [address.flat_house, address.building || address.street, address.city].filter(Boolean);
-  return parts.join(', ');
+  const parts = [address.flat_house, address.building || address.street, address.city].filter(
+    Boolean,
+  );
+  return parts.join(", ");
 }

@@ -1,6 +1,6 @@
-import { StatusBar, Style } from '@capacitor/status-bar';
-import { SplashScreen } from '@capacitor/splash-screen';
-import { isNative } from '@/lib/platform';
+import { StatusBar, Style } from "@capacitor/status-bar";
+import { SplashScreen } from "@capacitor/splash-screen";
+import { isNative } from "@/lib/platform";
 
 /**
  * hsl(88 50% 53%) -- the --primary token from src/index.css:34, converted to
@@ -11,7 +11,7 @@ import { isNative } from '@/lib/platform';
  * different colour -- the value here is the actual conversion, so the status
  * bar matches the header rather than being visibly off by a shade.)
  */
-const PRIMARY_HEX = '#8BC34B';
+const PRIMARY_HEX = "#8BC34B";
 
 /**
  * Bring the native chrome in line with the app.

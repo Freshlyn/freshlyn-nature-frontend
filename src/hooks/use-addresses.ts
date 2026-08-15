@@ -1,8 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import type { UserAddress } from '@/types/user';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import type { UserAddress } from "@/types/user";
 
-const ADDRESSES_KEY = ['addresses'];
+const ADDRESSES_KEY = ["addresses"];
 
 interface AddressRow {
   id: string;
@@ -24,9 +24,9 @@ function toUserAddress(row: AddressRow): UserAddress {
     id: row.id,
     label: row.label,
     flat_house: row.flat_house,
-    building: row.building ?? '',
-    street: row.street ?? '',
-    landmark: row.landmark ?? '',
+    building: row.building ?? "",
+    street: row.street ?? "",
+    landmark: row.landmark ?? "",
     city: row.city,
     state: row.state,
     pincode: row.pincode,
@@ -41,9 +41,11 @@ export function useAddresses() {
     queryKey: ADDRESSES_KEY,
     queryFn: async (): Promise<UserAddress[]> => {
       const { data, error } = await supabase
-        .from('addresses')
-        .select('id, label, flat_house, building, street, landmark, city, state, pincode, latitude, longitude, is_default')
-        .order('is_default', { ascending: false });
+        .from("addresses")
+        .select(
+          "id, label, flat_house, building, street, landmark, city, state, pincode, latitude, longitude, is_default",
+        )
+        .order("is_default", { ascending: false });
       if (error) throw error;
       return (data as AddressRow[]).map(toUserAddress);
     },
@@ -54,17 +56,17 @@ export function useAddAddress() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (
-      input: Omit<UserAddress, 'id' | 'is_default' | 'latitude' | 'longitude'> & {
+      input: Omit<UserAddress, "id" | "is_default" | "latitude" | "longitude"> & {
         is_default?: boolean;
         latitude?: number | null;
         longitude?: number | null;
       },
     ): Promise<UserAddress> => {
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) throw new Error('Not authenticated');
+      if (userError || !userData.user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from('addresses')
+        .from("addresses")
         .insert({
           user_id: userData.user.id,
           label: input.label,
@@ -81,7 +83,9 @@ export function useAddAddress() {
           longitude: input.longitude ?? null,
           is_default: input.is_default ?? false,
         })
-        .select('id, label, flat_house, building, street, landmark, city, state, pincode, latitude, longitude, is_default')
+        .select(
+          "id, label, flat_house, building, street, landmark, city, state, pincode, latitude, longitude, is_default",
+        )
         .single();
       if (error) throw error;
       return toUserAddress(data as AddressRow);
@@ -96,7 +100,7 @@ export function useSetDefaultAddress() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (addressId: string): Promise<void> => {
-      const { error } = await supabase.rpc('set_default_address', { p_address_id: addressId });
+      const { error } = await supabase.rpc("set_default_address", { p_address_id: addressId });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -109,7 +113,7 @@ export function useDeleteAddress() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (addressId: string): Promise<void> => {
-      const { error } = await supabase.from('addresses').delete().eq('id', addressId);
+      const { error } = await supabase.from("addresses").delete().eq("id", addressId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -139,9 +143,9 @@ export function useUpdateAddressCoordinates() {
       longitude: number;
     }): Promise<void> => {
       const { error } = await supabase
-        .from('addresses')
+        .from("addresses")
         .update({ latitude, longitude })
-        .eq('id', addressId);
+        .eq("id", addressId);
       if (error) throw error;
     },
     onSuccess: () => {

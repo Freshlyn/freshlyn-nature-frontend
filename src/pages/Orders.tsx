@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useOrders } from '@/hooks/use-orders';
-import { supabase } from '@/lib/supabase';
-import { Header } from '@/components/Header';
-import { ShoppingBag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Link } from 'wouter';
-import OrderFilters, { DEFAULT_ORDER_FILTERS, hasActiveOrderFilters } from '@/components/orders/OrderFilters';
-import { filterOrders } from '@/lib/order-filters';
-import { OrderCardTracker as OrderCard } from '@/components/orders/OrderCard';
+import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useOrders } from "@/hooks/use-orders";
+import { supabase } from "@/lib/supabase";
+import { Header } from "@/components/Header";
+import { ShoppingBag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "wouter";
+import OrderFilters, {
+  DEFAULT_ORDER_FILTERS,
+  hasActiveOrderFilters,
+} from "@/components/orders/OrderFilters";
+import { filterOrders } from "@/lib/order-filters";
+import { OrderCardTracker as OrderCard } from "@/components/orders/OrderCard";
 
 interface OrdersProps {
   sidebarOpen?: boolean;
@@ -34,14 +37,10 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
   // silently receives nothing.
   useEffect(() => {
     const channel = supabase
-      .channel('orders-changes')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['orders'] });
-        },
-      )
+      .channel("orders-changes")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      })
       .subscribe();
 
     return () => {
@@ -51,9 +50,16 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
 
   return (
     <div className="min-h-screen bg-muted/10">
-      <Header sidebarOpen={sidebarOpen} onSidebarToggle={onSidebarToggle} backTo="/" backLabel="Back to Shop" />
+      <Header
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={onSidebarToggle}
+        backTo="/"
+        backLabel="Back to Shop"
+      />
       <main className="container mx-auto px-4 py-6 max-w-2xl">
-        <h1 className="text-2xl font-display font-bold mb-4" data-testid="text-orders-title">Your Orders</h1>
+        <h1 className="text-2xl font-display font-bold mb-4" data-testid="text-orders-title">
+          Your Orders
+        </h1>
 
         {!isLoading && orders.length > 0 && <OrderFilters value={filters} onChange={setFilters} />}
 
@@ -91,10 +97,18 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
         ) : orders.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-border shadow-sm">
             <ShoppingBag size={48} className="mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-xl font-bold text-foreground" data-testid="text-no-orders">No orders yet</h2>
-            <p className="text-muted-foreground mt-2 mb-8">Start shopping to place your first order.</p>
+            <h2 className="text-xl font-bold text-foreground" data-testid="text-no-orders">
+              No orders yet
+            </h2>
+            <p className="text-muted-foreground mt-2 mb-8">
+              Start shopping to place your first order.
+            </p>
             <Link href="/">
-              <Button size="lg" className="rounded-xl px-8 font-bold" data-testid="button-start-shopping">
+              <Button
+                size="lg"
+                className="rounded-xl px-8 font-bold"
+                data-testid="button-start-shopping"
+              >
                 Start Shopping
               </Button>
             </Link>
@@ -102,7 +116,9 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
         ) : filteredOrders.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-border shadow-sm">
             <div className="text-5xl mb-4">🔍</div>
-            <h2 className="text-lg font-bold text-foreground" data-testid="text-no-filtered-orders">No orders match these filters</h2>
+            <h2 className="text-lg font-bold text-foreground" data-testid="text-no-filtered-orders">
+              No orders match these filters
+            </h2>
             <p className="text-muted-foreground mt-2 mb-6 text-sm">Try adjusting your filters.</p>
             {filtersActive && (
               <Button

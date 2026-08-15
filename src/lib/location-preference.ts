@@ -1,7 +1,7 @@
-import { platformStorage } from '@/lib/platform/storage';
-import type { MatchedBy } from '@/lib/serviceability';
+import { platformStorage } from "@/lib/platform/storage";
+import type { MatchedBy } from "@/lib/serviceability";
 
-const KEY = 'freshlyn.location-preference';
+const KEY = "freshlyn.location-preference";
 
 export interface LocationPreference {
   serviceable: boolean;

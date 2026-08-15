@@ -1,12 +1,12 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import type { CartItemWithDetails } from '@/hooks/use-static-cart';
-import type { OrderWithItems } from '@/hooks/use-orders';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import type { CartItemWithDetails } from "@/hooks/use-static-cart";
+import type { OrderWithItems } from "@/hooks/use-orders";
 
 interface CheckoutInput {
   addressId: string;
   cartItems: CartItemWithDetails[];
-  paymentMethod: 'cod' | 'razorpay';
+  paymentMethod: "cod" | "razorpay";
 }
 
 export type CheckoutResponse = OrderWithItems & {
@@ -17,8 +17,12 @@ export type CheckoutResponse = OrderWithItems & {
 export function useCheckout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ addressId, cartItems, paymentMethod }: CheckoutInput): Promise<CheckoutResponse> => {
-      const { data, error } = await supabase.functions.invoke('checkout', {
+    mutationFn: async ({
+      addressId,
+      cartItems,
+      paymentMethod,
+    }: CheckoutInput): Promise<CheckoutResponse> => {
+      const { data, error } = await supabase.functions.invoke("checkout", {
         body: {
           addressId,
           paymentMethod,
@@ -46,7 +50,7 @@ export function useCheckout() {
       return data as CheckoutResponse;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
   });
 }

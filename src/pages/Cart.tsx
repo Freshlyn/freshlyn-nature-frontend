@@ -106,9 +106,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [addressModalOpen, setAddressModalOpen] = useState(false);
-  const [selectedAddressId, setSelectedAddressId] = useState<
-    string | undefined
-  >(undefined);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState("7:00 AM");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay");
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -125,8 +123,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
   );
 
   const selectedAddress = useMemo((): UserAddress | undefined => {
-    if (selectedAddressId)
-      return addresses.find((a) => a.id === selectedAddressId);
+    if (selectedAddressId) return addresses.find((a) => a.id === selectedAddressId);
     return addresses.find((a) => a.is_default) || addresses[0];
   }, [addresses, selectedAddressId]);
 
@@ -160,8 +157,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
     if (addressNotServiceable) {
       toast({
         title: "We don't deliver here yet",
-        description:
-          "FreshLyn covers parts of Kolkata. Choose another address to continue.",
+        description: "FreshLyn covers parts of Kolkata. Choose another address to continue.",
         variant: "destructive",
       });
       setAddressModalOpen(true);
@@ -199,8 +195,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
         // Cart is deliberately NOT cleared: the customer can retry immediately.
         toast({
           title: "Payment cancelled",
-          description:
-            "Your cart is saved. You can try again whenever you like.",
+          description: "Your cart is saved. You can try again whenever you like.",
         });
         return;
       }
@@ -234,13 +229,10 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
       <main className="container mx-auto px-3 md:px-4 py-4 md:py-8 max-w-4xl">
         <div className="flex items-center justify-between mb-5 md:mb-8 gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold">
-              Your Cart
-            </h1>
+            <h1 className="text-2xl md:text-3xl font-display font-bold">Your Cart</h1>
             {cartItems.length > 0 && (
               <p className="text-sm text-muted-foreground mt-1">
-                {cartItems.length} item{cartItems.length > 1 ? "s" : ""} in your
-                cart
+                {cartItems.length} item{cartItems.length > 1 ? "s" : ""} in your cart
               </p>
             )}
           </div>
@@ -263,10 +255,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
             <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mx-auto mb-6">
               <ShoppingBag size={40} className="text-primary" />
             </div>
-            <h2
-              className="text-2xl font-bold text-foreground"
-              data-testid="text-empty-cart"
-            >
+            <h2 className="text-2xl font-bold text-foreground" data-testid="text-empty-cart">
               Your cart is empty
             </h2>
             <p className="text-muted-foreground mt-2 mb-8 max-w-xs mx-auto">
@@ -327,26 +316,19 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                             <Repeat size={10} />
                             Subscription
                           </Badge>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] gap-1 border-border/60"
-                          >
+                          <Badge variant="outline" className="text-[10px] gap-1 border-border/60">
                             <Calendar size={10} />
                             {item.subscription_duration} deliveries
                           </Badge>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] border-border/60"
-                          >
+                          <Badge variant="outline" className="text-[10px] border-border/60">
                             {item.subscription_frequency &&
                               getFrequencyLabel(item.subscription_frequency)}
                           </Badge>
-                          {item.discount_percent &&
-                            item.discount_percent > 0 && (
-                              <Badge className="text-[10px] bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0">
-                                {item.discount_percent}% OFF
-                              </Badge>
-                            )}
+                          {item.discount_percent && item.discount_percent > 0 && (
+                            <Badge className="text-[10px] bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0">
+                              {item.discount_percent}% OFF
+                            </Badge>
+                          )}
                         </div>
                       )}
 
@@ -369,10 +351,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                               data-testid={`button-decrease-${item.id}`}
                             >
                               {item.quantity <= 1 ? (
-                                <Trash2
-                                  size={12}
-                                  className="text-destructive"
-                                />
+                                <Trash2 size={12} className="text-destructive" />
                               ) : (
                                 <Minus size={12} />
                               )}
@@ -384,9 +363,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() =>
-                                updateQuantity(item.id, item.quantity + 1)
-                              }
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
                               className="w-8 h-8 flex items-center justify-center rounded-md bg-white shadow-sm text-foreground hover:bg-muted transition-colors active:scale-95"
                               data-testid={`button-increase-${item.id}`}
                             >
@@ -445,9 +422,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                         {getLabelIcon(selectedAddress.label)}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-xs">
-                          {selectedAddress.label}
-                        </p>
+                        <p className="font-semibold text-xs">{selectedAddress.label}</p>
                         <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
                           {[
                             selectedAddress.flat_house,
@@ -494,9 +469,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                             ? "bg-primary text-primary-foreground shadow-sm"
                             : "bg-muted/50 text-foreground hover:bg-muted"
                         }`}
-                        data-testid={`button-time-${time
-                          .replace(/[: ]/g, "-")
-                          .toLowerCase()}`}
+                        data-testid={`button-time-${time.replace(/[: ]/g, "-").toLowerCase()}`}
                       >
                         {time}
                       </button>
@@ -506,10 +479,8 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                     <Clock size={12} className="text-primary flex-shrink-0" />
                     <p className="text-[11px] text-muted-foreground">
                       Selected:{" "}
-                      <span className="font-semibold text-foreground">
-                        {selectedTime}
-                      </span>{" "}
-                      every day
+                      <span className="font-semibold text-foreground">{selectedTime}</span> every
+                      day
                     </p>
                   </div>
                 </div>
@@ -538,9 +509,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                           FREE
                         </Badge>
                       ) : (
-                        <span className="font-medium">
-                          ₹{deliveryFee.toFixed(2)}
-                        </span>
+                        <span className="font-medium">₹{deliveryFee.toFixed(2)}</span>
                       )}
                     </span>
                   </div>
@@ -557,10 +526,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                         <div
                           className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all"
                           style={{
-                            width: `${Math.min(
-                              (total / FREE_DELIVERY_THRESHOLD) * 100,
-                              100,
-                            )}%`,
+                            width: `${Math.min((total / FREE_DELIVERY_THRESHOLD) * 100, 100)}%`,
                           }}
                         />
                       </div>
@@ -578,11 +544,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                   </div>
                 </div>
 
-                <div
-                  className="flex flex-col gap-2 mb-3"
-                  role="group"
-                  aria-label="Payment method"
-                >
+                <div className="flex flex-col gap-2 mb-3" role="group" aria-label="Payment method">
                   {PAYMENT_METHODS.map((method) => {
                     const isSelected = paymentMethod === method.id;
                     const Icon = method.icon;
@@ -614,9 +576,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                         <span className="flex flex-col gap-px">
                           <span
                             className={`text-sm font-semibold ${
-                              isSelected
-                                ? "text-primary-deep"
-                                : "text-foreground"
+                              isSelected ? "text-primary-deep" : "text-foreground"
                             }`}
                           >
                             {method.title}
@@ -628,9 +588,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                         <Icon
                           size={17}
                           className={`ml-auto ${
-                            isSelected
-                              ? "text-primary-deep"
-                              : "text-muted-foreground"
+                            isSelected ? "text-primary-deep" : "text-muted-foreground"
                           }`}
                         />
                       </button>
@@ -665,10 +623,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                 <Button
                   onClick={handleCheckout}
                   disabled={
-                    isPending ||
-                    isCheckingOut ||
-                    serviceabilityLoading ||
-                    addressNotServiceable
+                    isPending || isCheckingOut || serviceabilityLoading || addressNotServiceable
                   }
                   className="w-full h-14 text-base rounded-xl font-bold bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/25 hover:shadow-xl transition-all active:scale-[0.98]"
                   data-testid="button-checkout"
@@ -679,8 +634,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                     </>
                   ) : paymentMethod === "razorpay" ? (
                     <>
-                      Pay ₹{grandTotal.toFixed(2)}{" "}
-                      <ArrowRight className="ml-2" size={18} />
+                      Pay ₹{grandTotal.toFixed(2)} <ArrowRight className="ml-2" size={18} />
                     </>
                   ) : (
                     <>

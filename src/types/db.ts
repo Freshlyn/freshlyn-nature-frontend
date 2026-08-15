@@ -1,28 +1,18 @@
 export type OrderStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'preparing'
-  | 'out_for_delivery'
-  | 'delivered'
-  | 'failed'
-  | 'cancelled';
+  "pending" | "confirmed" | "preparing" | "out_for_delivery" | "delivered" | "failed" | "cancelled";
 
-export type DeliveryType = 'one_time' | 'subscription';
+export type DeliveryType = "one_time" | "subscription";
 
-export type SubscriptionFrequency = 'daily' | 'alternate';
+export type SubscriptionFrequency = "daily" | "alternate";
 
-export type PaymentStatus = 'pending' | 'failed' | 'paid' | 'collected' | 'refunded';
+export type PaymentStatus = "pending" | "failed" | "paid" | "collected" | "refunded";
 
-export type PaymentMethod = 'cod' | 'razorpay';
+export type PaymentMethod = "cod" | "razorpay";
 
 export type SubscriptionDeliveryStatus =
-  | 'scheduled'
-  | 'delivered'
-  | 'skipped'
-  | 'failed'
-  | 'cancelled';
+  "scheduled" | "delivered" | "skipped" | "failed" | "cancelled";
 
-export type AccountDeletionStatus = 'pending' | 'cancelled' | 'flagged' | 'completed';
+export type AccountDeletionStatus = "pending" | "cancelled" | "flagged" | "completed";
 
 export interface DbUserAddress {
   id: string;

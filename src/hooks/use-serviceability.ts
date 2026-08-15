@@ -1,7 +1,7 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { checkServiceability, type ServiceabilityResult } from '@/lib/serviceability';
-import type { UserAddress } from '@/types/user';
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { checkServiceability, type ServiceabilityResult } from "@/lib/serviceability";
+import type { UserAddress } from "@/types/user";
 
 /**
  * The advisory verdict for a saved address.
@@ -13,7 +13,13 @@ import type { UserAddress } from '@/types/user';
  */
 export function useAddressServiceability(address: UserAddress | undefined) {
   return useQuery({
-    queryKey: ['serviceability', address?.id, address?.latitude, address?.longitude, address?.pincode],
+    queryKey: [
+      "serviceability",
+      address?.id,
+      address?.latitude,
+      address?.longitude,
+      address?.pincode,
+    ],
     enabled: Boolean(address),
     queryFn: async (): Promise<ServiceabilityResult> =>
       checkServiceability({
@@ -38,7 +44,7 @@ export function useWaitlistSignup() {
       latitude?: number | null;
       longitude?: number | null;
     }): Promise<void> => {
-      const { error } = await supabase.from('waitlist_signups').insert({
+      const { error } = await supabase.from("waitlist_signups").insert({
         phone: input.phone,
         pincode: input.pincode ?? null,
         latitude: input.latitude ?? null,

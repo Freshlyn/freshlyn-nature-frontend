@@ -1,26 +1,30 @@
-import { useEffect, useState } from 'react';
-import { Header } from '@/components/Header';
-import { ProductCard } from '@/components/ProductCard';
-import { ProductCardSkeleton } from '@/components/ProductCardSkeleton';
-import { useProductsWithMeta } from '@/hooks/use-products';
-import { useStaticCart } from '@/hooks/use-static-cart';
-import { useDebounce } from '@/hooks/use-debounce';
-import { ProductDetailModal } from '@/components/ProductDetailModal';
-import { LocationModal } from '@/components/LocationModal';
-import { readLocationPreference, writeLocationPreference, type LocationPreference } from '@/lib/location-preference';
-import type { Product, SubscriptionFrequency } from '@/hooks/use-products';
-import { Truck, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useEffect, useState } from "react";
+import { Header } from "@/components/Header";
+import { ProductCard } from "@/components/ProductCard";
+import { ProductCardSkeleton } from "@/components/ProductCardSkeleton";
+import { useProductsWithMeta } from "@/hooks/use-products";
+import { useStaticCart } from "@/hooks/use-static-cart";
+import { useDebounce } from "@/hooks/use-debounce";
+import { ProductDetailModal } from "@/components/ProductDetailModal";
+import { LocationModal } from "@/components/LocationModal";
+import {
+  readLocationPreference,
+  writeLocationPreference,
+  type LocationPreference,
+} from "@/lib/location-preference";
+import type { Product, SubscriptionFrequency } from "@/hooks/use-products";
+import { Truck, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const CATEGORIES = [
-  { id: 'all', name: 'All', icon: '🛒' },
-  { id: 'dairy', name: 'Dairy', icon: '🥛' },
-  { id: 'bakery', name: 'Bakery', icon: '🍞' },
-  { id: 'produce', name: 'Vegetables', icon: '🥬' },
-  { id: 'pantry', name: 'Pantry', icon: '🍚' },
-  { id: 'snacks', name: 'Snacks', icon: '🍪' },
-  { id: 'beverages', name: 'Beverages', icon: '🧃' },
+  { id: "all", name: "All", icon: "🛒" },
+  { id: "dairy", name: "Dairy", icon: "🥛" },
+  { id: "bakery", name: "Bakery", icon: "🍞" },
+  { id: "produce", name: "Vegetables", icon: "🥬" },
+  { id: "pantry", name: "Pantry", icon: "🍚" },
+  { id: "snacks", name: "Snacks", icon: "🍪" },
+  { id: "beverages", name: "Beverages", icon: "🧃" },
 ];
 
 interface HomeProps {
@@ -29,12 +33,12 @@ interface HomeProps {
 }
 
 export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
-  const [category, setCategory] = useState<string>('all');
-  const [search, setSearch] = useState<string>('');
+  const [category, setCategory] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
   const debouncedSearch = useDebounce(search, 300);
   const [preference, setPreference] = useState<LocationPreference | null>(null);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
-  const location = preference?.label ?? 'Set Location';
+  const location = preference?.label ?? "Set Location";
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
 
@@ -67,7 +71,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
   }, []);
 
   const { data: products, isLoading: loadingProducts } = useProductsWithMeta({
-    category: category === 'all' ? undefined : category,
+    category: category === "all" ? undefined : category,
     search: debouncedSearch || undefined,
   });
 
@@ -82,7 +86,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
     productId: string;
     variantId: string;
     quantity: number;
-    deliveryType: 'one_time' | 'subscription';
+    deliveryType: "one_time" | "subscription";
     subscriptionDuration?: number;
     subscriptionFrequency?: SubscriptionFrequency;
     subscriptionStartDate?: string;
@@ -140,7 +144,8 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
               <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
                 <div className="flex-1 text-center md:text-left space-y-3 md:space-y-4">
                   <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-bold leading-tight text-white">
-                    Fresh Groceries,<br />
+                    Fresh Groceries,
+                    <br />
                     <span className="text-yellow-300">Delivered Fast</span>
                   </h1>
                   <p className="text-sm md:text-base text-white/90 max-w-md">
@@ -173,7 +178,10 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
         )}
 
         {loadingProducts ? (
-          <div className="mb-5 md:mb-8 overflow-x-auto -mx-3 px-3 md:-mx-4 md:px-4 no-scrollbar" data-testid="categories-skeleton">
+          <div
+            className="mb-5 md:mb-8 overflow-x-auto -mx-3 px-3 md:-mx-4 md:px-4 no-scrollbar"
+            data-testid="categories-skeleton"
+          >
             <div className="flex gap-2 min-w-max pb-1">
               {CATEGORIES.map((cat) => (
                 <Skeleton key={cat.id} className="h-9 md:h-10 w-20 md:w-24 rounded-xl" />
@@ -190,8 +198,8 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
                   onClick={() => setCategory(cat.id)}
                   className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all duration-300 border whitespace-nowrap ${
                     category === cat.id
-                      ? 'bg-primary text-white border-primary shadow-lg shadow-primary/30 scale-105'
-                      : 'bg-white text-muted-foreground border-border hover:border-primary/30 hover:text-foreground hover:shadow-md active:scale-95'
+                      ? "bg-primary text-white border-primary shadow-lg shadow-primary/30 scale-105"
+                      : "bg-white text-muted-foreground border-border hover:border-primary/30 hover:text-foreground hover:shadow-md active:scale-95"
                   }`}
                 >
                   <span className="text-base">{cat.icon}</span>
@@ -207,7 +215,10 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
             <div className="flex items-center justify-between mb-4">
               <Skeleton className="h-6 w-32" />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5" data-testid="product-grid-skeleton">
+            <div
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5"
+              data-testid="product-grid-skeleton"
+            >
               {Array.from({ length: 10 }).map((_, i) => (
                 <ProductCardSkeleton key={i} />
               ))}
@@ -216,11 +227,18 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
         ) : products?.length === 0 ? (
           <div className="text-center py-16 md:py-20 bg-gradient-to-b from-muted/30 to-muted/10 rounded-3xl border border-dashed border-muted-foreground/20">
             <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-bold text-muted-foreground" data-testid="text-no-products">No products found</h3>
-            <p className="text-sm text-muted-foreground/70 mt-2 max-w-xs mx-auto">Try adjusting your search or category filters</p>
+            <h3 className="text-xl font-bold text-muted-foreground" data-testid="text-no-products">
+              No products found
+            </h3>
+            <p className="text-sm text-muted-foreground/70 mt-2 max-w-xs mx-auto">
+              Try adjusting your search or category filters
+            </p>
             <Button
               variant="outline"
-              onClick={() => { setCategory('all'); setSearch(''); }}
+              onClick={() => {
+                setCategory("all");
+                setSearch("");
+              }}
               className="mt-6 rounded-xl border-primary/30 text-primary hover:bg-primary hover:text-white"
               data-testid="button-clear-filters"
             >
@@ -231,10 +249,15 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
           <>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg md:text-xl font-display font-bold text-foreground">
-                {category === 'all' ? 'All Products' : CATEGORIES.find((c) => c.id === category)?.name}
+                {category === "all"
+                  ? "All Products"
+                  : CATEGORIES.find((c) => c.id === category)?.name}
               </h2>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5" data-testid="product-grid">
+            <div
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5"
+              data-testid="product-grid"
+            >
               {products?.map((product) => (
                 <ProductCard
                   key={product.id}

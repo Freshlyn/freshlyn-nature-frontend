@@ -1,5 +1,5 @@
-import { Preferences } from '@capacitor/preferences';
-import { isNative } from '@/lib/platform';
+import { Preferences } from "@capacitor/preferences";
+import { isNative } from "@/lib/platform";
 
 /**
  * Session storage for supabase-js.

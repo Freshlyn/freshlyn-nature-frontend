@@ -1,4 +1,4 @@
-import { isNative } from '@/lib/platform';
+import { isNative } from "@/lib/platform";
 
 /**
  * Open an http(s) URL outside the app.
@@ -22,5 +22,5 @@ export function openExternalUrl(url: string): void {
     window.location.href = url;
     return;
   }
-  window.open(url, '_blank', 'noopener,noreferrer');
+  window.open(url, "_blank", "noopener,noreferrer");
 }

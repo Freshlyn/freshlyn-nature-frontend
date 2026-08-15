@@ -1,5 +1,5 @@
-import type { Coordinates } from '@/lib/platform/geolocation';
-import { supabase } from '@/lib/supabase';
+import type { Coordinates } from "@/lib/platform/geolocation";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Readings worse than this many metres are treated as unusable.
@@ -24,7 +24,7 @@ export function isUsableFix(coords: Coordinates): boolean {
   return Number.isFinite(coords.accuracy) && coords.accuracy <= ACCURACY_THRESHOLD_METRES;
 }
 
-export type MatchedBy = 'gps' | 'pincode' | 'none';
+export type MatchedBy = "gps" | "pincode" | "none";
 
 export interface ServiceabilityResult {
   serviceable: boolean;
@@ -51,7 +51,7 @@ export async function checkServiceability(input: {
   longitude?: number | null;
   pincode?: string | null;
 }): Promise<ServiceabilityResult> {
-  const { data, error } = await supabase.rpc('check_serviceability', {
+  const { data, error } = await supabase.rpc("check_serviceability", {
     p_lat: input.latitude ?? null,
     p_lng: input.longitude ?? null,
     p_pincode: input.pincode ?? null,
@@ -60,7 +60,7 @@ export async function checkServiceability(input: {
   // Fail closed on every uncertain path: an errored or empty response is not
   // an approval.
   if (error || !Array.isArray(data) || data.length === 0) {
-    return { serviceable: false, zoneId: null, matchedBy: 'none' };
+    return { serviceable: false, zoneId: null, matchedBy: "none" };
   }
 
   const row = data[0] as ServiceabilityRow;

@@ -1,8 +1,8 @@
-import { useQueryClient } from '@tanstack/react-query';
-import type { Product } from '@/hooks/use-products';
-import { productDetailQuery } from '@/hooks/use-products';
-import { Button } from '@/components/ui/button';
-import { Repeat, Plus } from 'lucide-react';
+import { useQueryClient } from "@tanstack/react-query";
+import type { Product } from "@/hooks/use-products";
+import { productDetailQuery } from "@/hooks/use-products";
+import { Button } from "@/components/ui/button";
+import { Repeat, Plus } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
@@ -12,9 +12,15 @@ interface ProductCardProps {
   onAdd: () => void;
 }
 
-export function ProductCard({ product, startingPrice, hasSubscription, quantity = 0, onAdd }: ProductCardProps) {
+export function ProductCard({
+  product,
+  startingPrice,
+  hasSubscription,
+  quantity = 0,
+  onAdd,
+}: ProductCardProps) {
   const queryClient = useQueryClient();
-  const imageSrc = product.image_url?.startsWith('http')
+  const imageSrc = product.image_url?.startsWith("http")
     ? product.image_url
     : `https://placehold.co/400x400/f3f4f6/a3a3a3?text=${encodeURIComponent(product.name)}`;
 
@@ -62,16 +68,23 @@ export function ProductCard({ product, startingPrice, hasSubscription, quantity 
 
       <div className="p-3 flex flex-col flex-1">
         <div className="flex-1">
-          <h3 className="font-bold text-sm text-foreground line-clamp-2 leading-snug min-h-[2.5rem] group-hover:text-primary transition-colors" title={product.name}>
+          <h3
+            className="font-bold text-sm text-foreground line-clamp-2 leading-snug min-h-[2.5rem] group-hover:text-primary transition-colors"
+            title={product.name}
+          >
             {product.name}
           </h3>
-          <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">{product.description}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">
+            {product.description}
+          </p>
         </div>
 
         <div className="mt-3 pt-3 border-t border-border/50 flex items-end justify-between gap-2">
           <div className="flex flex-col">
             <span className="text-[10px] text-muted-foreground/70">From</span>
-            <span className="font-display font-bold text-lg text-foreground leading-none">₹{startingPrice.toFixed(2)}</span>
+            <span className="font-display font-bold text-lg text-foreground leading-none">
+              ₹{startingPrice.toFixed(2)}
+            </span>
           </div>
 
           <Button
@@ -82,12 +95,19 @@ export function ProductCard({ product, startingPrice, hasSubscription, quantity 
             }}
             className={`h-9 px-3 rounded-xl font-bold text-xs transition-all shadow-md ${
               quantity > 0
-                ? 'bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/30'
-                : 'bg-primary text-white hover:bg-primary/90 shadow-primary/30'
+                ? "bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/30"
+                : "bg-primary text-white hover:bg-primary/90 shadow-primary/30"
             }`}
             data-testid={`button-add-${product.id}`}
           >
-            {quantity > 0 ? <>Update</> : <><Plus size={14} className="mr-1" />Add</>}
+            {quantity > 0 ? (
+              <>Update</>
+            ) : (
+              <>
+                <Plus size={14} className="mr-1" />
+                Add
+              </>
+            )}
           </Button>
         </div>
       </div>

@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import { platformStorage } from '@/lib/platform/storage';
+import { createClient } from "@supabase/supabase-js";
+import { platformStorage } from "@/lib/platform/storage";
 
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -28,7 +28,7 @@ export function authStorageKey(): string | null {
     // <ref>.supabase.co). A local stack runs on an IP/bare host, where
     // supabase-js uses the whole hostname — so only strip the subdomain when
     // there actually is one to strip.
-    const ref = hostname.endsWith('.supabase.co') ? hostname.split('.')[0] : hostname;
+    const ref = hostname.endsWith(".supabase.co") ? hostname.split(".")[0] : hostname;
     return ref ? `sb-${ref}-auth-token` : null;
   } catch {
     return null;

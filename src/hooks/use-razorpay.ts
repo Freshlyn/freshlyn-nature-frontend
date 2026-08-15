@@ -1,8 +1,5 @@
-import { useCallback } from 'react';
-import {
-  openRazorpayCheckout,
-  type RazorpayCheckoutParams,
-} from '@/lib/platform/payments';
+import { useCallback } from "react";
+import { openRazorpayCheckout, type RazorpayCheckoutParams } from "@/lib/platform/payments";
 
 export type { RazorpayCheckoutParams };
 
