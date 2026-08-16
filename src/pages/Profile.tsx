@@ -1,23 +1,15 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { formatPhoneForDisplay } from "@/lib/phone";
-import {
-  useAddresses,
-  useAddAddress,
-  useSetDefaultAddress,
-  useDeleteAddress,
-} from "@/hooks/use-addresses";
+import { useAddresses } from "@/hooks/use-addresses";
 import { useLocation } from "wouter";
 import { Header } from "@/components/Header";
 import { ContactUsModal } from "@/components/ContactUsModal";
+import { AddressModal } from "@/components/AddressModal";
 import { openExternalUrl } from "@/lib/platform/external-link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Phone,
   Mail,
@@ -29,12 +21,6 @@ import {
   Info,
   Star,
   Bell,
-  Plus,
-  Check,
-  Trash2,
-  Home,
-  Briefcase,
-  Tag,
   ShieldCheck,
   ExternalLink,
 } from "lucide-react";
@@ -46,71 +32,23 @@ interface ProfileProps {
   onSidebarToggle?: () => void;
 }
 
-const LABEL_OPTIONS = ["Home", "Work", "Other"];
-
-function getLabelIcon(label: string) {
-  switch (label.toLowerCase()) {
-    case "home":
-      return <Home size={14} />;
-    case "work":
-      return <Briefcase size={14} />;
-    default:
-      return <Tag size={14} />;
-  }
-}
-
 export default function Profile({ sidebarOpen, onSidebarToggle }: ProfileProps) {
   const { user, logout } = useAuth();
   const { data: addresses = [] } = useAddresses();
-  const { mutateAsync: addAddress } = useAddAddress();
-  const { mutateAsync: setDefaultAddress } = useSetDefaultAddress();
-  const { mutateAsync: deleteAddress } = useDeleteAddress();
   const [, setLocation] = useLocation();
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [infoDialog, setInfoDialog] = useState<{
     title: string;
     content: string;
   } | null>(null);
-  const [newLabel, setNewLabel] = useState("Home");
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
-  const [newAddress, setNewAddress] = useState({
-    flat_house: "",
-    building: "",
-    street: "",
-    landmark: "",
-    city: "",
-    state: "",
-    pincode: "",
-  });
 
   if (!user) return null;
 
   const handleLogout = () => {
     logout();
     setLocation("/");
-  };
-
-  const handleAddAddress = async () => {
-    if (!newAddress.flat_house || !newAddress.street || !newAddress.city || !newAddress.pincode)
-      return;
-    await addAddress({
-      label: newLabel,
-      is_default: addresses.length === 0,
-      ...newAddress,
-    });
-    setShowAddForm(false);
-    setNewAddress({
-      flat_house: "",
-      building: "",
-      street: "",
-      landmark: "",
-      city: "",
-      state: "",
-      pincode: "",
-    });
-    setNewLabel("Home");
   };
 
   const userInitials = user.name
@@ -308,302 +246,12 @@ export default function Profile({ sidebarOpen, onSidebarToggle }: ProfileProps) 
         <p className="text-center text-xs text-muted-foreground mt-4">FreshlynNature v1.0.0</p>
       </main>
 
-      <Dialog
+      <AddressModal
         open={addressDialogOpen}
-        onOpenChange={(o) => {
-          if (!o) {
-            setAddressDialogOpen(false);
-            setShowAddForm(false);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MapPin size={20} className="text-primary" />
-              Saved Addresses
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 mt-2">
-            {addresses.length === 0 && !showAddForm && (
-              <div className="text-center py-8">
-                <div className="w-14 h-14 mx-auto rounded-full bg-muted flex items-center justify-center mb-3">
-                  <MapPin size={24} className="text-muted-foreground" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">No saved addresses</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Add your first delivery address
-                </p>
-              </div>
-            )}
-
-            {addresses.map((addr) => (
-              <Card
-                key={addr.id}
-                className={`p-3 transition-all ${addr.is_default ? "border-primary/40 ring-1 ring-primary/20" : ""}`}
-                data-testid={`address-card-${addr.id}`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${addr.is_default ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-                  >
-                    {getLabelIcon(addr.label)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm">{addr.label}</span>
-                      {addr.is_default && (
-                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                          Default
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                      {[
-                        addr.flat_house,
-                        addr.building,
-                        addr.street,
-                        addr.landmark,
-                        addr.city,
-                        `${addr.state} ${addr.pincode}`,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {!addr.is_default && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground"
-                        onClick={() => {
-                          void setDefaultAddress(addr.id);
-                        }}
-                        data-testid={`button-set-default-${addr.id}`}
-                      >
-                        <Check size={14} />
-                      </Button>
-                    )}
-                    {addresses.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground"
-                        onClick={() => {
-                          void deleteAddress(addr.id);
-                        }}
-                        data-testid={`button-delete-address-${addr.id}`}
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))}
-
-            {!showAddForm ? (
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={() => setShowAddForm(true)}
-                data-testid="button-add-new-address"
-              >
-                <Plus size={16} />
-                Add New Address
-              </Button>
-            ) : (
-              <Card className="p-4">
-                <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <Plus size={16} className="text-primary" />
-                  New Address
-                </h4>
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-xs mb-1.5 block">Address Label</Label>
-                    <div className="flex gap-2">
-                      {LABEL_OPTIONS.map((label) => (
-                        <Button
-                          key={label}
-                          type="button"
-                          variant={newLabel === label ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setNewLabel(label)}
-                          className="gap-1.5"
-                          data-testid={`button-label-${label.toLowerCase()}`}
-                        >
-                          {getLabelIcon(label)}
-                          {label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-new-flat" className="text-xs">
-                        Flat / House No. *
-                      </Label>
-                      <Input
-                        id="profile-new-flat"
-                        placeholder="e.g., Flat 4B"
-                        value={newAddress.flat_house}
-                        onChange={(e) =>
-                          setNewAddress((p) => ({
-                            ...p,
-                            flat_house: e.target.value,
-                          }))
-                        }
-                        data-testid="input-profile-new-flat"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-new-building" className="text-xs">
-                        Building Name
-                      </Label>
-                      <Input
-                        id="profile-new-building"
-                        placeholder="e.g., Sunrise Apts"
-                        value={newAddress.building}
-                        onChange={(e) =>
-                          setNewAddress((p) => ({
-                            ...p,
-                            building: e.target.value,
-                          }))
-                        }
-                        data-testid="input-profile-new-building"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="profile-new-street" className="text-xs">
-                      Street / Area *
-                    </Label>
-                    <Textarea
-                      id="profile-new-street"
-                      placeholder="e.g., 123 Main Street"
-                      value={newAddress.street}
-                      onChange={(e) => setNewAddress((p) => ({ ...p, street: e.target.value }))}
-                      className="min-h-[50px] resize-none"
-                      data-testid="input-profile-new-street"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="profile-new-landmark" className="text-xs">
-                      Landmark
-                    </Label>
-                    <Input
-                      id="profile-new-landmark"
-                      placeholder="e.g., Near Central Park"
-                      value={newAddress.landmark}
-                      onChange={(e) =>
-                        setNewAddress((p) => ({
-                          ...p,
-                          landmark: e.target.value,
-                        }))
-                      }
-                      data-testid="input-profile-new-landmark"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-new-city" className="text-xs">
-                        City *
-                      </Label>
-                      <Input
-                        id="profile-new-city"
-                        placeholder="Mumbai"
-                        value={newAddress.city}
-                        onChange={(e) => setNewAddress((p) => ({ ...p, city: e.target.value }))}
-                        data-testid="input-profile-new-city"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-new-state" className="text-xs">
-                        State *
-                      </Label>
-                      <Input
-                        id="profile-new-state"
-                        placeholder="Maharashtra"
-                        value={newAddress.state}
-                        onChange={(e) =>
-                          setNewAddress((p) => ({
-                            ...p,
-                            state: e.target.value,
-                          }))
-                        }
-                        data-testid="input-profile-new-state"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="profile-new-pincode" className="text-xs">
-                        Pincode *
-                      </Label>
-                      <Input
-                        id="profile-new-pincode"
-                        placeholder="400001"
-                        value={newAddress.pincode}
-                        onChange={(e) =>
-                          setNewAddress((p) => ({
-                            ...p,
-                            pincode: e.target.value.replace(/\D/g, "").slice(0, 6),
-                          }))
-                        }
-                        maxLength={6}
-                        data-testid="input-profile-new-pincode"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => {
-                        setShowAddForm(false);
-                        setNewAddress({
-                          flat_house: "",
-                          building: "",
-                          street: "",
-                          landmark: "",
-                          city: "",
-                          state: "",
-                          pincode: "",
-                        });
-                      }}
-                      data-testid="button-cancel-add-address"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="flex-1"
-                      disabled={
-                        !newAddress.flat_house ||
-                        !newAddress.street ||
-                        !newAddress.city ||
-                        !newAddress.pincode
-                      }
-                      onClick={handleAddAddress}
-                      data-testid="button-save-address"
-                    >
-                      Save Address
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+        onClose={() => setAddressDialogOpen(false)}
+        mode="manage"
+        title="Saved Addresses"
+      />
 
       <Dialog
         open={!!infoDialog}
@@ -611,7 +259,7 @@ export default function Profile({ sidebarOpen, onSidebarToggle }: ProfileProps) 
           if (!o) setInfoDialog(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[calc(100%-2rem)] rounded-3xl sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{infoDialog?.title}</DialogTitle>
           </DialogHeader>

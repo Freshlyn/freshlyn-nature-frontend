@@ -656,6 +656,8 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
       <AddressModal
         open={addressModalOpen}
         onClose={() => setAddressModalOpen(false)}
+        mode="select"
+        title="Delivery Address"
         selectedAddressId={selectedAddress?.id}
         onSelectAddress={(addr) => {
           setSelectedAddressId(addr.id);
