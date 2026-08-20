@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useOrders } from "@/hooks/use-orders";
+import { useInfiniteOrders } from "@/hooks/use-orders";
+import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
+import { ORDERS_PAGE_SIZE } from "@/lib/order-query";
 import { supabase } from "@/lib/supabase";
 import { Header } from "@/components/Header";
 import { ShoppingBag } from "lucide-react";
@@ -12,7 +14,6 @@ import OrderFilters, {
   DEFAULT_ORDER_FILTERS,
   hasActiveOrderFilters,
 } from "@/components/orders/OrderFilters";
-import { filterOrders } from "@/lib/order-filters";
 import { OrderCardTracker as OrderCard } from "@/components/orders/OrderCard";
 
 interface OrdersProps {
@@ -21,12 +22,22 @@ interface OrdersProps {
 }
 
 export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
-  const { data: orders = [], isLoading } = useOrders();
   const [filters, setFilters] = useState(DEFAULT_ORDER_FILTERS);
   const queryClient = useQueryClient();
 
-  const filteredOrders = useMemo(() => filterOrders(orders, filters), [orders, filters]);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage, isError, refetch } =
+    useInfiniteOrders(filters);
+
+  const orders = useMemo(() => data?.pages.flatMap((page) => page.orders) ?? [], [data]);
   const filtersActive = hasActiveOrderFilters(filters);
+
+  // `enabled` gates the observer rather than the callback: while a page is in
+  // flight the sentinel stays on screen, and an attached observer would keep
+  // firing for every scroll tick.
+  const sentinelRef = useIntersectionObserver<HTMLDivElement>({
+    onIntersect: () => fetchNextPage(),
+    enabled: hasNextPage && !isFetchingNextPage && !isError,
+  });
 
   // A payment that is authorized and later reversed is corrected by the webhook
   // seconds after the customer already saw "Order placed!". Without this, a
@@ -39,6 +50,7 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
     const channel = supabase
       .channel("orders-changes")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, () => {
+        // Prefix match: invalidates every filter combination's cached pages.
         queryClient.invalidateQueries({ queryKey: ["orders"] });
       })
       .subscribe();
@@ -61,7 +73,9 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
           Your Orders
         </h1>
 
-        {!isLoading && orders.length > 0 && <OrderFilters value={filters} onChange={setFilters} />}
+        {!isLoading && (orders.length > 0 || filtersActive) && (
+          <OrderFilters value={filters} onChange={setFilters} />
+        )}
 
         {isLoading ? (
           <div className="flex flex-col gap-5" data-testid="orders-skeleton">
@@ -94,7 +108,7 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
               </Card>
             ))}
           </div>
-        ) : orders.length === 0 ? (
+        ) : orders.length === 0 && !filtersActive ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-border shadow-sm">
             <ShoppingBag size={48} className="mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-bold text-foreground" data-testid="text-no-orders">
@@ -113,7 +127,7 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
               </Button>
             </Link>
           </div>
-        ) : filteredOrders.length === 0 ? (
+        ) : orders.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-border shadow-sm">
             <div className="text-5xl mb-4">🔍</div>
             <h2 className="text-lg font-bold text-foreground" data-testid="text-no-filtered-orders">
@@ -133,9 +147,68 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
           </div>
         ) : (
           <div className="flex flex-col gap-5">
-            {filteredOrders.map((order) => (
+            {orders.map((order) => (
               <OrderCard key={order.id} order={order} />
             ))}
+
+            {isFetchingNextPage &&
+              Array.from({ length: 2 }).map((_, i) => (
+                <Card
+                  key={`next-${i}`}
+                  className="overflow-hidden rounded-3xl p-0 border-border/40"
+                  data-testid="orders-next-page-skeleton"
+                >
+                  <div className="px-4 py-2 flex items-center justify-between bg-muted/50">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <div className="px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 space-y-2">
+                        <Skeleton className="h-5 w-28" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                      <div className="flex -space-x-2.5 flex-shrink-0">
+                        <Skeleton className="w-10 h-10 rounded-xl border-2 border-white" />
+                        <Skeleton className="w-10 h-10 rounded-xl border-2 border-white" />
+                        <Skeleton className="w-10 h-10 rounded-xl border-2 border-white" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
+                      <Skeleton className="h-4 w-12" />
+                      <Skeleton className="h-6 w-20" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+
+            {/* A failed page must not silently end the list -- the user needs a
+                way back without losing the pages already scrolled. */}
+            {isError && hasNextPage && (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-3">Could not load more orders.</p>
+                <Button
+                  variant="outline"
+                  onClick={() => refetch()}
+                  className="rounded-xl"
+                  data-testid="button-retry-orders"
+                >
+                  Try again
+                </Button>
+              </div>
+            )}
+
+            {/* Sits below the list; scrolling it into view pulls the next page. */}
+            <div ref={sentinelRef} aria-hidden="true" data-testid="orders-scroll-sentinel" />
+
+            {/* {!hasNextPage && orders.length > ORDERS_PAGE_SIZE && (
+              <p
+                className="text-center text-sm text-muted-foreground py-4"
+                data-testid="text-orders-end"
+              >
+                You have reached the end of your orders.
+              </p>
+            )} */}
           </div>
         )}
       </main>

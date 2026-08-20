@@ -1,5 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import type { OrderFilterState } from "@/components/orders/orderFilterTypes";
+import {
+  ORDERS_PAGE_SIZE,
+  dateRangeForFilter,
+  keysetFilter,
+  nextCursor,
+  statusesForFilter,
+  type OrderCursor,
+} from "@/lib/order-query";
 
 export type OrderStatus =
   "pending" | "confirmed" | "preparing" | "out_for_delivery" | "delivered" | "failed" | "cancelled";
@@ -103,6 +112,111 @@ export function useOrder(orderId: string) {
         ...order,
         items: (items ?? []) as unknown as OrderItemWithDetails[],
       } as OrderWithItems;
+    },
+  });
+}
+
+/**
+ * Attach each order's items. Always fetched unfiltered, even when a
+ * delivery_type filter is active: the filter decides WHICH ORDERS match, but a
+ * matching order's card must still show its whole basket. Selecting the joined
+ * (filtered) items instead would drop a subscription order's one-time items
+ * from its thumbnails and item count.
+ */
+async function attachItems(orders: OrderRow[]): Promise<OrderWithItems[]> {
+  if (orders.length === 0) return [];
+
+  const { data: items, error } = await supabase
+    .from("order_items")
+    .select(ORDER_ITEM_SELECT)
+    .in(
+      "order_id",
+      orders.map((o) => o.id),
+    );
+  if (error) throw error;
+
+  return orders.map((order) => ({
+    ...order,
+    items: (items ?? []).filter(
+      (item) => item.order_id === order.id,
+    ) as unknown as OrderItemWithDetails[],
+  })) as OrderWithItems[];
+}
+
+type OrderRow = Omit<OrderWithItems, "items">;
+
+export interface OrdersPage {
+  orders: OrderWithItems[];
+  nextCursor: OrderCursor | null;
+}
+
+/**
+ * Paginated orders for the infinite-scroll list.
+ *
+ * Filtering happens server-side. With pagination, filtering the loaded pages
+ * client-side would only ever search what had been scrolled to -- a filter
+ * could show "no matches" while matching orders sat unfetched on the server.
+ */
+export function useInfiniteOrders(filters: OrderFilterState) {
+  return useInfiniteQuery<OrdersPage>({
+    // Filters are part of the key, so changing one restarts at page 1 rather
+    // than appending a differently-filtered page to the existing list.
+    queryKey: ["orders", "infinite", filters],
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    queryFn: async ({ pageParam }): Promise<OrdersPage> => {
+      const cursor = pageParam as OrderCursor | null;
+      const typeFilterActive = filters.type !== "all";
+
+      // An inner join restricts the orders returned to those having at least
+      // one item of the requested delivery_type. The joined column is selected
+      // only to make the join happen; the items themselves come from
+      // attachItems below.
+      //
+      // Typed as a plain string: supabase-js parses select() literals at the
+      // type level, and a conditional one resolves to a ParserError rather than
+      // a row type. The rows are cast to OrderRow at the boundary instead.
+      const select: string = typeFilterActive
+        ? `${ORDER_SELECT}, order_items!inner(delivery_type)`
+        : ORDER_SELECT;
+
+      let query = supabase.from("orders").select(select);
+
+      if (typeFilterActive) query = query.eq("order_items.delivery_type", filters.type);
+
+      // Abandoned or declined ONLINE payments are dead rows the customer never
+      // paid for. Scoped to razorpay deliberately -- a COD order that reaches
+      // payment_status.failed is a real order and must stay visible. Expressed
+      // as "not (razorpay and failed)" so COD rows survive.
+      query = query.or("payment_method.neq.razorpay,payment_status.neq.failed");
+
+      const statuses = statusesForFilter(filters.status);
+      if (statuses) query = query.in("status", statuses);
+
+      const { from, to } = dateRangeForFilter(filters, Date.now());
+      if (from) query = query.gte("created_at", from);
+      if (to) query = query.lte("created_at", to);
+
+      if (cursor) query = query.or(keysetFilter(cursor));
+
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(ORDERS_PAGE_SIZE);
+      if (error) throw error;
+
+      const rawRows = (data ?? []) as unknown as OrderRow[];
+
+      // An inner join emits one row per matching child, so an order with two
+      // subscription items would otherwise appear twice.
+      const rows = Array.from(new Map(rawRows.map((o) => [o.id, o])).values());
+
+      return {
+        orders: await attachItems(rows),
+        // Derived from the raw page length, not the de-duplicated one: the
+        // limit applies pre-dedup, so a full page is a full page.
+        nextCursor: nextCursor(rawRows),
+      };
     },
   });
 }

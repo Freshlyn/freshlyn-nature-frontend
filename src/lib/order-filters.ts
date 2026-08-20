@@ -1,10 +1,10 @@
 import type { OrderWithItems } from "@/hooks/use-orders";
 import type { OrderFilterState } from "@/components/orders/orderFilterTypes";
 
-const ACTIVE_STATUSES = ["pending", "confirmed", "preparing", "out_for_delivery"];
+export const ACTIVE_STATUSES = ["pending", "confirmed", "preparing", "out_for_delivery"];
 // `failed` (delivery attempted but not completed) has no tab of its own, so it
 // rides along with Cancelled -- otherwise those orders vanish from every tab.
-const CANCELLED_STATUSES = ["cancelled", "failed"];
+export const CANCELLED_STATUSES = ["cancelled", "failed"];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function filterOrders(
