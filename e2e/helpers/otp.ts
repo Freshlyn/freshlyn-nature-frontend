@@ -80,6 +80,9 @@ const SPEC_PHONE_ORDER = [
   'auth',
   'checkout',
   'route-guards',
+  // Not yet written -- keep unwritten specs last so they hold no slot that a
+  // live spec needs. Only ever APPEND: a slot is an index, so reordering
+  // silently reassigns numbers between specs.
   'back-button',
 ] as const;
 
@@ -292,4 +295,48 @@ export async function seedLocationPreference(
       JSON.stringify({ serviceable: true, label: '700019', matchedBy: 'pincode' }),
     );
   });
+}
+
+/**
+ * A phone for read-only specs -- ones that log in, look at something, and
+ * change nothing.
+ *
+ * The numbered slots above exist because those specs call `cleanupPhone`,
+ * which hard-deletes the auth user; two specs on one number race and one
+ * deletes the other's login mid-flight. A read-only spec has no such hazard
+ * among other read-only specs, but it still cannot share with a
+ * cleanup-running one.
+ *
+ * So this hands out the first number PAST the claimed slots. When the pool has
+ * nothing spare it throws rather than silently colliding with a spec that
+ * deletes users.
+ *
+ * Use it only for specs that make no writes. Anything that places an order,
+ * edits a profile, or needs a *fresh* user must keep its own slot.
+ */
+export function sharedReadOnlyPhone(): string {
+  const pool = testPhonePool();
+  if (pool.length === 0) {
+    throw new Error(
+      'No E2E test phone configured. Set E2E_TEST_PHONES in .env.test.local -- ' +
+        'see e2e/README.md.',
+    );
+  }
+  // A name listed past the end of the pool never resolves to a number, so it
+  // claims nothing; the contested range is the overlap of the two.
+  const claimed = Math.min(SPEC_PHONE_ORDER.length, pool.length);
+  if (claimed >= pool.length) {
+    throw new Error(
+      `Read-only specs need a test number that no cleanup-running spec claims, ` +
+        `but all ${pool.length} configured number(s) are claimed. Add one more ` +
+        `to E2E_TEST_PHONES (and to the backend TWOFACTOR_TEST_PHONES secret).`,
+    );
+  }
+  return pool[claimed];
+}
+
+/** Whether `sharedReadOnlyPhone()` would succeed, for use in `test.skip`. */
+export function hasSharedReadOnlyPhone(): boolean {
+  const pool = testPhonePool();
+  return pool.length > Math.min(SPEC_PHONE_ORDER.length, pool.length);
 }

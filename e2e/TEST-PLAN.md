@@ -236,6 +236,7 @@ Suggested spec: assert inline within the relevant specs above
 | 13.1 | Toasts appear and auto-dismiss (~3s) | 🟡 | auth uses this pattern |
 | 13.2 | Responsive: mobile bottom-nav vs desktop sidebar | ⬜ | viewport-dependent UI |
 | 13.3 | Error boundaries / getErrorMessage surfacing | ⬜ | network-failure paths |
+| 13.4 | Offline / "no internet" behaviour on every page | ⬜ | planned in detail in [OFFLINE-TEST-PLAN.md](./OFFLINE-TEST-PLAN.md) — banner works; per-page degradation largely unimplemented (incl. a confirmed silent-failure bug on login) |
 
 ---
 

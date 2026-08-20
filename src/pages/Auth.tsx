@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ArrowLeft, ShoppingBag, Truck, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/errors";
 
 type PhoneStep = "phone" | "otp";
 
@@ -54,6 +55,16 @@ export default function AuthPage() {
           description: result.message,
         });
       }
+    } catch (err) {
+      // sendOtp rethrows anything that isn't a structured 400 -- notably a
+      // dead network. Without this catch the rejection went unhandled and the
+      // user saw nothing at all: no toast, no error, just a spinner that
+      // stopped. Mirrors the handling in Cart.tsx.
+      toast({
+        variant: "destructive",
+        title: "Couldn't send OTP",
+        description: await getErrorMessage(err),
+      });
     } finally {
       setIsPending(false);
     }
@@ -90,6 +101,14 @@ export default function AuthPage() {
           description: result.message,
         });
       }
+    } catch (err) {
+      // Same defect as handleSendOtp: verifyOtp rethrows non-400 failures, so
+      // an offline verify was silently swallowed.
+      toast({
+        variant: "destructive",
+        title: "Verification Failed",
+        description: await getErrorMessage(err),
+      });
     } finally {
       setIsPending(false);
     }
