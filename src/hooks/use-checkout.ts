@@ -7,6 +7,8 @@ interface CheckoutInput {
   addressId: string;
   cartItems: CartItemWithDetails[];
   paymentMethod: "cod" | "razorpay";
+  /** 24-hour "HH:MM" from DELIVERY_SLOTS; the edge function re-validates it. */
+  deliverySlot?: string;
 }
 
 export type CheckoutResponse = OrderWithItems & {
@@ -21,11 +23,13 @@ export function useCheckout() {
       addressId,
       cartItems,
       paymentMethod,
+      deliverySlot,
     }: CheckoutInput): Promise<CheckoutResponse> => {
       const { data, error } = await supabase.functions.invoke("checkout", {
         body: {
           addressId,
           paymentMethod,
+          deliverySlot,
           items: cartItems.map((item) => ({
             productId: item.product_id,
             variantId: item.variant_id,

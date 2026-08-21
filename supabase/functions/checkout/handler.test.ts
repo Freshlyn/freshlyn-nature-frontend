@@ -442,3 +442,128 @@ Deno.test("a non-serviceability create_order failure still surfaces as a 500", a
   }
   assertEquals(threw, true);
 });
+
+// --- delivery slot -----------------------------------------------------------
+//
+// The slot is user-supplied and reaches a `time` column via create_order, so it
+// is validated against a fixed allowlist rather than passed through. These tests
+// pin both halves of that contract: accepted slots reach createOrder unchanged,
+// and anything else is rejected before any order row exists.
+
+Deno.test("checkout forwards a valid morning delivery slot to createOrder", async () => {
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 10, stockQuantity: 50, maxQuantityPerOrder: 10 } },
+  });
+  const input: CheckoutInput = {
+    addressId: "addr-1",
+    deliverySlot: "07:00",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  };
+  const result = await handleCheckout(deps, input);
+  assertEquals(result.status, 200);
+  assertEquals(
+    (calls.createOrder[0] as { deliverySlot: string }).deliverySlot,
+    "07:00",
+  );
+});
+
+Deno.test("checkout forwards a valid evening delivery slot to createOrder", async () => {
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 10, stockQuantity: 50, maxQuantityPerOrder: 10 } },
+  });
+  const input: CheckoutInput = {
+    addressId: "addr-1",
+    deliverySlot: "17:30",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  };
+  const result = await handleCheckout(deps, input);
+  assertEquals(result.status, 200);
+  assertEquals(
+    (calls.createOrder[0] as { deliverySlot: string }).deliverySlot,
+    "17:30",
+  );
+});
+
+Deno.test("checkout returns 400 for a delivery slot outside the allowlist", async () => {
+  const { deps, calls } = makeDeps();
+  const input: CheckoutInput = {
+    addressId: "addr-1",
+    deliverySlot: "03:15",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  };
+  const result = await handleCheckout(deps, input);
+  assertEquals(result.status, 400);
+  assertEquals(calls.createOrder.length, 0);
+});
+
+Deno.test("checkout rejects a delivery slot carrying SQL rather than a time", async () => {
+  const { deps, calls } = makeDeps();
+  const input: CheckoutInput = {
+    addressId: "addr-1",
+    deliverySlot: "07:00'; drop table orders; --",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  };
+  const result = await handleCheckout(deps, input);
+  assertEquals(result.status, 400);
+  assertEquals(calls.createOrder.length, 0);
+});
+
+Deno.test("checkout omits deliverySlot when the caller does not choose one", async () => {
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 10, stockQuantity: 50, maxQuantityPerOrder: 10 } },
+  });
+  const input: CheckoutInput = {
+    addressId: "addr-1",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  };
+  const result = await handleCheckout(deps, input);
+  assertEquals(result.status, 200);
+  assertEquals(
+    (calls.createOrder[0] as { deliverySlot?: string }).deliverySlot,
+    undefined,
+  );
+});
+
+Deno.test("checkout forwards the subscription start date to createOrder", async () => {
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 10, stockQuantity: 50, maxQuantityPerOrder: 10 } },
+    subscriptionOptions: {
+      "p1/30": { enabled: true, frequencies: ["daily"], discountPercent: 10 },
+    },
+  });
+  const input: CheckoutInput = {
+    addressId: "addr-1",
+    deliverySlot: "07:00",
+    items: [{
+      productId: "p1",
+      variantId: "v1",
+      quantity: 1,
+      deliveryType: "subscription",
+      subscriptionDurationDays: 30,
+      subscriptionFrequency: "daily",
+      subscriptionStartDate: "2026-09-01",
+    }],
+  };
+  const result = await handleCheckout(deps, input);
+  assertEquals(result.status, 200);
+  const items = (calls.createOrder[0] as {
+    items: Array<{ subscription_start_date?: string }>;
+  }).items;
+  assertEquals(items[0].subscription_start_date, "2026-09-01");
+});
+
+// Guards the handler->RPC adapter contract. The tests above assert against a
+// MOCK createOrder, so they stayed green while index.ts silently dropped
+// deliverySlot from the real rpc() call and every order stored a null slot.
+// This asserts the parameter name the RPC actually expects appears in the
+// adapter source, which is the piece the mock cannot cover.
+Deno.test("index.ts forwards deliverySlot to create_order as p_delivery_slot", async () => {
+  const source = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
+  const rpcCall = source.slice(source.indexOf('admin.rpc("create_order"'));
+  const block = rpcCall.slice(0, rpcCall.indexOf("});"));
+  assertEquals(
+    block.includes("p_delivery_slot"),
+    true,
+    "index.ts must pass p_delivery_slot to create_order, or the chosen slot is silently discarded",
+  );
+});

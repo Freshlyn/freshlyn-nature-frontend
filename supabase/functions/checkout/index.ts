@@ -95,6 +95,12 @@ function buildDeps(authorizationHeader: string): CheckoutDeps {
         // window in which a razorpay order is still nominally 'cod' would let a
         // concurrent sweep miss it and leave two live payable orders.
         p_payment_method: params.paymentMethod,
+        // The customer's chosen delivery time. create_order stores it on the
+        // order and derives every subscription_deliveries.scheduled_at from it,
+        // so omitting it here silently defaults the parameter to null and the
+        // whole schedule loses its time -- which is exactly what happened
+        // before this line existed.
+        p_delivery_slot: params.deliverySlot ?? null,
       });
       if (error || !data) throw new Error(error?.message ?? "create_order failed");
       return data as string;

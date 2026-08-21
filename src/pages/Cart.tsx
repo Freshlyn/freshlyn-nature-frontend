@@ -37,23 +37,17 @@ import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
 import type { UserAddress } from "@/types/user";
+import {
+  DEFAULT_DELIVERY_SLOT,
+  EVENING_SLOTS,
+  MORNING_SLOTS,
+  formatDeliverySlot,
+} from "@/lib/delivery-slots";
 
 interface CartProps {
   sidebarOpen?: boolean;
   onSidebarToggle?: () => void;
 }
-
-const TIME_SLOTS = [
-  "6:00 AM",
-  "6:30 AM",
-  "7:00 AM",
-  "7:30 AM",
-  "8:00 AM",
-  "8:30 AM",
-  "9:00 AM",
-  "9:30 AM",
-  "10:00 AM",
-];
 
 // TODO: Move to BACKEND
 const FREE_DELIVERY_THRESHOLD = 299;
@@ -107,7 +101,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState("7:00 AM");
+  const [selectedTime, setSelectedTime] = useState(DEFAULT_DELIVERY_SLOT);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -169,6 +163,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
         addressId: selectedAddress.id,
         cartItems,
         paymentMethod,
+        deliverySlot: selectedTime,
       });
 
       if (paymentMethod === "cod") {
@@ -450,41 +445,58 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                 </div>
               )}
 
-              {hasSubscriptionItems && (
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-border/40">
-                  <h3 className="font-bold text-sm flex items-center gap-2 mb-3">
-                    <Clock size={16} className="text-primary" />
-                    Delivery Time
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground mb-3">
-                    Your subscription items will be delivered daily at this time
-                  </p>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {TIME_SLOTS.map((time) => (
-                      <button
-                        key={time}
-                        onClick={() => setSelectedTime(time)}
-                        className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
-                          selectedTime === time
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "bg-muted/50 text-foreground hover:bg-muted"
-                        }`}
-                        data-testid={`button-time-${time.replace(/[: ]/g, "-").toLowerCase()}`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex items-center gap-2 bg-primary/5 rounded-lg p-2">
-                    <Clock size={12} className="text-primary flex-shrink-0" />
-                    <p className="text-[11px] text-muted-foreground">
-                      Selected:{" "}
-                      <span className="font-semibold text-foreground">{selectedTime}</span> every
-                      day
+              {/* Shown for every cart, not just subscriptions: a one-time order
+                  needs a delivery time too, and its slot drives the scheduled
+                  instant stored against the order. */}
+              <div className="bg-white p-4 rounded-2xl shadow-sm border border-border/40">
+                <h3 className="font-bold text-sm flex items-center gap-2 mb-3">
+                  <Clock size={16} className="text-primary" />
+                  Delivery Time
+                </h3>
+                <p className="text-[11px] text-muted-foreground mb-3">
+                  {hasSubscriptionItems
+                    ? "Your subscription items will be delivered at this time"
+                    : "Choose when you'd like your order delivered"}
+                </p>
+
+                {[
+                  { title: "Morning", slots: MORNING_SLOTS },
+                  { title: "Evening", slots: EVENING_SLOTS },
+                ].map(({ title, slots }) => (
+                  <div key={title} className="mb-3 last:mb-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                      {title}
                     </p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {slots.map((slot) => (
+                        <button
+                          key={slot.value}
+                          onClick={() => setSelectedTime(slot.value)}
+                          className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+                            selectedTime === slot.value
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "bg-muted/50 text-foreground hover:bg-muted"
+                          }`}
+                          data-testid={`button-time-${slot.value.replace(":", "-")}`}
+                        >
+                          {slot.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                ))}
+
+                <div className="mt-3 flex items-center gap-2 bg-primary/5 rounded-lg p-2">
+                  <Clock size={12} className="text-primary flex-shrink-0" />
+                  <p className="text-[11px] text-muted-foreground">
+                    Selected:{" "}
+                    <span className="font-semibold text-foreground">
+                      {formatDeliverySlot(selectedTime)}
+                    </span>
+                    {hasSubscriptionItems ? " every delivery" : ""}
+                  </p>
                 </div>
-              )}
+              </div>
 
               <div className="bg-white p-4 md:p-5 rounded-2xl shadow-lg border border-primary/10 sticky top-20">
                 <h3 className="font-bold text-lg font-display flex items-center gap-2 mb-4">

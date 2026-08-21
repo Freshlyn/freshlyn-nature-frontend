@@ -1,4 +1,5 @@
 import { RazorpayError, toPaise, type RazorpayClient } from "../_shared/razorpay.ts";
+import { isValidDeliverySlot } from "../_shared/delivery-slots.ts";
 
 export type DeliveryType = "one_time" | "subscription";
 export type SubscriptionFrequency = "daily" | "alternate";
@@ -19,6 +20,8 @@ export interface CheckoutInput {
   addressId: string;
   items: CheckoutItemInput[];
   paymentMethod?: PaymentMethod;
+  /** 24-hour "HH:MM"; must be one of the allowlisted delivery slots. */
+  deliverySlot?: string;
 }
 
 export interface RejectedItem {
@@ -69,6 +72,7 @@ export interface CheckoutDeps {
     total: number;
     decrementStock: boolean;
     paymentMethod: PaymentMethod;
+    deliverySlot?: string;
   }): Promise<string>;
   /**
    * Marks the caller's existing pending *razorpay* orders as failed.
@@ -122,6 +126,14 @@ export async function handleCheckout(deps: CheckoutDeps, input: CheckoutInput): 
   const paymentMethod: PaymentMethod = input.paymentMethod ?? "cod";
   if (paymentMethod !== "cod" && paymentMethod !== "razorpay") {
     return { status: 400, body: { error: "paymentMethod must be 'cod' or 'razorpay'" } };
+  }
+
+  // The slot is interpolated into a `time` column by create_order. Validate it
+  // against the fixed allowlist rather than trusting the client: an arbitrary
+  // string here would reach SQL, and a merely well-formed one ("03:15") would
+  // still schedule a delivery outside any shift we actually run.
+  if (input.deliverySlot !== undefined && !isValidDeliverySlot(input.deliverySlot)) {
+    return { status: 400, body: { error: "deliverySlot is not an available delivery time" } };
   }
 
   const address = await deps.getAddress(input.addressId);
@@ -219,6 +231,7 @@ export async function handleCheckout(deps: CheckoutDeps, input: CheckoutInput): 
       total,
       // COD orders are real on placement. Razorpay orders exist before payment,
       // so their stock moves only once the webhook confirms money arrived.
+      deliverySlot: input.deliverySlot,
       decrementStock: paymentMethod === "cod",
       // Set in the same INSERT as the row, not in a follow-up UPDATE. The sweep
       // above filters on payment_method, so a row that is briefly 'cod' before

@@ -16,6 +16,16 @@ export type SubscriptionFrequency = "daily" | "alternate";
 export type PaymentStatus = "pending" | "failed" | "paid" | "collected" | "refunded";
 export type PaymentMethod = "cod" | "razorpay";
 
+export type SubscriptionDeliveryStatus = "scheduled" | "delivered" | "skipped" | "cancelled";
+
+export interface SubscriptionDelivery {
+  id: string;
+  sequence_number: number;
+  scheduled_date: string;
+  scheduled_at: string | null;
+  status: SubscriptionDeliveryStatus;
+}
+
 export interface OrderItemWithDetails {
   id: string;
   order_id: string;
@@ -26,8 +36,10 @@ export interface OrderItemWithDetails {
   delivery_type: "one_time" | "subscription";
   subscription_duration_days?: number;
   subscription_frequency?: SubscriptionFrequency;
+  subscription_start_date?: string | null;
   discount_percent?: number;
   created_at: string;
+  deliveries?: SubscriptionDelivery[];
   product?: { id: string; name: string; image_url: string | null };
   variant?: { id: string; name: string };
 }
@@ -44,6 +56,7 @@ export interface OrderWithItems {
   status: OrderStatus;
   payment_status: PaymentStatus;
   payment_method: PaymentMethod;
+  delivery_slot: string | null;
   created_at: string;
   updated_at: string;
   items: OrderItemWithDetails[];
@@ -51,14 +64,17 @@ export interface OrderWithItems {
 
 const ORDER_ITEM_SELECT = `
   id, order_id, product_id, variant_id, quantity, unit_price, delivery_type,
-  subscription_duration_days, subscription_frequency, discount_percent, created_at,
+  subscription_duration_days, subscription_frequency, subscription_start_date,
+  discount_percent, created_at,
   product:products(id, name, image_url),
-  variant:product_variants(id, name)
+  variant:product_variants(id, name),
+  deliveries:subscription_deliveries(id, sequence_number, scheduled_date, scheduled_at, status)
 `;
 
 const ORDER_SELECT = `
   id, user_id, address_id, delivery_address, subtotal, delivery_fee, total,
-  item_count, status, payment_status, payment_method, created_at, updated_at
+  item_count, status, payment_status, payment_method, delivery_slot,
+  created_at, updated_at
 `;
 
 export function useOrders() {

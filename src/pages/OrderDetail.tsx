@@ -1,10 +1,10 @@
-import type { OrderItemWithDetails } from "@/hooks/use-orders";
+import type { OrderItemWithDetails, SubscriptionDelivery } from "@/hooks/use-orders";
 import { useOrder } from "@/hooks/use-orders";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Header } from "@/components/Header";
-import { format, addDays, isBefore, isToday, startOfDay } from "date-fns";
+import { format, isBefore, isToday, startOfDay } from "date-fns";
 import {
   Package,
   Clock,
@@ -23,8 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useParams } from "wouter";
-import type { SubscriptionFrequency } from "@/hooks/use-products";
-import { getFrequencyLabel, getFrequencyIntervalDays } from "@/hooks/use-products";
+import { getFrequencyLabel } from "@/hooks/use-products";
 
 const statusConfig: Record<string, { icon: typeof Clock; label: string; variant: string }> = {
   pending: { icon: Clock, label: "Pending", variant: "secondary" },
@@ -40,23 +39,29 @@ const statusConfig: Record<string, { icon: typeof Clock; label: string; variant:
   cancelled: { icon: XCircle, label: "Cancelled", variant: "destructive" },
 };
 
-function generateDeliveryDates(
-  startDate: Date,
-  deliveryCount: number,
-  frequency: SubscriptionFrequency,
-): Date[] {
-  const gap = getFrequencyIntervalDays(frequency);
-  return Array.from({ length: deliveryCount }, (_, i) => addDays(startDate, i * gap));
+/**
+ * The stored due time for a delivery, rendered in the delivery city's zone.
+ *
+ * scheduled_at is a timestamptz, so formatting it with the viewer's local zone
+ * would show a Dubai customer a different time than the rider is given. Falls
+ * back to the order's chosen slot, then to nothing -- never to a placeholder.
+ */
+function formatScheduledTime(delivery?: SubscriptionDelivery): string | null {
+  if (!delivery?.scheduled_at) return null;
+  return new Date(delivery.scheduled_at).toLocaleTimeString("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  });
 }
 
 function DeliverySchedule({
   item,
-  orderDate,
   expanded,
   onToggle,
 }: {
   item: OrderItemWithDetails;
-  orderDate: string;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -67,15 +72,37 @@ function DeliverySchedule({
   )
     return null;
 
-  const startDate = startOfDay(new Date(orderDate));
-  const deliveryDates = generateDeliveryDates(
-    startDate,
-    item.subscription_duration_days,
-    item.subscription_frequency,
+  // Read the schedule the backend actually stored. This used to be generated in
+  // the browser from the order's created_at, which silently ignored the start
+  // date the customer picked -- an order placed on the 20th for a subscription
+  // starting the 25th rendered a schedule beginning on the 20th.
+  const deliveries = [...(item.deliveries ?? [])].sort(
+    (a, b) => a.sequence_number - b.sequence_number,
   );
+
   const today = startOfDay(new Date());
-  const endDate = deliveryDates[deliveryDates.length - 1] ?? startDate;
   const missedSet = new Set<string>();
+
+  // Orders placed before delivery rows were persisted have no schedule to show.
+  // Showing nothing is deliberate: the dates were never recorded, and computing
+  // stand-ins here is exactly the bug this replaced.
+  if (deliveries.length === 0) {
+    return (
+      <Card className="p-4 mt-3 bg-muted/30 border-border/60" data-testid={`schedule-${item.id}`}>
+        <div className="flex items-center gap-2 mb-1">
+          <Calendar size={16} className="text-muted-foreground" />
+          <h4 className="font-semibold text-sm text-foreground">Delivery Schedule</h4>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          No delivery schedule was recorded for this order.
+        </p>
+      </Card>
+    );
+  }
+
+  const deliveryDates = deliveries.map((d) => startOfDay(new Date(d.scheduled_date)));
+  const startDate = deliveryDates[0];
+  const endDate = deliveryDates[deliveryDates.length - 1] ?? startDate;
 
   // Pivot = index of today or first upcoming delivery
   const pivotIndex = deliveryDates.findIndex((date) => !isBefore(date, today));
@@ -85,6 +112,9 @@ function DeliverySchedule({
   const visibleDates = expanded
     ? deliveryDates
     : deliveryDates.slice(collapseStart, collapseStart + 4);
+  const visibleDeliveries = expanded
+    ? deliveries
+    : deliveries.slice(collapseStart, collapseStart + 4);
   const hasMore = deliveryDates.length > 4;
 
   return (
@@ -189,7 +219,7 @@ function DeliverySchedule({
                   className={`text-xs ${isPast ? "text-muted-foreground" : "text-foreground"}`}
                   data-testid={`text-delivery-time-${globalIndex}`}
                 >
-                  9:00 AM
+                  {formatScheduledTime(visibleDeliveries[sliceIndex]) ?? "—"}
                 </span>
               </div>
             </div>
@@ -249,12 +279,10 @@ function OneTimeItemCard({ item }: { item: OrderItemWithDetails }) {
 
 function SubscriptionItemCard({
   item,
-  orderDate,
   expandedId,
   onToggle,
 }: {
   item: OrderItemWithDetails;
-  orderDate: string;
   expandedId: string | null;
   onToggle: (id: string) => void;
 }) {
@@ -300,7 +328,6 @@ function SubscriptionItemCard({
       </div>
       <DeliverySchedule
         item={item}
-        orderDate={orderDate}
         expanded={expandedId === item.id}
         onToggle={() => onToggle(item.id)}
       />
@@ -502,7 +529,6 @@ export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetai
                 <SubscriptionItemCard
                   key={item.id}
                   item={item}
-                  orderDate={order.created_at}
                   expandedId={expandedScheduleId}
                   onToggle={handleScheduleToggle}
                 />
