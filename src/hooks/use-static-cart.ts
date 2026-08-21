@@ -79,6 +79,24 @@ function getSnapshot() {
   return globalCart;
 }
 
+/**
+ * Wipe the cart store and its persisted copy. Used on logout: clearing only the
+ * localStorage keys is not enough, because `globalCart` is module state that is
+ * read once at load — the stale items would stay on screen and get written back
+ * to storage by the next mutation.
+ */
+export function resetCartStore() {
+  globalCart = [];
+  cartIdCounter = 1;
+  try {
+    localStorage.removeItem(CART_KEY);
+    localStorage.removeItem(CART_ID_KEY);
+  } catch {
+    // Storage may be unavailable
+  }
+  cartListeners.forEach((l) => l());
+}
+
 function getItemKey(
   productId: string,
   variantId: string,

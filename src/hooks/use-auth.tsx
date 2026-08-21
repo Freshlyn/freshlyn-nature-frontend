@@ -3,6 +3,7 @@ import { FunctionsHttpError, type Session } from "@supabase/supabase-js";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, clearStoredSession } from "@/lib/supabase";
 import { normalizeIndianPhone } from "@/lib/phone";
+import { resetCartStore } from "@/hooks/use-static-cart";
 import type { Profile } from "@/types/auth";
 
 /**
@@ -214,9 +215,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem("freshlyn_cart");
-    localStorage.removeItem("freshlyn_cart_id");
-  }, []);
+    // Empties the in-memory cart store as well as its localStorage copy, so the
+    // cart page re-renders empty for the next user instead of keeping the
+    // previous session's items.
+    resetCartStore();
+    queryClient.removeQueries({ queryKey: ["profile"] });
+  }, [queryClient]);
 
   const value: AuthContextValue = {
     session,
