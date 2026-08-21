@@ -7,6 +7,7 @@ import { Header } from "@/components/Header";
 import { ContactUsModal } from "@/components/ContactUsModal";
 import { AddressModal } from "@/components/AddressModal";
 import { openExternalUrl } from "@/lib/platform/external-link";
+import { isNative } from "@/lib/platform";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -61,6 +62,12 @@ export default function Profile({ sidebarOpen, onSidebarToggle }: ProfileProps) 
   const memberSinceDate = new Date(user.created_at);
   const memberSince = `${memberSinceDate.toLocaleDateString("en-US", { month: "short" })} '${String(memberSinceDate.getFullYear()).slice(-2)}`;
 
+  // Notifications and Rate Us are device features with nothing behind them in a
+  // browser -- no push permission to manage, no store listing to open -- so the
+  // rows are left out of the array entirely rather than hidden with a class,
+  // which would strip the row but leave its `divide-y` border behind.
+  const nativeOnly = isNative();
+
   const menuSections = [
     {
       label: "Account",
@@ -79,18 +86,22 @@ export default function Profile({ sidebarOpen, onSidebarToggle }: ProfileProps) 
           action: () => setAddressDialogOpen(true),
           testId: "menu-saved-addresses",
         },
-        {
-          icon: Bell,
-          label: "Notifications",
-          subtitle: "Manage notification preferences",
-          action: () =>
-            setInfoDialog({
-              title: "Notifications",
-              content:
-                "Notification preferences will be available soon. You'll be able to control order updates, delivery alerts, and promotional notifications from here.",
-            }),
-          testId: "menu-notifications",
-        },
+        ...(nativeOnly
+          ? [
+              {
+                icon: Bell,
+                label: "Notifications",
+                subtitle: "Manage notification preferences",
+                action: () =>
+                  setInfoDialog({
+                    title: "Notifications",
+                    content:
+                      "Notification preferences will be available soon. You'll be able to control order updates, delivery alerts, and promotional notifications from here.",
+                  }),
+                testId: "menu-notifications",
+              },
+            ]
+          : []),
       ],
     },
     {
@@ -103,18 +114,22 @@ export default function Profile({ sidebarOpen, onSidebarToggle }: ProfileProps) 
           action: () => setContactOpen(true),
           testId: "menu-contact-us",
         },
-        {
-          icon: Star,
-          label: "Rate Us",
-          subtitle: "Tell us how we're doing",
-          action: () =>
-            setInfoDialog({
-              title: "Rate Us",
-              content:
-                "We'd love to hear your feedback! Your ratings help us improve our service and deliver a better experience.\n\nRating functionality will be available in the next update.",
-            }),
-          testId: "menu-rate-us",
-        },
+        ...(nativeOnly
+          ? [
+              {
+                icon: Star,
+                label: "Rate Us",
+                subtitle: "Tell us how we're doing",
+                action: () =>
+                  setInfoDialog({
+                    title: "Rate Us",
+                    content:
+                      "We'd love to hear your feedback! Your ratings help us improve our service and deliver a better experience.\n\nRating functionality will be available in the next update.",
+                  }),
+                testId: "menu-rate-us",
+              },
+            ]
+          : []),
       ],
     },
     {
