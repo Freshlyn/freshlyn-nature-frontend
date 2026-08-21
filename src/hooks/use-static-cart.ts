@@ -110,13 +110,46 @@ function getItemKey(
   return `${productId}_${variantId}_onetime`;
 }
 
-export function useStaticCart(products: Product[] = []) {
+/**
+ * Whether the cart is still resolving the details needed to render its items.
+ *
+ * The stored cart is synchronous (useSyncExternalStore), but rendering an item
+ * needs its product and variant, which arrive over the network. Until both land
+ * cartWithProducts drops every item, which looks identical to a genuinely empty
+ * cart -- this lets the UI tell the two apart instead of falling through to
+ * "your cart is empty".
+ */
+export function deriveCartLoading({
+  storedItemCount,
+  productsLoading,
+  variantsFetched,
+  durationsFetched,
+}: {
+  storedItemCount: number;
+  productsLoading: boolean;
+  variantsFetched: boolean;
+  durationsFetched: boolean;
+}): boolean {
+  // An actually-empty cart has nothing to wait for and must show its empty
+  // state immediately. The detail queries are also `enabled`-gated off in that
+  // case, so their isFetched never flips and would otherwise hang here.
+  if (storedItemCount === 0) return false;
+
+  // Keyed off whether the fetches have SETTLED, not whether they returned rows.
+  // An item whose product was since marked unavailable never resolves
+  // (useProducts filters on is_available), so comparing resolved items against
+  // cart length would pin the skeleton on forever. isFetched always flips, so a
+  // cart of dead items falls through to the empty state rather than hanging.
+  return productsLoading || !variantsFetched || !durationsFetched;
+}
+
+export function useStaticCart(products: Product[] = [], productsLoading = false) {
   const cart = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const { toast } = useToast();
 
   const cartProductIds = useMemo(() => [...new Set(cart.map((i) => i.product_id))], [cart]);
 
-  const { data: cartVariants = [] } = useQuery({
+  const { data: cartVariants = [], isFetched: variantsFetched } = useQuery({
     queryKey: ["cart-variants", cartProductIds],
     enabled: cartProductIds.length > 0,
     queryFn: async (): Promise<ProductVariant[]> => {
@@ -131,7 +164,7 @@ export function useStaticCart(products: Product[] = []) {
     },
   });
 
-  const { data: cartDurations = [] } = useQuery({
+  const { data: cartDurations = [], isFetched: durationsFetched } = useQuery({
     queryKey: ["cart-sub-durations", cartProductIds],
     enabled: cartProductIds.length > 0,
     queryFn: async (): Promise<
@@ -358,6 +391,13 @@ export function useStaticCart(products: Product[] = []) {
     return result;
   }, [cart, products, cartVariants, cartDurations]);
 
+  const isCartLoading = deriveCartLoading({
+    storedItemCount: cart.length,
+    productsLoading,
+    variantsFetched,
+    durationsFetched,
+  });
+
   const cartTotal = useMemo(
     () => cartWithProducts.reduce((t, item) => t + item.item_total, 0),
     [cartWithProducts],
@@ -366,6 +406,7 @@ export function useStaticCart(products: Product[] = []) {
 
   return {
     cart,
+    isCartLoading,
     addToCart,
     addToCartSimple,
     updateQuantity,

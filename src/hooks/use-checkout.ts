@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { CartItemWithDetails } from "@/hooks/use-static-cart";
 import type { OrderWithItems } from "@/hooks/use-orders";
@@ -17,7 +17,6 @@ export type CheckoutResponse = OrderWithItems & {
 };
 
 export function useCheckout() {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
       addressId,
@@ -53,8 +52,14 @@ export function useCheckout() {
       if (error) throw error;
       return data as CheckoutResponse;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-    },
+    // Deliberately NOT invalidating ["orders"] here. This mutation resolves when
+    // the Razorpay *order* is created, which is before the customer has paid --
+    // invalidating now refetches (and settles) the orders list while the payment
+    // modal is still open, so /orders later mounts against a warm cache with
+    // isLoading already false: no skeleton, and the data predates the new order.
+    // The caller invalidates once the payment outcome is known instead.
+    //
+    // COD has no modal, but the caller invalidates on that path too, so the
+    // ordering stays the same for both payment methods.
   });
 }

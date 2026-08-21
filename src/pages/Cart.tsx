@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useStaticCart } from "@/hooks/use-static-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { useAddresses } from "@/hooks/use-addresses";
@@ -10,6 +11,7 @@ import { AddressModal } from "@/components/AddressModal";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
   Minus,
@@ -82,19 +84,22 @@ function getLabelIcon(label: string) {
 }
 
 export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
-  const { data: allProducts = [] } = useProducts();
+  const { data: allProducts = [], isLoading: productsLoading } = useProducts();
   const {
+    cart,
     getCartWithProducts,
+    isCartLoading,
     updateQuantity,
     removeFromCart,
     clearCart,
     getCartTotal,
     addToCart,
-  } = useStaticCart(allProducts);
+  } = useStaticCart(allProducts, productsLoading);
   const { isAuthenticated, profile } = useAuth();
   const { data: addresses = [] } = useAddresses();
   const { mutateAsync: checkout, isPending } = useCheckout();
   const { openCheckout } = useRazorpay();
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -107,6 +112,10 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const cartItems = getCartWithProducts();
+  // While details are still loading cartItems is empty, but the stored cart
+  // already knows how many lines there are -- use it so the count does not
+  // pop in after the skeleton clears.
+  const displayCount = isCartLoading ? cart.length : cartItems.length;
   const total = getCartTotal();
   const deliveryFee = total > FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
   const grandTotal = total + deliveryFee;
@@ -172,6 +181,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
           description: "Your groceries are on the way!",
         });
         clearCart();
+        queryClient.resetQueries({ queryKey: ["orders"] });
         setLocation("/orders");
         return;
       }
@@ -200,6 +210,12 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
         description: "Your groceries are on the way!",
       });
       clearCart();
+      // Reset (not invalidate) and done here rather than in useCheckout's
+      // onSuccess: that fires when the Razorpay order is created, before payment.
+      // reset discards the cached pages outright, so /orders mounts with
+      // isLoading true and shows its skeleton; invalidate would leave the stale
+      // data in place and render it settled for a frame.
+      queryClient.resetQueries({ queryKey: ["orders"] });
       setLocation("/orders");
     } catch (err) {
       toast({
@@ -225,9 +241,9 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
         <div className="flex items-center justify-between mb-5 md:mb-8 gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold">Your Cart</h1>
-            {cartItems.length > 0 && (
+            {displayCount > 0 && (
               <p className="text-sm text-muted-foreground mt-1">
-                {cartItems.length} item{cartItems.length > 1 ? "s" : ""} in your cart
+                {displayCount} item{displayCount > 1 ? "s" : ""} in your cart
               </p>
             )}
           </div>
@@ -245,7 +261,41 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
           )} */}
         </div>
 
-        {cartItems.length === 0 ? (
+        {isCartLoading ? (
+          <div className="grid md:grid-cols-3 gap-4 md:gap-6" data-testid="cart-skeleton">
+            <div className="md:col-span-2 space-y-3">
+              {Array.from({ length: Math.min(cart.length, 3) }).map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl border border-border/50 shadow-sm p-3 md:p-4"
+                >
+                  <div className="flex gap-3 md:gap-4">
+                    <Skeleton className="w-20 h-20 md:w-24 md:h-24 rounded-xl flex-shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <Skeleton className="h-5 w-2/3" />
+                      <Skeleton className="h-4 w-1/3" />
+                      <div className="flex items-center justify-between pt-2">
+                        <Skeleton className="h-9 w-28 rounded-lg" />
+                        <Skeleton className="h-6 w-16" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="md:col-span-1">
+              <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-4 space-y-4">
+                <Skeleton className="h-6 w-32" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+                <Skeleton className="h-12 w-full rounded-xl" />
+              </div>
+            </div>
+          </div>
+        ) : cartItems.length === 0 ? (
           <div className="text-center py-16 md:py-20 bg-white rounded-3xl border border-border/50 shadow-sm">
             <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center mx-auto mb-6">
               <ShoppingBag size={40} className="text-primary" />

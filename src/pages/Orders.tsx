@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useInfiniteOrders } from "@/hooks/use-orders";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
-import { ORDERS_PAGE_SIZE } from "@/lib/order-query";
 import { supabase } from "@/lib/supabase";
 import { Header } from "@/components/Header";
 import { ShoppingBag } from "lucide-react";
