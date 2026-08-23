@@ -725,6 +725,12 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
           setSelectedAddressId(addr.id);
           setAddressModalOpen(false);
         }}
+        onAllAddressesDeleted={() => {
+          // The id would otherwise still name the deleted row; selectedAddress
+          // then resolves to undefined and handleCheckout's "Add an address"
+          // guard takes over. The modal stays open so the user can add one.
+          setSelectedAddressId(undefined);
+        }}
       />
 
       <ProductDetailModal

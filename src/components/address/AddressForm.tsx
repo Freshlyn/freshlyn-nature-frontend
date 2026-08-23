@@ -6,9 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import type { UserAddress } from "@/types/user";
 import { useAddAddress } from "@/hooks/use-addresses";
-import { Plus, Navigation } from "lucide-react";
-import { getCurrentPosition } from "@/lib/platform/geolocation";
-import { isUsableFix, checkServiceability } from "@/lib/serviceability";
+import { Plus } from "lucide-react";
+// [GPS-DISABLED] Navigation icon belonged to the "Yes, I'm here" capture button.
+// import { Navigation } from "lucide-react";
+// [GPS-DISABLED] Re-enable with the capture block in handleAddAddress below.
+// import { getCurrentPosition } from "@/lib/platform/geolocation";
+// import { isUsableFix } from "@/lib/serviceability";
+import { checkServiceability } from "@/lib/serviceability";
 import { LABEL_OPTIONS, getLabelIcon, EMPTY_ADDRESS_FIELDS } from "./address-labels";
 
 interface AddressFormProps {
@@ -34,7 +38,9 @@ export function AddressForm({
   const { mutateAsync: addAddress } = useAddAddress();
   const [newLabel, setNewLabel] = useState("Home");
   const [newAddress, setNewAddress] = useState({ ...EMPTY_ADDRESS_FIELDS });
-  const [capturing, setCapturing] = useState(false);
+  // [GPS-DISABLED] Tracked the in-flight position fix; restore with the
+  // capture block in handleAddAddress.
+  // const [capturing, setCapturing] = useState(false);
 
   const incomplete =
     !newAddress.flat_house ||
@@ -43,44 +49,55 @@ export function AddressForm({
     newAddress.pincode.length !== 6;
 
   /**
-   * Saves the address, with or without coordinates.
+   * Saves the address.
    *
-   * `atThisAddress` is the answer to "are you standing here right now?" -- a
-   * question only the user can answer, which is why it is asked explicitly
-   * even when the OS permission is already granted. Silently attaching the
-   * current position to a typed address would reintroduce exactly the failure
-   * this whole feature exists to prevent: a user at their office ordering to
-   * their home would pin the office.
+   * [GPS-DISABLED] Coordinates are no longer captured, so every new address is
+   * written with null lat/lng and its serviceability -- both here and in the
+   * binding create_order check -- resolves through the pincode allowlist tier.
+   * Addresses saved BEFORE this change keep their stored coordinates and are
+   * still bound by the polygon.
+   *
+   * The disabled block below took `atThisAddress`, the answer to "are you
+   * standing here right now?" -- a question only the user can answer, which is
+   * why it was asked explicitly even when the OS permission was already
+   * granted. Silently attaching the current position to a typed address would
+   * reintroduce exactly the failure this feature exists to prevent: a user at
+   * their office ordering to their home would pin the office. Keep that
+   * explicit question if the capture is restored.
    */
-  const handleAddAddress = async (atThisAddress: boolean) => {
+  const handleAddAddress = async () => {
     if (incomplete) return;
 
-    let latitude: number | null = null;
-    let longitude: number | null = null;
+    const latitude: number | null = null;
+    const longitude: number | null = null;
     onNotice(null);
 
-    if (atThisAddress) {
-      setCapturing(true);
-      try {
-        const coords = await getCurrentPosition();
-        if (isUsableFix(coords)) {
-          latitude = coords.latitude;
-          longitude = coords.longitude;
-        } else {
-          // A 5km-accurate fix written onto the row would make a wrong verdict
-          // permanent, so it is discarded exactly like a denial.
-          onNotice(
-            "We couldn't get an accurate location — we'll check delivery using your pincode.",
-          );
-        }
-      } catch {
-        // Denial, permanent Android denial, timeout, unavailable: all four are
-        // the same outcome. Saving is never blocked by a location failure.
-        onNotice("We couldn't get your location — we'll check delivery using your pincode.");
-      } finally {
-        setCapturing(false);
-      }
-    }
+    // [GPS-DISABLED] The capture block. Restore together with the
+    // `atThisAddress` parameter, the `capturing` state, and the paired save
+    // buttons in the markup below.
+    //
+    // if (atThisAddress) {
+    //   setCapturing(true);
+    //   try {
+    //     const coords = await getCurrentPosition();
+    //     if (isUsableFix(coords)) {
+    //       latitude = coords.latitude;
+    //       longitude = coords.longitude;
+    //     } else {
+    //       // A 5km-accurate fix written onto the row would make a wrong verdict
+    //       // permanent, so it is discarded exactly like a denial.
+    //       onNotice(
+    //         "We couldn't get an accurate location — we'll check delivery using your pincode.",
+    //       );
+    //     }
+    //   } catch {
+    //     // Denial, permanent Android denial, timeout, unavailable: all four are
+    //     // the same outcome. Saving is never blocked by a location failure.
+    //     onNotice("We couldn't get your location — we'll check delivery using your pincode.");
+    //   } finally {
+    //     setCapturing(false);
+    //   }
+    // }
 
     let addr: UserAddress;
     try {
@@ -240,6 +257,11 @@ export function AddressForm({
           </div>
         </div>
 
+        {/* [GPS-DISABLED] The "are you here right now?" question and its paired
+            save buttons. With no capture behind it the question is meaningless,
+            so it collapses to a single save. Restore all of this together with
+            the capture block in handleAddAddress.
+
         <div className="pt-1">
           <p className="text-sm font-semibold">Are you at this address right now?</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
@@ -249,10 +271,10 @@ export function AddressForm({
         </div>
 
         <div className="flex flex-col gap-2">
-          {/* Primary when this is the user's first address: during
-              onboarding most people are at home. With addresses
-              already saved, the odds of standing at a NEW one are low,
-              so both options get equal weight. */}
+          // Primary when this is the user's first address: during
+          // onboarding most people are at home. With addresses
+          // already saved, the odds of standing at a NEW one are low,
+          // so both options get equal weight.
           <Button
             type="button"
             size="sm"
@@ -276,6 +298,21 @@ export function AddressForm({
             data-testid="button-save-address-elsewhere"
           >
             No, I'm adding this for elsewhere
+          </Button>
+        </div>
+        */}
+
+        <div className="flex flex-col gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="default"
+            className="rounded-xl"
+            disabled={incomplete}
+            onClick={() => handleAddAddress()}
+            data-testid="button-save-address"
+          >
+            Save address
           </Button>
 
           <Button

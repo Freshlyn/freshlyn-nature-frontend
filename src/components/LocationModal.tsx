@@ -1,10 +1,14 @@
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Navigation } from "lucide-react";
+import { MapPin } from "lucide-react";
+// [GPS-DISABLED] Navigation icon was the "Use my current location" button's icon.
+// import { Navigation } from "lucide-react";
 import { useState } from "react";
-import { getCurrentPosition } from "@/lib/platform/geolocation";
-import { isUsableFix, checkServiceability } from "@/lib/serviceability";
+// [GPS-DISABLED] Re-enable with handleUseLocation below to restore the GPS tier.
+// import { getCurrentPosition } from "@/lib/platform/geolocation";
+// import { isUsableFix } from "@/lib/serviceability";
+import { checkServiceability } from "@/lib/serviceability";
 import { useWaitlistSignup } from "@/hooks/use-serviceability";
 import { normalizeIndianPhone } from "@/lib/phone";
 import type { LocationPreference } from "@/lib/location-preference";
@@ -26,13 +30,18 @@ interface LocationModalProps {
  * single purpose is to tell someone outside the coverage area early, rather
  * than after they have built a cart. Every outcome, including a rejection,
  * reaches the catalogue -- nothing here can lock a user out.
+ *
+ * [GPS-DISABLED] The GPS tier is commented out; the pincode is currently the
+ * only signal this screen collects. The disabled code is kept verbatim so the
+ * accurate tier can be restored later. See AddressForm and AddressList for the
+ * paired changes.
  */
 export function LocationModal({ open, onOpenChange, onResolved }: LocationModalProps) {
   const [loading, setLoading] = useState(false);
-  // Progressive disclosure: the pincode field does not exist until GPS has
-  // actually failed. Showing both at once invites the user to type a pincode
-  // and skip the accurate tier entirely.
-  const [showPincode, setShowPincode] = useState(false);
+  // [GPS-DISABLED] Progressive disclosure gate. With GPS off there is no
+  // accurate tier to protect, so the pincode field renders immediately rather
+  // than waiting for a GPS failure that can no longer happen.
+  // const [showPincode, setShowPincode] = useState(false);
   const [pincode, setPincode] = useState("");
   const [outOfArea, setOutOfArea] = useState(false);
   const [waitlistPhone, setWaitlistPhone] = useState("");
@@ -41,6 +50,8 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
   const [waitlistError, setWaitlistError] = useState<string | null>(null);
   // Whichever signal produced the rejection, kept so the waitlist row records
   // WHERE the demand is -- that is the entire point of collecting it.
+  // [GPS-DISABLED] latitude/longitude stay in the shape but are permanently
+  // null while GPS is off, so the waitlist insert needs no change.
   const [lastSignal, setLastSignal] = useState<{
     latitude: number | null;
     longitude: number | null;
@@ -54,43 +65,46 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
     onOpenChange(false);
   };
 
-  const handleUseLocation = async () => {
-    setLoading(true);
-    try {
-      const coords = await getCurrentPosition();
-      // A reading worse than the threshold is not a position. It is treated
-      // identically to a denial, which on a desktop browser is the common case.
-      if (!isUsableFix(coords)) {
-        setShowPincode(true);
-        return;
-      }
-
-      setLastSignal({ latitude: coords.latitude, longitude: coords.longitude, pincode: null });
-      const verdict = await checkServiceability({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-      });
-
-      if (verdict.serviceable) {
-        resolve({
-          serviceable: true,
-          label: "Your location",
-          matchedBy: "gps",
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-        });
-        return;
-      }
-      setOutOfArea(true);
-    } catch {
-      // Denial, Android permanent denial, timeout, position unavailable: four
-      // causes, one outcome. On Android a second refusal is sticky and the OS
-      // shows no dialog at all, so there is effectively one clean attempt.
-      setShowPincode(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // [GPS-DISABLED] The accurate tier. Restore this together with the
+  // "Use my current location" button and the showPincode gate above.
+  //
+  // const handleUseLocation = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const coords = await getCurrentPosition();
+  //     // A reading worse than the threshold is not a position. It is treated
+  //     // identically to a denial, which on a desktop browser is the common case.
+  //     if (!isUsableFix(coords)) {
+  //       setShowPincode(true);
+  //       return;
+  //     }
+  //
+  //     setLastSignal({ latitude: coords.latitude, longitude: coords.longitude, pincode: null });
+  //     const verdict = await checkServiceability({
+  //       latitude: coords.latitude,
+  //       longitude: coords.longitude,
+  //     });
+  //
+  //     if (verdict.serviceable) {
+  //       resolve({
+  //         serviceable: true,
+  //         label: "Your location",
+  //         matchedBy: "gps",
+  //         latitude: coords.latitude,
+  //         longitude: coords.longitude,
+  //       });
+  //       return;
+  //     }
+  //     setOutOfArea(true);
+  //   } catch {
+  //     // Denial, Android permanent denial, timeout, position unavailable: four
+  //     // causes, one outcome. On Android a second refusal is sticky and the OS
+  //     // shows no dialog at all, so there is effectively one clean attempt.
+  //     setShowPincode(true);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handlePincode = async () => {
     if (pincode.length !== 6) return;
@@ -138,7 +152,7 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
     resolve({
       serviceable: false,
       label: lastSignal.pincode ?? "Out of area",
-      matchedBy: lastSignal.pincode ? "pincode" : "gps",
+      matchedBy: lastSignal.pincode ? "pincode" : "none",
     });
   };
 
@@ -155,7 +169,7 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
           <DialogDescription className="text-base mt-2">
             {outOfArea
               ? "FreshLyn covers parts of Kolkata and is expanding."
-              : "We'll check if we deliver to your area."}
+              : "Enter your pincode and we'll check if we deliver to your area."}
           </DialogDescription>
         </div>
 
@@ -209,10 +223,13 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
             </>
           ) : (
             <>
-              {/* The explanatory line above sits BEFORE the OS permission
-                  dialog on purpose. Deferring the prompt behind an explicit
-                  tap raises grant rates markedly, and on Android a denial is
-                  sticky -- there is effectively one clean attempt. */}
+              {/* [GPS-DISABLED] The accurate tier's entry point. The
+                  explanatory line above sat BEFORE the OS permission dialog on
+                  purpose: deferring the prompt behind an explicit tap raises
+                  grant rates markedly, and on Android a denial is sticky --
+                  there is effectively one clean attempt. Restore together with
+                  handleUseLocation.
+
               <Button
                 size="lg"
                 className="w-full rounded-xl gap-2 font-bold shadow-lg shadow-primary/20"
@@ -223,30 +240,27 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
                 <Navigation size={18} />
                 {loading ? "Checking…" : "Use my current location"}
               </Button>
+              */}
 
-              {showPincode && (
-                <div className="space-y-2" data-testid="section-pincode-fallback">
-                  <p className="text-xs text-muted-foreground text-center">
-                    No problem — enter your pincode instead.
-                  </p>
-                  <Input
-                    placeholder="700019"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={pincode}
-                    onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    data-testid="input-pincode"
-                  />
-                  <Button
-                    className="w-full rounded-xl"
-                    disabled={pincode.length !== 6 || loading}
-                    onClick={handlePincode}
-                    data-testid="button-check-pincode"
-                  >
-                    Check this pincode
-                  </Button>
-                </div>
-              )}
+              <div className="space-y-2" data-testid="section-pincode-fallback">
+                <Input
+                  placeholder="700019"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  data-testid="input-pincode"
+                />
+                <Button
+                  className="w-full rounded-xl font-bold shadow-lg shadow-primary/20"
+                  size="lg"
+                  disabled={pincode.length !== 6 || loading}
+                  onClick={handlePincode}
+                  data-testid="button-check-pincode"
+                >
+                  {loading ? "Checking…" : "Check this pincode"}
+                </Button>
+              </div>
 
               <div className="flex justify-center">
                 <Button

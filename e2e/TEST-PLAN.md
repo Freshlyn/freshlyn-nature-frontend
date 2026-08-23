@@ -200,7 +200,7 @@ Suggested spec: `addresses.spec.ts` (new, authed)
 | 10.4 | Pincode strips non-digits, caps at 6 | ⬜ | `input-profile-new-pincode` |
 | 10.5 | First address auto-set as default | ⬜ | `is_default` |
 | 10.6 | Set a different address as default | ⬜ | `button-set-default-*` |
-| 10.7 | Delete address (only when >1 exists) | ⬜ | `button-delete-address-*` |
+| 10.7 | Delete address (incl. the last/default one) | ⬜ | `button-delete-address-*`, then `button-confirm-delete-*` / `button-cancel-delete-*` |
 | 10.8 | Select address in cart's AddressModal | ⬜ | `button-change-address` on Cart |
 
 ## 11. Data Privacy & Account Deletion

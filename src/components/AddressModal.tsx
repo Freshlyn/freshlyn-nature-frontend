@@ -21,6 +21,11 @@ interface AddressModalProps {
   selectedAddressId?: string;
   /** Required in "select" mode; ignored in "manage". */
   onSelectAddress?: (address: UserAddress) => void;
+  /**
+   * Fired when the last saved address is deleted. "select" callers use it to
+   * drop a selected id that no longer refers to an existing row.
+   */
+  onAllAddressesDeleted?: () => void;
 }
 
 /**
@@ -38,11 +43,38 @@ export function AddressModal({
   title,
   selectedAddressId,
   onSelectAddress,
+  onAllAddressesDeleted,
 }: AddressModalProps) {
-  const { data: addresses = [] } = useAddresses();
+  const { data: addresses = [], isLoading: addressesLoading } = useAddresses();
   const [showAddForm, setShowAddForm] = useState(false);
   const [captureNotice, setCaptureNotice] = useState<string | null>(null);
   const [saveVerdict, setSaveVerdict] = useState<string | null>(null);
+
+  /**
+   * True once the user has dismissed the auto-opened form, so it is not
+   * immediately re-derived on the next render.
+   */
+  const [dismissedAutoForm, setDismissedAutoForm] = useState(false);
+
+  /**
+   * With nothing saved there is no list to choose from and exactly one useful
+   * action, so the dialog opens straight into the form -- turning a
+   * two-screen, three-tap flow into one tap.
+   *
+   * Derived during render rather than set from an effect: an effect would
+   * cascade an extra render and briefly paint the empty state first, which is
+   * the exact screen this removes.
+   *
+   * Gated on `addressesLoading` because `addresses` defaults to [] while the
+   * query is in flight; acting on that would flash the form open for users who
+   * do have addresses.
+   */
+  const shouldAutoOpenForm =
+    open && !addressesLoading && addresses.length === 0 && !dismissedAutoForm;
+  const formVisible = showAddForm || shouldAutoOpenForm;
+  // Cancelling a form the user never asked for should close the dialog; one
+  // they opened themselves falls back to the list.
+  const autoOpenedForm = shouldAutoOpenForm && !showAddForm;
 
   return (
     <Dialog
@@ -52,6 +84,7 @@ export function AddressModal({
           // Reset the transient view state so reopening starts clean rather
           // than showing a stale verdict from the previous visit.
           setShowAddForm(false);
+          setDismissedAutoForm(false);
           setCaptureNotice(null);
           setSaveVerdict(null);
           onClose();
@@ -90,11 +123,12 @@ export function AddressModal({
                   }
                 : undefined
             }
+            onAllAddressesDeleted={onAllAddressesDeleted}
             onNotice={setCaptureNotice}
-            showEmptyState={!showAddForm}
+            showEmptyState={!formVisible}
           />
 
-          {!showAddForm ? (
+          {!formVisible ? (
             <Button
               variant="outline"
               className="w-full gap-2 rounded-xl"
@@ -114,7 +148,16 @@ export function AddressModal({
                 if (mode === "select") onSelectAddress?.(addr);
                 setShowAddForm(false);
               }}
-              onCancel={() => setShowAddForm(false)}
+              onCancel={() => {
+                setShowAddForm(false);
+                // Cancelling a form we opened for them would otherwise land on
+                // the empty state the auto-open exists to skip, so the whole
+                // dialog closes instead.
+                if (autoOpenedForm) {
+                  setDismissedAutoForm(true);
+                  onClose();
+                }
+              }}
               onNotice={setCaptureNotice}
               onVerdict={setSaveVerdict}
             />

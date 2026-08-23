@@ -1,3 +1,5 @@
+// [GPS-DISABLED] The `capturing` flag also lived here; `pendingDelete` is
+// unrelated to that and keeps this import live.
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,11 +8,15 @@ import type { UserAddress } from "@/types/user";
 import {
   useSetDefaultAddress,
   useDeleteAddress,
-  useUpdateAddressCoordinates,
+  // [GPS-DISABLED] Only handleConfirmLocation wrote coordinates back.
+  // useUpdateAddressCoordinates,
 } from "@/hooks/use-addresses";
-import { Check, Trash2, Navigation, LocateFixed, MapPin } from "lucide-react";
-import { getCurrentPosition } from "@/lib/platform/geolocation";
-import { isUsableFix, checkServiceability } from "@/lib/serviceability";
+import { Check, Trash2, LocateFixed, MapPin } from "lucide-react";
+// [GPS-DISABLED] Navigation was the "Confirm location" button's icon.
+// import { Navigation } from "lucide-react";
+// [GPS-DISABLED] Re-enable with handleConfirmLocation below.
+// import { getCurrentPosition } from "@/lib/platform/geolocation";
+// import { isUsableFix, checkServiceability } from "@/lib/serviceability";
 import { getLabelIcon } from "./address-labels";
 
 interface AddressListProps {
@@ -22,6 +28,19 @@ interface AddressListProps {
   mode: "select" | "manage";
   selectedAddressId?: string;
   onSelectAddress?: (address: UserAddress) => void;
+  /**
+   * Fired when the LAST address is deleted, leaving the list empty.
+   *
+   * onSelectAddress cannot express this -- it requires an address -- so a
+   * caller holding a selected id needs its own signal to clear it. Without
+   * this, Cart would keep pointing selectedAddressId at a deleted row.
+   */
+  onAllAddressesDeleted?: () => void;
+  /**
+   * [GPS-DISABLED] Currently unused: handleConfirmLocation was this
+   * component's only caller. Kept in the contract because the callers still
+   * pass it and it is needed again the moment the capture is restored.
+   */
   onNotice: (notice: string | null) => void;
   /** Rendered when there are no saved addresses and the form is closed. */
   showEmptyState?: boolean;
@@ -32,79 +51,101 @@ export function AddressList({
   mode,
   selectedAddressId,
   onSelectAddress,
-  onNotice,
+  onAllAddressesDeleted,
+  // [GPS-DISABLED] Restore this destructuring with handleConfirmLocation.
+  // onNotice,
   showEmptyState,
 }: AddressListProps) {
   const { mutateAsync: setDefaultAddress } = useSetDefaultAddress();
   const { mutateAsync: deleteAddress } = useDeleteAddress();
-  const { mutateAsync: updateCoordinates } = useUpdateAddressCoordinates();
-  const [capturing, setCapturing] = useState(false);
+  // [GPS-DISABLED] Restore with handleConfirmLocation below.
+  // const { mutateAsync: updateCoordinates } = useUpdateAddressCoordinates();
+  // const [capturing, setCapturing] = useState(false);
+
+  // Id of the address awaiting confirmation. Deletion has no undo, so the
+  // trash icon arms an inline confirm rather than deleting on first tap.
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const handleSelect = async (addr: UserAddress) => {
     await setDefaultAddress(addr.id);
     onSelectAddress?.(addr);
   };
 
+  /**
+   * Deletes an address, including the user's last one.
+   *
+   * Deleting the last address is allowed: nothing in the database forbids it
+   * (the one-default index is partial, so zero defaults is valid, and orders
+   * reference addresses `on delete set null`, so history survives). The empty
+   * list is a legitimate state the add-form and empty state already handle.
+   */
   const handleDelete = async (addressId: string) => {
     const isSelected = selectedAddressId === addressId;
     await deleteAddress(addressId);
+    setPendingDelete(null);
+    const remaining = addresses.filter((a) => a.id !== addressId);
+    // Nothing left: the caller's selected id now points at a deleted row and
+    // onSelectAddress cannot say "none", so this is the only way to clear it.
+    if (remaining.length === 0) {
+      onAllAddressesDeleted?.();
+      return;
+    }
     if (isSelected) {
-      const remaining = addresses.filter((a) => a.id !== addressId);
       const newDefault = remaining.find((a) => a.is_default) || remaining[0];
       if (newDefault) onSelectAddress?.(newDefault);
     }
   };
 
-  /**
-   * Upgrades a pincode-tier address to GPS-tier.
-   *
-   * This is the path back for an address typed from elsewhere: the next time
-   * the user is standing at it, one tap pins it accurately and every future
-   * order -- including scheduled subscription deliveries -- switches from the
-   * coarse pincode allowlist to the polygon.
-   */
-  const handleConfirmLocation = async (addressId: string) => {
-    setCapturing(true);
-    onNotice(null);
-    try {
-      const coords = await getCurrentPosition();
-      if (!isUsableFix(coords)) {
-        onNotice("We couldn't get an accurate location. Try again outdoors.");
-        return;
-      }
-      // Guard the upgrade: this is a ONE-WAY move from pincode-tier (which
-      // ignores the polygon) to GPS-tier (which is bound by it). The seeded
-      // polygons are placeholders that don't yet cover every serviceable
-      // pincode's true extent, so writing a fix the polygon rejects would
-      // silently lock out an address that orders fine today, with no
-      // self-service way back. Check before writing, never after.
-      const verdict = await checkServiceability({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-      });
-      if (!verdict.serviceable) {
-        onNotice(
-          "We can't confirm delivery at this exact spot, so we've kept your address as it is. Your orders are unaffected.",
-        );
-        return;
-      }
-      try {
-        await updateCoordinates({
-          addressId,
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-        });
-      } catch {
-        // The location WAS obtained here -- it is the database write that
-        // failed, so this must not be reported as a capture failure.
-        onNotice("We couldn't save your location. Please try again.");
-      }
-    } catch {
-      onNotice("We couldn't get your location.");
-    } finally {
-      setCapturing(false);
-    }
-  };
+  // [GPS-DISABLED] Upgraded a pincode-tier address to GPS-tier.
+  //
+  // This was the path back for an address typed from elsewhere: the next time
+  // the user was standing at it, one tap pinned it accurately and every future
+  // order -- including scheduled subscription deliveries -- switched from the
+  // coarse pincode allowlist to the polygon. With it disabled, an address that
+  // already has stored coordinates has no self-service way to change them.
+  //
+  // const handleConfirmLocation = async (addressId: string) => {
+  //   setCapturing(true);
+  //   onNotice(null);
+  //   try {
+  //     const coords = await getCurrentPosition();
+  //     if (!isUsableFix(coords)) {
+  //       onNotice("We couldn't get an accurate location. Try again outdoors.");
+  //       return;
+  //     }
+  //     // Guard the upgrade: this is a ONE-WAY move from pincode-tier (which
+  //     // ignores the polygon) to GPS-tier (which is bound by it). The seeded
+  //     // polygons are placeholders that don't yet cover every serviceable
+  //     // pincode's true extent, so writing a fix the polygon rejects would
+  //     // silently lock out an address that orders fine today, with no
+  //     // self-service way back. Check before writing, never after.
+  //     const verdict = await checkServiceability({
+  //       latitude: coords.latitude,
+  //       longitude: coords.longitude,
+  //     });
+  //     if (!verdict.serviceable) {
+  //       onNotice(
+  //         "We can't confirm delivery at this exact spot, so we've kept your address as it is. Your orders are unaffected.",
+  //       );
+  //       return;
+  //     }
+  //     try {
+  //       await updateCoordinates({
+  //         addressId,
+  //         latitude: coords.latitude,
+  //         longitude: coords.longitude,
+  //       });
+  //     } catch {
+  //       // The location WAS obtained here -- it is the database write that
+  //       // failed, so this must not be reported as a capture failure.
+  //       onNotice("We couldn't save your location. Please try again.");
+  //     }
+  //   } catch {
+  //     onNotice("We couldn't get your location.");
+  //   } finally {
+  //     setCapturing(false);
+  //   }
+  // };
 
   if (addresses.length === 0 && showEmptyState) {
     return (
@@ -176,6 +217,9 @@ export function AddressList({
                     .filter(Boolean)
                     .join(", ")}
                 </p>
+                {/* [GPS-DISABLED] The pincode-tier -> GPS-tier upgrade button.
+                    Restore together with handleConfirmLocation above.
+
                 {(addr.latitude === null || addr.longitude === null) && (
                   <Button
                     variant="ghost"
@@ -192,6 +236,7 @@ export function AddressList({
                     Confirm location
                   </Button>
                 )}
+                */}
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 {mode === "manage" && !addr.is_default && (
@@ -207,14 +252,45 @@ export function AddressList({
                     <Check size={14} />
                   </Button>
                 )}
-                {addresses.length > 1 && (
+                {/* Previously gated on `addresses.length > 1`, which left a
+                    user with a single saved address unable to delete it. The
+                    empty list is a valid state, so the gate is gone and a
+                    confirm step guards the (undoable) delete instead. */}
+                {pendingDelete === addr.id ? (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-7 rounded-lg px-2 text-[11px]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDelete(addr.id);
+                      }}
+                      data-testid={`button-confirm-delete-${addr.id}`}
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 rounded-lg px-2 text-[11px] text-muted-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPendingDelete(null);
+                      }}
+                      data-testid={`button-cancel-delete-${addr.id}`}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
                   <Button
                     variant="ghost"
                     size="icon"
                     className="text-muted-foreground"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(addr.id);
+                      setPendingDelete(addr.id);
                     }}
                     data-testid={`button-delete-address-${addr.id}`}
                   >
