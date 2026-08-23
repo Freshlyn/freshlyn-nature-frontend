@@ -53,6 +53,67 @@ describe("getErrorMessage", () => {
     expect(await getErrorMessage(new FunctionsHttpError(response))).toBe("Invalid or expired OTP");
   });
 
+  it("names the offending item and its cap for a quantity_limit_exceeded 409", async () => {
+    // The generic body.error here is "One or more items failed validation",
+    // which tells a shopper nothing about which item or what to do. The
+    // rejectedItems payload carries the actionable part.
+    const response = new Response(
+      JSON.stringify({
+        error: "One or more items failed validation",
+        rejectedItems: [
+          {
+            productId: "p1",
+            variantId: "v1",
+            reason: "quantity_limit_exceeded",
+            maxQuantityPerOrder: 10,
+          },
+        ],
+      }),
+      { status: 409, headers: { "Content-Type": "application/json" } },
+    );
+    const message = await getErrorMessage(new FunctionsHttpError(response));
+    expect(message).toMatch(/10/);
+    expect(message).not.toBe("One or more items failed validation");
+  });
+
+  it("explains an insufficient_stock rejection without inventing a limit", async () => {
+    const response = new Response(
+      JSON.stringify({
+        error: "One or more items failed validation",
+        rejectedItems: [{ productId: "p1", variantId: "v1", reason: "insufficient_stock" }],
+      }),
+      { status: 409, headers: { "Content-Type": "application/json" } },
+    );
+    const message = await getErrorMessage(new FunctionsHttpError(response));
+    expect(message).toMatch(/stock/i);
+  });
+
+  it("summarises when several items are rejected at once", async () => {
+    const response = new Response(
+      JSON.stringify({
+        error: "One or more items failed validation",
+        rejectedItems: [
+          { productId: "p1", variantId: "v1", reason: "insufficient_stock" },
+          { productId: "p2", variantId: "v2", reason: "quantity_limit_exceeded", maxQuantityPerOrder: 10 },
+        ],
+      }),
+      { status: 409, headers: { "Content-Type": "application/json" } },
+    );
+    const message = await getErrorMessage(new FunctionsHttpError(response));
+    expect(message).toMatch(/2 items/i);
+  });
+
+  it("keeps the server message when a failure carries no rejectedItems", async () => {
+    // 422 serviceability and friends must not be reworded by the 409 path.
+    const response = new Response(
+      JSON.stringify({ error: "We don't deliver to this address yet" }),
+      { status: 422, headers: { "Content-Type": "application/json" } },
+    );
+    expect(await getErrorMessage(new FunctionsHttpError(response))).toBe(
+      "We don't deliver to this address yet",
+    );
+  });
+
   it("falls back to an error's message", async () => {
     expect(await getErrorMessage(new Error("Something specific"))).toBe("Something specific");
   });

@@ -26,6 +26,8 @@ export interface CartItemWithDetails {
   subscription_start_date?: string;
   product: Product;
   variant: ProductVariant;
+  /** Highest quantity allowed for this item; see resolveQuantityCap. */
+  max_quantity: number;
   item_total: number;
   delivery_count?: number;
   discount_percent?: number;
@@ -108,6 +110,52 @@ function getItemKey(
     return `${productId}_${variantId}_sub_${subscriptionDuration}_${subscriptionFrequency}`;
   }
   return `${productId}_${variantId}_onetime`;
+}
+
+/** Per-order cap applied when a variant payload carries no limit of its own. */
+export const DEFAULT_MAX_QUANTITY_PER_ORDER = 100;
+
+/**
+ * The highest quantity a customer may hold of one variant.
+ *
+ * Two independent ceilings bind here: the variant's own max_quantity_per_order
+ * and what is actually in stock. Whichever is tighter wins -- Milk ships with a
+ * deliberately-lowered limit of 10 against ~100 units of stock, but a nearly
+ * sold-out variant inverts that.
+ *
+ * The fallback covers a MISSING field, not a wrong one. The column is NOT NULL
+ * in the database, so this only catches a client-side hole (a cached or
+ * partially-mapped variant). A limit that is present but wrong is a data fix --
+ * capping harder here would just make the client disagree with the server,
+ * which still has the final say at checkout.
+ */
+export function resolveQuantityCap(variant: {
+  max_quantity_per_order?: number;
+  stock_quantity?: number;
+}): number {
+  const limit = variant.max_quantity_per_order ?? DEFAULT_MAX_QUANTITY_PER_ORDER;
+  // Absent stock means "unknown", not "none" -- defaulting it to 0 would make
+  // every item in such a payload unaddable.
+  const stock = variant.stock_quantity ?? Number.POSITIVE_INFINITY;
+  // An out-of-stock variant yields 0, never a negative cap.
+  return Math.max(0, Math.min(limit, stock));
+}
+
+/**
+ * Applies a cap to a requested quantity, reporting whether it actually bit.
+ *
+ * `limitReached` is true only when the request was REFUSED -- i.e. the customer
+ * asked for more than they can have. Landing exactly on the cap is a successful
+ * add and stays quiet; it is the next tap, which cannot move the number, that
+ * earns the message. This mirrors Blinkit, which toasts on every refused tap
+ * rather than disabling the control.
+ */
+export function applyQuantityCap(
+  requested: number,
+  cap: number,
+): { granted: number; limitReached: boolean } {
+  const granted = Math.max(0, Math.min(requested, cap));
+  return { granted, limitReached: requested > cap };
 }
 
 /**
@@ -223,6 +271,15 @@ export function useStaticCart(products: Product[] = [], productsLoading = false)
         );
       });
 
+      // Clamp against the variant's own ceiling. The server rejects an
+      // over-limit line at checkout regardless; capping here means the customer
+      // finds out at the stepper instead of after entering an address.
+      const variantForCap = cartVariants.find((v) => v.id === variantId);
+      const cap = variantForCap ? resolveQuantityCap(variantForCap) : Number.POSITIVE_INFINITY;
+
+      const requested = existing ? existing.quantity + quantity : quantity;
+      const { granted, limitReached } = applyQuantityCap(requested, cap);
+
       if (existing) {
         globalCart = globalCart.map((item) =>
           getItemKey(
@@ -232,7 +289,7 @@ export function useStaticCart(products: Product[] = [], productsLoading = false)
             item.subscription_duration,
             item.subscription_frequency,
           ) === itemKey
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: granted }
             : item,
         );
       } else {
@@ -242,7 +299,7 @@ export function useStaticCart(products: Product[] = [], productsLoading = false)
             id: `local_cart_${cartIdCounter++}`,
             product_id: productId,
             variant_id: variantId,
-            quantity,
+            quantity: granted,
             delivery_type: deliveryType,
             subscription_duration: subscriptionDuration,
             subscription_frequency: subscriptionFrequency,
@@ -258,7 +315,16 @@ export function useStaticCart(products: Product[] = [], productsLoading = false)
       const variantName = params.variantName ?? cartVariants.find((v) => v.id === variantId)?.name;
       const label = variantName ? `${productName} (${variantName})` : productName;
 
-      if (deliveryType === "subscription") {
+      if (limitReached) {
+        // The quantity did not move, so "Added to cart" would be a lie. Name the
+        // cap: unlike a stock-derived ceiling, this is a deliberate rule, and
+        // the number is the first thing a customer asks for.
+        toast({
+          title: `Max ${cap} per order`,
+          description: `You can't add more of this item.`,
+          variant: "destructive",
+        });
+      } else if (deliveryType === "subscription") {
         toast({
           title: "Subscription added",
           description: `${label} - ${subscriptionDuration} deliveries`,
@@ -277,16 +343,38 @@ export function useStaticCart(products: Product[] = [], productsLoading = false)
     [addToCart],
   );
 
-  const updateQuantity = useCallback((cartItemId: string, quantity: number) => {
-    if (quantity <= 0) {
-      globalCart = globalCart.filter((i) => i.id !== cartItemId);
-    } else {
-      globalCart = globalCart.map((item) =>
-        item.id === cartItemId ? { ...item, quantity } : item,
-      );
-    }
-    emitChange();
-  }, []);
+  const updateQuantity = useCallback(
+    (cartItemId: string, quantity: number) => {
+      if (quantity <= 0) {
+        globalCart = globalCart.filter((i) => i.id !== cartItemId);
+        emitChange();
+        return;
+      }
+
+      let refusedCap: number | null = null;
+      globalCart = globalCart.map((item) => {
+        if (item.id !== cartItemId) return item;
+        const variant = cartVariants.find((v) => v.id === item.variant_id);
+        const cap = variant ? resolveQuantityCap(variant) : Number.POSITIVE_INFINITY;
+        const { granted, limitReached } = applyQuantityCap(quantity, cap);
+        if (limitReached) refusedCap = cap;
+        return { ...item, quantity: granted };
+      });
+
+      emitChange();
+
+      // The stepper stays enabled at the cap (see Cart.tsx), so a refused tap
+      // reaches here and must explain itself rather than doing nothing.
+      if (refusedCap !== null) {
+        toast({
+          title: `Max ${refusedCap} per order`,
+          description: `You can't add more of this item.`,
+          variant: "destructive",
+        });
+      }
+    },
+    [cartVariants, toast],
+  );
 
   const removeFromCart = useCallback((cartItemId: string) => {
     globalCart = globalCart.filter((item) => item.id !== cartItemId);
@@ -383,6 +471,7 @@ export function useStaticCart(products: Product[] = [], productsLoading = false)
         subscription_start_date: item.subscription_start_date,
         product,
         variant,
+        max_quantity: resolveQuantityCap(variant),
         item_total: itemTotal,
         delivery_count: deliveryCount,
         discount_percent: discountPercent,
