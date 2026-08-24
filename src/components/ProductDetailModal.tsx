@@ -15,7 +15,13 @@ import {
   differenceInCalendarDays,
 } from "date-fns";
 import type { Product, SubscriptionFrequency } from "@/hooks/use-products";
-import { useProduct, getFrequencyLabel, getFrequencyIntervalDays } from "@/hooks/use-products";
+import {
+  useProduct,
+  getFrequencyLabel,
+  getFrequencyIntervalDays,
+  isVariantOutOfStock,
+} from "@/hooks/use-products";
+import { OutOfStockStamp } from "@/components/OutOfStockStamp";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +126,9 @@ export function ProductDetailModal({
     () => variants.find((v) => v.id === selectedVariantId),
     [variants, selectedVariantId],
   );
+  // Gates the CTA slot. Keyed off the SELECTED size, not the product: with one
+  // size gone and another in stock, the customer can still check out here.
+  const selectedVariantSoldOut = !!selectedVariant && isVariantOutOfStock(selectedVariant);
   const selectedDurationOption = useMemo(
     () =>
       subscriptionConfig && selectedDuration
@@ -185,7 +194,11 @@ export function ProductDetailModal({
         setSelectedStartDate(nextMinStartDate);
         setCalendarViewMonth(startOfMonth(nextMinStartDate));
       } else {
-        setSelectedVariantId(productVariants[0]?.id || "");
+        // Open on a size the customer can actually buy. Falling back to the
+        // first variant only when every size is sold out keeps the CTA slot
+        // filled by the stamp rather than an empty selection.
+        const firstAvailable = productVariants.find((v) => !isVariantOutOfStock(v));
+        setSelectedVariantId((firstAvailable ?? productVariants[0])?.id || "");
         const hasSub = !!config?.enabled;
         const initialDeliveryType = hasSub ? "subscription" : "one_time";
         setDeliveryType(initialDeliveryType);
@@ -344,43 +357,75 @@ export function ProductDetailModal({
                     Size
                   </Label>
                   <div className="flex flex-wrap gap-2">
-                    {variants.map((variant) => (
-                      <button
-                        key={variant.id}
-                        onClick={() => setSelectedVariantId(variant.id)}
-                        className={`px-3 py-1.5 rounded-2xl border text-center leading-tight transition-all duration-150 active:scale-95 ${
-                          selectedVariantId === variant.id
-                            ? "border-primary bg-gradient-to-r from-primary to-primary/85 shadow-md shadow-primary/25 ring-1 ring-primary/30"
-                            : "border-border/70 bg-white hover:border-primary/40 hover:shadow-sm"
-                        }`}
-                        data-testid={`variant-${variant.id}`}
-                      >
-                        <div
-                          className={`text-xs font-bold ${
-                            selectedVariantId === variant.id ? "text-white" : "text-foreground"
+                    {variants.map((variant) => {
+                      const variantSoldOut = isVariantOutOfStock(variant);
+                      return (
+                        <button
+                          key={variant.id}
+                          onClick={() => setSelectedVariantId(variant.id)}
+                          disabled={variantSoldOut}
+                          className={`px-3 py-1.5 rounded-2xl border text-center leading-tight transition-all duration-150 ${
+                            variantSoldOut
+                              ? "border-dashed border-muted-foreground/30 bg-muted/40 cursor-not-allowed"
+                              : selectedVariantId === variant.id
+                                ? "border-primary bg-gradient-to-r from-primary to-primary/85 shadow-md shadow-primary/25 ring-1 ring-primary/30 active:scale-95"
+                                : "border-border/70 bg-white hover:border-primary/40 hover:shadow-sm active:scale-95"
                           }`}
+                          data-testid={`variant-${variant.id}`}
+                          data-out-of-stock={variantSoldOut || undefined}
                         >
-                          {variant.name}
-                        </div>
-                        <div
-                          className={`text-[11px] mt-0.5 ${
-                            selectedVariantId === variant.id
-                              ? "text-white/80"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          ₹{variant.price.toFixed(2)}
-                        </div>
-                      </button>
-                    ))}
+                          <div
+                            className={`text-xs font-bold ${
+                              variantSoldOut
+                                ? "text-muted-foreground/70"
+                                : selectedVariantId === variant.id
+                                  ? "text-white"
+                                  : "text-foreground"
+                            }`}
+                          >
+                            {variant.name}
+                          </div>
+                          {variantSoldOut ? (
+                            // The size stays listed so the customer can see it
+                            // exists and may return for it -- Blinkit/Zepto keep
+                            // sold-out sizes visible rather than removing them.
+                            <div className="text-[9px] mt-0.5 font-bold uppercase tracking-wide text-muted-foreground/70">
+                              Out of stock
+                            </div>
+                          ) : (
+                            <div
+                              className={`text-[11px] mt-0.5 ${
+                                selectedVariantId === variant.id
+                                  ? "text-white/80"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              ₹{variant.price.toFixed(2)}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {variants.length === 1 && (
                 <div className="flex items-center justify-between px-3.5 py-2.5 bg-muted/40 rounded-xl border border-border/40 text-sm">
-                  <span className="font-medium">{variants[0].name}</span>
-                  <span className="font-bold text-primary">₹{variants[0].price.toFixed(2)}</span>
+                  <span
+                    className={`font-medium ${
+                      isVariantOutOfStock(variants[0]) ? "text-muted-foreground" : ""
+                    }`}
+                  >
+                    {variants[0].name}
+                  </span>
+                  {isVariantOutOfStock(variants[0]) ? (
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                      Out of stock
+                    </span>
+                  ) : (
+                    <span className="font-bold text-primary">₹{variants[0].price.toFixed(2)}</span>
+                  )}
                 </div>
               )}
 
@@ -661,7 +706,14 @@ export function ProductDetailModal({
                       <span className="text-[10px] text-muted-foreground/80 font-medium uppercase tracking-wider block leading-tight">
                         Price
                       </span>
-                      <span className="text-2xl font-display font-bold text-primary leading-tight">
+                      {/* Muted, not hidden: the price stays useful information
+                          for someone deciding whether to come back, but must
+                          not read as a live offer next to the stamp. */}
+                      <span
+                        className={`text-2xl font-display font-bold leading-tight ${
+                          selectedVariantSoldOut ? "text-muted-foreground/60" : "text-primary"
+                        }`}
+                      >
                         ₹{selectedVariant ? selectedVariant.price.toFixed(2) : "0.00"}
                       </span>
                       <span className="text-[11px] text-muted-foreground"> / item</span>
@@ -674,7 +726,9 @@ export function ProductDetailModal({
                           className="absolute inset-0 rounded-full border-2 border-primary animate-ring-pulse pointer-events-none"
                         />
                       )}
-                      {!oneTimeCartItem || oneTimeCartItem.quantity <= 0 ? (
+                      {selectedVariantSoldOut ? (
+                        <OutOfStockStamp size="block" data-testid="stamp-out-of-stock-modal" />
+                      ) : !oneTimeCartItem || oneTimeCartItem.quantity <= 0 ? (
                         <button
                           onClick={handleIncrementOneTime}
                           disabled={!selectedVariantId}
@@ -725,15 +779,23 @@ export function ProductDetailModal({
                       </span>
                     </div>
 
-                    <Button
-                      onClick={handleSubscribe}
-                      className="flex-1 h-11 text-sm font-bold rounded-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/35 transition-all duration-150 active:scale-[0.97] hover:shadow-xl hover:shadow-primary/40"
-                      disabled={!selectedVariantId || !selectedDuration}
-                      data-testid="button-add-to-cart-modal"
-                    >
-                      <Sparkles size={15} className="mr-1.5" />
-                      {existingSubscriptionItem ? "Update Subscription" : "Subscribe"}
-                    </Button>
+                    {selectedVariantSoldOut ? (
+                      <OutOfStockStamp
+                        size="block"
+                        className="flex-1"
+                        data-testid="stamp-out-of-stock-modal-subscribe"
+                      />
+                    ) : (
+                      <Button
+                        onClick={handleSubscribe}
+                        className="flex-1 h-11 text-sm font-bold rounded-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/35 transition-all duration-150 active:scale-[0.97] hover:shadow-xl hover:shadow-primary/40"
+                        disabled={!selectedVariantId || !selectedDuration}
+                        data-testid="button-add-to-cart-modal"
+                      >
+                        <Sparkles size={15} className="mr-1.5" />
+                        {existingSubscriptionItem ? "Update Subscription" : "Subscribe"}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>

@@ -265,6 +265,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
                   startingPrice={product.startingPrice}
                   hasSubscription={product.hasSubscription}
                   quantity={getQuantity(product.id)}
+                  outOfStock={product.outOfStock}
                   onAdd={() => handleProductClick(product)}
                 />
               ))}

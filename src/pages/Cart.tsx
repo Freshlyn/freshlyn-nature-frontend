@@ -5,7 +5,8 @@ import { useAddresses } from "@/hooks/use-addresses";
 import { useCheckout } from "@/hooks/use-checkout";
 import { useRazorpay } from "@/hooks/use-razorpay";
 import { useAddressServiceability } from "@/hooks/use-serviceability";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, getRejectedItems } from "@/lib/errors";
+import { OutOfStockStamp } from "@/components/OutOfStockStamp";
 import { Header } from "@/components/Header";
 import { AddressModal } from "@/components/AddressModal";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
@@ -34,7 +35,7 @@ import {
   Wallet,
 } from "lucide-react";
 import type { Product } from "@/hooks/use-products";
-import { getFrequencyLabel, useProducts } from "@/hooks/use-products";
+import { getFrequencyLabel, useProducts, isVariantOutOfStock } from "@/hooks/use-products";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
@@ -92,7 +93,6 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
     updateQuantity,
     removeFromCart,
     clearCart,
-    getCartTotal,
     addToCart,
   } = useStaticCart(allProducts, productsLoading);
   const { isAuthenticated, profile } = useAuth();
@@ -110,15 +110,94 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  /**
+   * Variant ids the SERVER refused on the last checkout attempt, keyed by
+   * `${productId}:${variantId}`.
+   *
+   * Held separately from the cart itself because it is a fact about one
+   * response, not about the stored cart: changing a quantity or removing the
+   * line makes it obsolete, so it is cleared rather than persisted.
+   */
+  const [rejectedKeys, setRejectedKeys] = useState<Set<string>>(new Set());
 
   const cartItems = getCartWithProducts();
   // While details are still loading cartItems is empty, but the stored cart
   // already knows how many lines there are -- use it so the count does not
   // pop in after the skeleton clears.
   const displayCount = isCartLoading ? cart.length : cartItems.length;
-  const total = getCartTotal();
+
+  /**
+   * Lines the customer cannot currently buy.
+   *
+   * Two sources, deliberately unioned. The variant's own stock is already in
+   * memory (the cart-variants query selects it), so checking it costs nothing
+   * and catches a cart resumed after the item sold out. The server rejections
+   * catch the case no client check can -- stock that ran out while the customer
+   * sat on this page -- and are authoritative when present.
+   */
+  const unavailableIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const item of cartItems) {
+      if (
+        isVariantOutOfStock(item.variant) ||
+        rejectedKeys.has(`${item.product_id}:${item.variant_id}`)
+      ) {
+        ids.add(item.id);
+      }
+    }
+    return ids;
+  }, [cartItems, rejectedKeys]);
+
+  const hasUnavailable = unavailableIds.size > 0;
+
+  // An unbuyable line must not inflate the total the customer is about to be
+  // charged; checkout is blocked while any exists, so this is what they'd pay
+  // after clearing them.
+  const total = useMemo(
+    () =>
+      cartItems.reduce(
+        (sum, item) => (unavailableIds.has(item.id) ? sum : sum + item.item_total),
+        0,
+      ),
+    [cartItems, unavailableIds],
+  );
   const deliveryFee = total > FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
   const grandTotal = total + deliveryFee;
+
+  /** Drop every line the customer cannot buy, so checkout can proceed. */
+  const removeUnavailable = () => {
+    for (const id of unavailableIds) removeFromCart(id);
+    setRejectedKeys(new Set());
+  };
+
+  /**
+   * A server rejection describes one checkout attempt at one set of
+   * quantities. Once the customer changes that line the verdict no longer
+   * applies, so drop it and let the next attempt decide -- otherwise lowering
+   * the quantity to a buyable amount would leave the line stuck as unavailable.
+   *
+   * The in-memory stock check is unaffected: it re-derives from the variant, so
+   * a genuinely sold-out line stays marked through this.
+   */
+  const clearRejectionFor = (productId: string, variantId: string) => {
+    const key = `${productId}:${variantId}`;
+    setRejectedKeys((prev) => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  };
+
+  const handleUpdateQuantity = (item: (typeof cartItems)[number], quantity: number) => {
+    clearRejectionFor(item.product_id, item.variant_id);
+    updateQuantity(item.id, quantity);
+  };
+
+  const handleRemove = (item: (typeof cartItems)[number]) => {
+    clearRejectionFor(item.product_id, item.variant_id);
+    removeFromCart(item.id);
+  };
 
   const hasSubscriptionItems = useMemo(
     () => cartItems.some((item) => item.delivery_type === "subscription"),
@@ -218,6 +297,13 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
       queryClient.resetQueries({ queryKey: ["orders"] });
       setLocation("/orders");
     } catch (err) {
+      // Keep WHICH items the server refused, not just the prose. The toast can
+      // only say "an item is out of stock"; these ids let the cart point at the
+      // line so the customer can act on it.
+      const rejected = await getRejectedItems(err);
+      if (rejected.length > 0) {
+        setRejectedKeys(new Set(rejected.map((r) => `${r.productId}:${r.variantId}`)));
+      }
       toast({
         title: "Error",
         description: await getErrorMessage(err),
@@ -320,18 +406,27 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
         ) : (
           <div className="grid md:grid-cols-3 gap-4 md:gap-6">
             <div className="md:col-span-2 space-y-3">
-              {cartItems.map((item) => (
+              {cartItems.map((item) => {
+                const itemUnavailable = unavailableIds.has(item.id);
+                return (
                 <div
                   key={item.id}
-                  className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-border/40 hover:shadow-md transition-shadow"
+                  className={`bg-white p-3 md:p-4 rounded-2xl shadow-sm transition-shadow ${
+                    itemUnavailable
+                      ? "border-[1.5px] border-destructive/30 bg-destructive/[0.02]"
+                      : "border border-border/40 hover:shadow-md"
+                  }`}
                   data-testid={`cart-item-${item.id}`}
+                  data-unavailable={itemUnavailable || undefined}
                 >
                   <div className="flex gap-3 md:gap-4">
                     <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-gradient-to-br from-muted/50 to-muted/20 overflow-hidden flex-shrink-0 border border-border/30">
                       <img
                         src={item.product.image_url ?? undefined}
                         alt={item.product.name}
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${
+                          itemUnavailable ? "grayscale opacity-45" : ""
+                        }`}
                       />
                     </div>
 
@@ -347,7 +442,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                           </p>
                         </div>
                         <button
-                          onClick={() => removeFromCart(item.id)}
+                          onClick={() => handleRemove(item)}
                           className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0"
                           data-testid={`button-remove-${item.id}`}
                         >
@@ -377,20 +472,35 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                         </div>
                       )}
 
+                      {itemUnavailable && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <OutOfStockStamp data-testid={`cart-stamp-${item.id}`} />
+                          <span className="text-[11px] text-muted-foreground leading-tight">
+                            Remove this item to continue
+                          </span>
+                        </div>
+                      )}
+
                       <div className="flex items-end justify-between mt-3">
                         <div>
-                          <p className="font-display font-bold text-lg text-primary">
+                          <p
+                            className={`font-display font-bold text-lg ${
+                              itemUnavailable
+                                ? "text-muted-foreground/50 line-through"
+                                : "text-primary"
+                            }`}
+                          >
                             ₹{item.item_total.toFixed(2)}
                           </p>
                         </div>
 
-                        {item.delivery_type === "one_time" && (
+                        {item.delivery_type === "one_time" && !itemUnavailable && (
                           <div className="flex items-center bg-muted/40 rounded-lg p-0.5 border border-border/40">
                             <button
                               onClick={() =>
                                 item.quantity <= 1
-                                  ? removeFromCart(item.id)
-                                  : updateQuantity(item.id, item.quantity - 1)
+                                  ? handleRemove(item)
+                                  : handleUpdateQuantity(item, item.quantity - 1)
                               }
                               className="w-8 h-8 flex items-center justify-center rounded-md bg-white shadow-sm text-foreground hover:bg-muted transition-colors active:scale-95"
                               data-testid={`button-decrease-${item.id}`}
@@ -408,7 +518,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
                               className="w-8 h-8 flex items-center justify-center rounded-md bg-white shadow-sm text-foreground hover:bg-muted transition-colors active:scale-95"
                               data-testid={`button-increase-${item.id}`}
                             >
@@ -434,7 +544,8 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="md:col-span-1 space-y-4">
@@ -658,6 +769,33 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                   })}
                 </div>
 
+                {hasUnavailable && (
+                  <div
+                    className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3"
+                    role="alert"
+                    data-testid="banner-unavailable-items"
+                  >
+                    <p className="text-sm font-semibold text-destructive">
+                      {unavailableIds.size === 1
+                        ? "An item is no longer available"
+                        : `${unavailableIds.size} items are no longer available`}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {unavailableIds.size === 1 ? "It" : "They"} sold out while in your cart.
+                      Remove {unavailableIds.size === 1 ? "it" : "them"} to place your order.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={removeUnavailable}
+                      data-testid="button-remove-unavailable"
+                    >
+                      Remove unavailable {unavailableIds.size === 1 ? "item" : "items"}
+                    </Button>
+                  </div>
+                )}
+
                 {addressNotServiceable && (
                   <div
                     className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3"
@@ -685,7 +823,11 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                 <Button
                   onClick={handleCheckout}
                   disabled={
-                    isPending || isCheckingOut || serviceabilityLoading || addressNotServiceable
+                    isPending ||
+                    isCheckingOut ||
+                    serviceabilityLoading ||
+                    addressNotServiceable ||
+                    hasUnavailable
                   }
                   className="w-full h-14 text-base rounded-xl font-bold bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/25 hover:shadow-xl transition-all active:scale-[0.98]"
                   data-testid="button-checkout"

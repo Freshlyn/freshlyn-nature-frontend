@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { Product } from "@/hooks/use-products";
 import { productDetailQuery } from "@/hooks/use-products";
 import { Button } from "@/components/ui/button";
+import { OutOfStockStamp } from "@/components/OutOfStockStamp";
 import { Repeat, Plus } from "lucide-react";
 
 interface ProductCardProps {
@@ -9,6 +10,8 @@ interface ProductCardProps {
   startingPrice: number;
   hasSubscription: boolean;
   quantity?: number;
+  /** Every variant sold out. The card stays open-able; only Add is replaced. */
+  outOfStock?: boolean;
   onAdd: () => void;
 }
 
@@ -17,6 +20,7 @@ export function ProductCard({
   startingPrice,
   hasSubscription,
   quantity = 0,
+  outOfStock = false,
   onAdd,
 }: ProductCardProps) {
   const queryClient = useQueryClient();
@@ -33,8 +37,15 @@ export function ProductCard({
 
   return (
     <div
-      className="group relative bg-white rounded-2xl overflow-hidden transition-all duration-300 flex flex-col h-full cursor-pointer shadow-sm hover:shadow-xl hover:shadow-primary/10 border border-border/40 hover:border-primary/30 active:scale-[0.98]"
+      className={`group relative bg-white rounded-2xl overflow-hidden transition-all duration-300 flex flex-col h-full cursor-pointer shadow-sm border border-border/40 ${
+        outOfStock
+          ? // Muted lift/scale: the card still opens, but it should not court
+            // the tap the way an in-stock one does.
+            "hover:shadow-md hover:border-border/60"
+          : "hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 active:scale-[0.98]"
+      }`}
       data-testid={`product-card-${product.id}`}
+      data-out-of-stock={outOfStock || undefined}
       onClick={onAdd}
       onMouseEnter={prefetchDetail}
       onPointerDown={prefetchDetail}
@@ -43,7 +54,13 @@ export function ProductCard({
         <img
           src={imageSrc}
           alt={product.name}
-          className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
+          className={`w-full h-full object-cover object-center transition-transform duration-500 ${
+            outOfStock
+              ? // Desaturated + dimmed so a sold-out tile reads as inactive at a
+                // glance while scanning the grid, before any label is read.
+                "grayscale opacity-45"
+              : "group-hover:scale-110"
+          }`}
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -52,7 +69,7 @@ export function ProductCard({
           {product.category}
         </div>
 
-        {hasSubscription && (
+        {hasSubscription && !outOfStock && (
           <div className="absolute top-2 right-2 bg-gradient-to-r from-primary to-primary/80 text-white px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-lg shadow-primary/30">
             <Repeat size={10} />
             Subscribe
@@ -87,28 +104,32 @@ export function ProductCard({
             </span>
           </div>
 
-          <Button
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdd();
-            }}
-            className={`h-9 px-3 rounded-xl font-bold text-xs transition-all shadow-md ${
-              quantity > 0
-                ? "bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/30"
-                : "bg-primary text-white hover:bg-primary/90 shadow-primary/30"
-            }`}
-            data-testid={`button-add-${product.id}`}
-          >
-            {quantity > 0 ? (
-              <>Update</>
-            ) : (
-              <>
-                <Plus size={14} className="mr-1" />
-                Add
-              </>
-            )}
-          </Button>
+          {outOfStock ? (
+            <OutOfStockStamp data-testid={`stamp-out-of-stock-${product.id}`} />
+          ) : (
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdd();
+              }}
+              className={`h-9 px-3 rounded-xl font-bold text-xs transition-all shadow-md ${
+                quantity > 0
+                  ? "bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/30"
+                  : "bg-primary text-white hover:bg-primary/90 shadow-primary/30"
+              }`}
+              data-testid={`button-add-${product.id}`}
+            >
+              {quantity > 0 ? (
+                <>Update</>
+              ) : (
+                <>
+                  <Plus size={14} className="mr-1" />
+                  Add
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </div>

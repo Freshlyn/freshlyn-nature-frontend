@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js";
-import { getErrorMessage, isNetworkError } from "./errors";
+import { getErrorMessage, isNetworkError, getRejectedItems } from "./errors";
 
 // A lost connection has to be told apart from a server saying no: the two need
 // different words in the toast ("check your connection and retry" vs. whatever
@@ -120,5 +120,70 @@ describe("getErrorMessage", () => {
 
   it("has a last-resort message for values that carry nothing useful", async () => {
     expect(await getErrorMessage(null)).toBe("Something went wrong.");
+  });
+});
+
+// getErrorMessage only produces prose ("an item is out of stock"), which cannot
+// tell a customer WHICH of eight lines to fix. These pin down the structured
+// extraction the cart uses to mark the offending line.
+describe("getRejectedItems", () => {
+  function http409(body: unknown): FunctionsHttpError {
+    return new FunctionsHttpError(
+      new Response(JSON.stringify(body), {
+        status: 409,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  }
+
+  it("extracts the product/variant pairs the server refused", async () => {
+    const items = await getRejectedItems(
+      http409({
+        error: "One or more items failed validation",
+        rejectedItems: [
+          { productId: "p1", variantId: "v1", reason: "insufficient_stock" },
+          { productId: "p2", variantId: "v2", reason: "quantity_limit_exceeded" },
+        ],
+      }),
+    );
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({ productId: "p1", variantId: "v1" });
+    expect(items[1]).toMatchObject({ productId: "p2", variantId: "v2" });
+  });
+
+  it("returns nothing for a failure that carries no rejectedItems", async () => {
+    // A 422 serviceability rejection must not mark any cart line.
+    expect(await getRejectedItems(http409({ error: "we don't deliver here" }))).toEqual([]);
+  });
+
+  it("returns nothing for a network error", async () => {
+    expect(await getRejectedItems(new FunctionsFetchError("offline"))).toEqual([]);
+    expect(await getRejectedItems(new TypeError("Failed to fetch"))).toEqual([]);
+  });
+
+  it("returns nothing for a non-error value", async () => {
+    expect(await getRejectedItems(null)).toEqual([]);
+    expect(await getRejectedItems(undefined)).toEqual([]);
+  });
+
+  it("skips malformed entries rather than marking the wrong line", async () => {
+    // A missing id cannot be matched to a cart line; keeping it would risk
+    // marking an unrelated item.
+    const items = await getRejectedItems(
+      http409({
+        rejectedItems: [
+          { productId: "p1", variantId: "v1", reason: "insufficient_stock" },
+          { reason: "insufficient_stock" },
+          null,
+        ],
+      }),
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0].productId).toBe("p1");
+  });
+
+  it("survives a body that is not JSON", async () => {
+    const err = new FunctionsHttpError(new Response("<html>502</html>", { status: 502 }));
+    expect(await getRejectedItems(err)).toEqual([]);
   });
 });

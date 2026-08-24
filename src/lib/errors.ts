@@ -18,11 +18,34 @@ export function isNetworkError(err: unknown): boolean {
   return false;
 }
 
-interface RejectedItem {
+export interface RejectedItem {
   productId: string;
   variantId: string;
   reason: "insufficient_stock" | "quantity_limit_exceeded";
   maxQuantityPerOrder?: number;
+}
+
+/**
+ * Pull the structured rejections out of a checkout 409 so the cart can mark the
+ * offending LINES, not just describe them in a toast.
+ *
+ * The prose from getErrorMessage says "an item in your cart is out of stock"
+ * without saying which; across eight lines that is not actionable. This is the
+ * server's authoritative answer to "which one", captured at the only moment it
+ * is guaranteed correct.
+ *
+ * Returns an empty array for every other failure (network, 422, 500), so
+ * callers can treat "no rejections" as "nothing to mark".
+ */
+export async function getRejectedItems(err: unknown): Promise<RejectedItem[]> {
+  if (!(err instanceof FunctionsHttpError)) return [];
+  const body = await err.context.json().catch(() => null);
+  const items = body?.rejectedItems;
+  if (!Array.isArray(items)) return [];
+  return items.filter(
+    (i): i is RejectedItem =>
+      !!i && typeof i.productId === "string" && typeof i.variantId === "string",
+  );
 }
 
 /**

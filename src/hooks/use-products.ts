@@ -83,6 +83,34 @@ export function useProducts(options?: { category?: string; search?: string }) {
 export interface ProductWithMeta extends Product {
   startingPrice: number;
   hasSubscription: boolean;
+  /** True when every variant is sold out; see isOutOfStock. */
+  outOfStock: boolean;
+}
+
+/**
+ * Whether a variant can still be bought.
+ *
+ * Derived from stock, not stored: a boolean column would duplicate state that
+ * every decrement path (checkout RPC, webhook, delivery trigger) would then
+ * have to keep in sync. The column is NOT NULL in the database, so a missing
+ * value means a client-side hole (a cached or partially-mapped variant) rather
+ * than "none left" -- treat it as available and let the server's 409 decide.
+ */
+export function isVariantOutOfStock(variant: { stock_quantity?: number }): boolean {
+  return variant.stock_quantity !== undefined && variant.stock_quantity <= 0;
+}
+
+/**
+ * Whether a product is unbuyable in EVERY size.
+ *
+ * A product with one sold-out size is still a sale, so the grid card only
+ * stamps when nothing on it can be bought -- matching Blinkit/Zepto, which
+ * leave partially-stocked tiles looking normal and reveal the gap inside the
+ * detail sheet. An empty variant list is NOT out of stock: that is a product
+ * whose variants failed to load, and stamping it would hide a working product.
+ */
+export function isProductOutOfStock(variants: { stock_quantity?: number }[]): boolean {
+  return variants.length > 0 && variants.every(isVariantOutOfStock);
 }
 
 /**
@@ -115,17 +143,29 @@ export function useProductsWithMeta(options?: { category?: string; search?: stri
 
       const [{ data: variants, error: variantsError }, { data: configs, error: configsError }] =
         await Promise.all([
-          supabase.from("product_variants").select("product_id, price").in("product_id", ids),
+          supabase
+            .from("product_variants")
+            .select("product_id, price, stock_quantity")
+            .in("product_id", ids),
           supabase.from("subscription_configs").select("product_id, enabled").in("product_id", ids),
         ]);
       if (variantsError) throw variantsError;
       if (configsError) throw configsError;
 
       const minPriceByProduct = new Map<string, number>();
-      for (const v of (variants ?? []) as { product_id: string; price: number }[]) {
+      const variantsByProduct = new Map<string, { stock_quantity: number }[]>();
+      for (const v of (variants ?? []) as {
+        product_id: string;
+        price: number;
+        stock_quantity: number;
+      }[]) {
         const current = minPriceByProduct.get(v.product_id);
         if (current === undefined || v.price < current)
           minPriceByProduct.set(v.product_id, v.price);
+
+        const group = variantsByProduct.get(v.product_id);
+        if (group) group.push({ stock_quantity: v.stock_quantity });
+        else variantsByProduct.set(v.product_id, [{ stock_quantity: v.stock_quantity }]);
       }
 
       const subscriptionEnabled = new Set<string>();
@@ -137,6 +177,7 @@ export function useProductsWithMeta(options?: { category?: string; search?: stri
         ...p,
         startingPrice: minPriceByProduct.get(p.id) ?? 0,
         hasSubscription: subscriptionEnabled.has(p.id),
+        outOfStock: isProductOutOfStock(variantsByProduct.get(p.id) ?? []),
       }));
     },
   });
