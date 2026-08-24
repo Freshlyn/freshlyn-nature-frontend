@@ -1,0 +1,15 @@
+-- A subscription's per-delivery status (scheduled -> delivered) lives on
+-- subscription_deliveries, not on orders, so flipping one emitted no event on
+-- the orders publication and the UI kept serving a cached 'scheduled' badge.
+--
+-- trg_maybe_complete_order does write to orders, but only once EVERY delivery
+-- is delivered. That made the stale badge look intermittent: the final delivery
+-- of a subscription refreshed, and the 89 before it did not.
+--
+-- Same caveat as orders above: without this line the subscription connects,
+-- reports no error, and silently receives nothing forever.
+--
+-- Realtime respects RLS, so subscription_deliveries_select_own continues to
+-- scope delivery through order_items -> orders: a subscriber is only ever
+-- pushed deliveries belonging to their own orders.
+alter publication supabase_realtime add table public.subscription_deliveries;

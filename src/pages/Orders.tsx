@@ -52,6 +52,21 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
         // Prefix match: invalidates every filter combination's cached pages.
         queryClient.invalidateQueries({ queryKey: ["orders"] });
       })
+      // Per-delivery status changes (scheduled -> delivered) land on
+      // subscription_deliveries and never touch the orders row, so the
+      // subscription above cannot see them. Order cards render delivery state
+      // from the nested join, so they go stale without this.
+      //
+      // Requires public.subscription_deliveries in the supabase_realtime
+      // publication (migration 20260824000000) -- same silent-nothing failure
+      // mode as orders above if it is missing.
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "subscription_deliveries" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["orders"] });
+        },
+      )
       .subscribe();
 
     return () => {

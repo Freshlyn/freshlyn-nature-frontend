@@ -81,7 +81,6 @@ function DeliverySchedule({
   );
 
   const today = startOfDay(new Date());
-  const missedSet = new Set<string>();
 
   // Orders placed before delivery rows were persisted have no schedule to show.
   // Showing nothing is deliberate: the dates were never recorded, and computing
@@ -160,10 +159,27 @@ function DeliverySchedule({
       <div className="space-y-0">
         {visibleDates.map((date, sliceIndex) => {
           const globalIndex = expanded ? sliceIndex : collapseStart + sliceIndex;
-          const isPast = isBefore(date, today) && !isToday(date);
           const isTodayDate = isToday(date);
-          const isMissed = isPast && missedSet.has(format(date, "yyyy-MM-dd"));
           const isLast = sliceIndex === visibleDates.length - 1;
+
+          // Marker state comes from the row's stored status, not from its date.
+          // Deriving it from `scheduled_date < today` (as this used to) meant a
+          // delivery marked delivered ahead of its date still rendered as a
+          // grey pending dot, and a past date still sitting at 'scheduled'
+          // rendered a green tick claiming a delivery that never happened.
+          const status = visibleDeliveries[sliceIndex]?.status;
+          const isDelivered = status === "delivered";
+          const isSkipped = status === "skipped";
+          const isCancelled = status === "cancelled";
+
+          // Overdue but still 'scheduled' stays neutral: nothing has been
+          // recorded against it either way, so asserting a miss would be the
+          // same guess-from-the-date mistake in the other direction.
+          const isPast = isBefore(date, today) && !isTodayDate;
+          // Drives the connector line and the muted date text -- both mean
+          // "this row is behind us", which delivered and skipped also are.
+          const isSettled = isDelivered || isSkipped || isCancelled;
+          const isDimmed = isPast || isSettled;
 
           return (
             <div
@@ -173,23 +189,23 @@ function DeliverySchedule({
             >
               {!isLast && (
                 <div
-                  className={`absolute left-[9px] top-[22px] w-0.5 h-full ${isPast && !isMissed ? "bg-emerald-300" : "bg-gray-200"}`}
+                  className={`absolute left-[9px] top-[22px] w-0.5 h-full ${isDelivered ? "bg-emerald-300" : "bg-gray-200"}`}
                 />
               )}
               <div
                 className={`w-[18px] h-[18px] rounded-full flex items-center justify-center flex-shrink-0 z-10 ${
-                  isMissed
+                  isSkipped || isCancelled
                     ? "bg-red-400"
-                    : isPast
+                    : isDelivered
                       ? "bg-emerald-500"
                       : isTodayDate
-                        ? "bg-emerald-500 ring-2 ring-emerald-200"
+                        ? "bg-gray-200 ring-2 ring-emerald-200"
                         : "bg-gray-200"
                 }`}
               >
-                {isMissed ? (
+                {isSkipped || isCancelled ? (
                   <XCircle size={12} className="text-white" />
-                ) : isPast || isTodayDate ? (
+                ) : isDelivered ? (
                   <CheckCircle size={12} className="text-white" />
                 ) : (
                   <div className="w-2 h-2 rounded-full bg-gray-400" />
@@ -200,7 +216,7 @@ function DeliverySchedule({
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className={`text-xs ${isPast ? "text-muted-foreground" : "text-foreground"}`}
+                    className={`text-xs ${isDimmed ? "text-muted-foreground" : "text-foreground"}`}
                     data-testid={`text-delivery-date-${globalIndex}`}
                   >
                     {format(date, "EEE, MMM d")}
@@ -214,9 +230,25 @@ function DeliverySchedule({
                       Today
                     </Badge>
                   )}
+                  {/* Colour alone carried the delivered/skipped distinction,
+                      which is invisible to anyone who cannot separate the two
+                      dot shades. */}
+                  {isSettled && (
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-1.5 py-0 h-4 capitalize ${
+                        isDelivered
+                          ? "border-emerald-300 text-emerald-700"
+                          : "border-red-300 text-red-600"
+                      }`}
+                      data-testid={`badge-delivery-status-${globalIndex}`}
+                    >
+                      {status}
+                    </Badge>
+                  )}
                 </div>
                 <span
-                  className={`text-xs ${isPast ? "text-muted-foreground" : "text-foreground"}`}
+                  className={`text-xs ${isDimmed ? "text-muted-foreground" : "text-foreground"}`}
                   data-testid={`text-delivery-time-${globalIndex}`}
                 >
                   {formatScheduledTime(visibleDeliveries[sliceIndex]) ?? "—"}
@@ -355,6 +387,22 @@ export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetai
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+        },
+      )
+      // A delivery's own status (scheduled -> delivered) never touches the
+      // orders row, so the subscription above cannot see it. It is fetched as a
+      // nested join by useOrder, and invalidating the order re-reads it.
+      //
+      // Unfiltered deliberately: subscription_deliveries has no order_id to
+      // filter on, only order_item_id, so narrowing to this order would mean
+      // denormalizing a column purely to shape a realtime filter. RLS already
+      // limits events to this user's own deliveries, leaving at most a spare
+      // invalidation of one cached query.
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "subscription_deliveries" },
         () => {
           queryClient.invalidateQueries({ queryKey: ["order", orderId] });
         },
