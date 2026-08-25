@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductCardSkeleton } from "@/components/ProductCardSkeleton";
+import { HomeBanner, HomeBannerSkeleton } from "@/components/HomeBanner";
 import { useProductsWithMeta } from "@/hooks/use-products";
 import { useStaticCart } from "@/hooks/use-static-cart";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -13,7 +14,6 @@ import {
   type LocationPreference,
 } from "@/lib/location-preference";
 import type { Product, SubscriptionFrequency } from "@/hooks/use-products";
-import { Truck, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -114,68 +114,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
       />
 
       <main className="container mx-auto px-3 md:px-4 pt-4 md:pt-6">
-        {loadingProducts ? (
-          <div
-            className="relative rounded-2xl md:rounded-3xl overflow-hidden mb-5 md:mb-8 p-5 md:p-8 bg-muted/30 border border-border/40"
-            data-testid="hero-skeleton"
-          >
-            <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-              <div className="flex-1 w-full space-y-3 md:space-y-4">
-                <Skeleton className="h-8 md:h-10 w-3/4 mx-auto md:mx-0" />
-                <Skeleton className="h-8 md:h-10 w-1/2 mx-auto md:mx-0" />
-                <Skeleton className="h-4 w-full max-w-md mx-auto md:mx-0" />
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1">
-                  <Skeleton className="h-8 w-32 rounded-full" />
-                  <Skeleton className="h-8 w-24 rounded-full" />
-                </div>
-              </div>
-              <div className="hidden md:block">
-                <Skeleton className="w-36 lg:w-48 h-36 lg:h-48 rounded-2xl" />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="relative rounded-2xl md:rounded-3xl overflow-hidden mb-5 md:mb-8 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500">
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-yellow-300 rounded-full blur-3xl" />
-            </div>
-            <div className="relative p-5 md:p-8">
-              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-                <div className="flex-1 text-center md:text-left space-y-3 md:space-y-4">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-bold leading-tight text-white">
-                    Fresh Groceries,
-                    <br />
-                    <span className="text-yellow-300">Delivered Fast</span>
-                  </h1>
-                  <p className="text-sm md:text-base text-white/90 max-w-md">
-                    Get your daily essentials delivered to your doorstep in minutes
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1">
-                    <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-white text-xs font-medium">
-                      <Truck size={14} />
-                      <span>Free over ₹299</span>
-                    </div>
-                    <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-white text-xs font-medium">
-                      <Clock size={14} />
-                      <span>30 min</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="hidden md:block relative">
-                  <div className="w-36 lg:w-48 h-36 lg:h-48 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/30 rotate-3 hover:rotate-0 transition-transform">
-                    <img
-                      src="https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&auto=format&fit=crop"
-                      alt="Fresh Fruits"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {loadingProducts ? <HomeBannerSkeleton /> : <HomeBanner />}
 
         {loadingProducts ? (
           <div
