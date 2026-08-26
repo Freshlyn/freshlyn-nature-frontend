@@ -2,6 +2,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { createAdminClient, createUserClient } from "../_shared/supabase-admin.ts";
 import { createRazorpayClient, RazorpayError } from "../_shared/razorpay.ts";
 import { handleCheckout, type CheckoutDeps, type CheckoutInput } from "./handler.ts";
+import { DEFAULT_SETTINGS, parseSettingsRows } from "../_shared/app-settings.ts";
 
 /**
  * The key id is public (the browser needs it to open Razorpay Checkout), but an
@@ -79,6 +80,17 @@ function buildDeps(authorizationHeader: string): CheckoutDeps {
         state: data.state,
         pincode: data.pincode,
       };
+    },
+    async getSettings() {
+      // Read through the admin client: app_settings has no write policy, and
+      // its select policy is unconditional, so this is a plain read either way
+      // -- but going through admin keeps it independent of the caller's token.
+      const { data, error } = await admin.from("app_settings").select("key, value");
+      // A settings read that fails must not fail the checkout. Falling back to
+      // the shipped defaults charges the standard fee, which is both the safe
+      // direction (never accidentally free) and what the cart displayed.
+      if (error || !data) return DEFAULT_SETTINGS;
+      return parseSettingsRows(data);
     },
     async createOrder(params) {
       const { data, error } = await admin.rpc("create_order", {

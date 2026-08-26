@@ -1,5 +1,6 @@
 import { RazorpayError, toPaise, type RazorpayClient } from "../_shared/razorpay.ts";
-import { isValidDeliverySlot } from "../_shared/delivery-slots.ts";
+import { allowedSlotValues, isValidDeliverySlot } from "../_shared/delivery-slots.ts";
+import { deliveryFeeFor, type AppSettings } from "../_shared/app-settings.ts";
 
 export type DeliveryType = "one_time" | "subscription";
 export type SubscriptionFrequency = "daily" | "alternate";
@@ -52,6 +53,14 @@ export interface CheckoutDeps {
     durationDays: number,
   ): Promise<{ enabled: boolean; frequencies: string[]; discountPercent: number } | null>;
   getAddress(addressId: string): Promise<AddressRecord | null>;
+  /**
+   * The operator-tunable constants from public.app_settings.
+   *
+   * Injected rather than read inline so the fee rule stays testable, and read
+   * per-request rather than cached at module scope so a dashboard edit applies
+   * to the next checkout instead of to the next cold start.
+   */
+  getSettings(): Promise<AppSettings>;
   createOrder(params: {
     userId: string;
     addressId: string;
@@ -128,11 +137,21 @@ export async function handleCheckout(deps: CheckoutDeps, input: CheckoutInput): 
     return { status: 400, body: { error: "paymentMethod must be 'cod' or 'razorpay'" } };
   }
 
+  // Settings are read here rather than at the fee calculation below because the
+  // slot allowlist depends on them too, and the slot is validated before any
+  // database work happens.
+  const settings = await deps.getSettings();
+
   // The slot is interpolated into a `time` column by create_order. Validate it
-  // against the fixed allowlist rather than trusting the client: an arbitrary
-  // string here would reach SQL, and a merely well-formed one ("03:15") would
-  // still schedule a delivery outside any shift we actually run.
-  if (input.deliverySlot !== undefined && !isValidDeliverySlot(input.deliverySlot)) {
+  // against the allowlist rather than trusting the client: an arbitrary string
+  // here would reach SQL, and a merely well-formed one ("03:15") would still
+  // schedule a delivery outside any window we actually run.
+  //
+  // The allowlist comes from the live windows, so a slot added in the dashboard
+  // is accepted without redeploying this function, and one removed is rejected
+  // immediately. Only the window's START is ever sent -- the end is display-only.
+  const allowed = allowedSlotValues(settings.delivery_slots);
+  if (input.deliverySlot !== undefined && !isValidDeliverySlot(input.deliverySlot, allowed)) {
     return { status: 400, body: { error: "deliverySlot is not an available delivery time" } };
   }
 
@@ -199,7 +218,11 @@ export async function handleCheckout(deps: CheckoutDeps, input: CheckoutInput): 
       return sum + r.unitPrice * r.input.quantity;
     }, 0),
   );
-  const deliveryFee = subtotal > 50 ? 0 : 5.0;
+  // Server-side and authoritative: this is the figure that reaches create_order
+  // and, for razorpay, becomes the amount in paise the customer is charged. It
+  // reads the same public.app_settings rows the cart renders from, via the same
+  // shared rule, so the displayed fee and the charged fee cannot drift apart.
+  const deliveryFee = deliveryFeeFor(subtotal, settings);
   const total = round2(subtotal + deliveryFee);
   const deliveryAddress = buildDeliveryAddress(address);
 

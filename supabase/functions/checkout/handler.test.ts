@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import { handleCheckout, type AddressRecord, type CheckoutDeps, type CheckoutInput } from "./handler.ts";
 import { RazorpayError } from "../_shared/razorpay.ts";
+import { DEFAULT_SETTINGS, type AppSettings } from "../_shared/app-settings.ts";
 
 interface VariantFixture {
   price: number;
@@ -20,6 +21,8 @@ function makeDeps(options: {
   subscriptionOptions?: Record<string, SubscriptionOptionFixture>;
   address?: AddressRecord | null;
   razorpayThrows?: boolean;
+  /** Defaults to the seeded production values (30 fee, 299 threshold). */
+  settings?: AppSettings;
 } = {}) {
   const calls: {
     createOrder: unknown[];
@@ -62,6 +65,9 @@ function makeDeps(options: {
           pincode: "400001",
         }
         : options.address;
+    },
+    async getSettings() {
+      return options.settings ?? DEFAULT_SETTINGS;
     },
     async createOrder(params) {
       calls.createOrder.push(params);
@@ -244,13 +250,13 @@ Deno.test("checkout computes subtotal and a flat delivery fee under the free-del
   assertEquals(result.status, 200);
   const createOrderCall = calls.createOrder[0] as { subtotal: number; deliveryFee: number; total: number };
   assertEquals(createOrderCall.subtotal, 6);
-  assertEquals(createOrderCall.deliveryFee, 5.0);
-  assertEquals(createOrderCall.total, 11.0);
+  assertEquals(createOrderCall.deliveryFee, 30);
+  assertEquals(createOrderCall.total, 36);
 });
 
 Deno.test("checkout computes a subscription line using duration and discount, and waives the delivery fee above the threshold", async () => {
   const { deps, calls } = makeDeps({
-    variants: { "p1/v1": { price: 3.0, stockQuantity: 100, maxQuantityPerOrder: 100 } },
+    variants: { "p1/v1": { price: 15.0, stockQuantity: 100, maxQuantityPerOrder: 100 } },
     subscriptionOptions: {
       "p1/30": { enabled: true, frequencies: ["daily"], discountPercent: 10 },
     },
@@ -272,10 +278,10 @@ Deno.test("checkout computes a subscription line using duration and discount, an
   const result = await handleCheckout(deps, input);
   assertEquals(result.status, 200);
   const createOrderCall = calls.createOrder[0] as { subtotal: number; deliveryFee: number; total: number };
-  // 3.00 * 1 * 30 deliveries * (1 - 10%) = 81
-  assertEquals(createOrderCall.subtotal, 81);
+  // 15.00 * 1 * 30 deliveries * (1 - 10%) = 405, which clears the 299 threshold.
+  assertEquals(createOrderCall.subtotal, 405);
   assertEquals(createOrderCall.deliveryFee, 0);
-  assertEquals(createOrderCall.total, 81);
+  assertEquals(createOrderCall.total, 405);
 });
 
 Deno.test("cod checkout decrements stock at creation", async () => {
@@ -320,8 +326,8 @@ Deno.test("razorpay checkout sends the SERVER-computed total in paise", async ()
   };
 
   await handleCheckout(deps, input);
-  // 1.99 subtotal + 5.00 delivery fee = 6.99 -> 699 paise, not 698.
-  assertEquals((calls.razorpayCreateOrder[0] as { amountPaise: number }).amountPaise, 699);
+  // 1.99 subtotal + 30.00 delivery fee = 31.99 -> 3199 paise, not 3198.
+  assertEquals((calls.razorpayCreateOrder[0] as { amountPaise: number }).amountPaise, 3199);
 });
 
 Deno.test("razorpay checkout returns the razorpay order id and key id", async () => {
@@ -456,14 +462,14 @@ Deno.test("checkout forwards a valid morning delivery slot to createOrder", asyn
   });
   const input: CheckoutInput = {
     addressId: "addr-1",
-    deliverySlot: "07:00",
+    deliverySlot: "06:00",
     items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
   };
   const result = await handleCheckout(deps, input);
   assertEquals(result.status, 200);
   assertEquals(
     (calls.createOrder[0] as { deliverySlot: string }).deliverySlot,
-    "07:00",
+    "06:00",
   );
 });
 
@@ -473,14 +479,14 @@ Deno.test("checkout forwards a valid evening delivery slot to createOrder", asyn
   });
   const input: CheckoutInput = {
     addressId: "addr-1",
-    deliverySlot: "17:30",
+    deliverySlot: "18:00",
     items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
   };
   const result = await handleCheckout(deps, input);
   assertEquals(result.status, 200);
   assertEquals(
     (calls.createOrder[0] as { deliverySlot: string }).deliverySlot,
-    "17:30",
+    "18:00",
   );
 });
 
@@ -533,7 +539,7 @@ Deno.test("checkout forwards the subscription start date to createOrder", async 
   });
   const input: CheckoutInput = {
     addressId: "addr-1",
-    deliverySlot: "07:00",
+    deliverySlot: "06:00",
     items: [{
       productId: "p1",
       variantId: "v1",
@@ -566,4 +572,100 @@ Deno.test("index.ts forwards deliverySlot to create_order as p_delivery_slot", a
     true,
     "index.ts must pass p_delivery_slot to create_order, or the chosen slot is silently discarded",
   );
+});
+
+Deno.test("checkout charges the fee from app_settings, not a hardcoded one", async () => {
+  // The regression this guards: the handler once hardcoded 50/5.00 while the
+  // cart displayed 299/30, so an order under the threshold was shown one fee
+  // and charged another. A dashboard retune must reach the charged amount.
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 20, stockQuantity: 100, maxQuantityPerOrder: 100 } },
+    settings: { delivery_fee: 12, free_delivery_threshold: 500, delivery_slots: [] },
+  });
+  const result = await handleCheckout(deps, {
+    addressId: "addr-1",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  });
+
+  assertEquals(result.status, 200);
+  const call = calls.createOrder[0] as { deliveryFee: number; total: number };
+  assertEquals(call.deliveryFee, 12);
+  assertEquals(call.total, 32);
+});
+
+Deno.test("a subtotal exactly equal to the threshold still pays the fee", async () => {
+  // deliveryFeeFor compares strictly-greater-than on both sides of the wire.
+  // Pinning it here stops the client and server drifting on the boundary case.
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 299, stockQuantity: 100, maxQuantityPerOrder: 100 } },
+  });
+  const result = await handleCheckout(deps, {
+    addressId: "addr-1",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  });
+
+  assertEquals(result.status, 200);
+  const call = calls.createOrder[0] as { subtotal: number; deliveryFee: number };
+  assertEquals(call.subtotal, 299);
+  assertEquals(call.deliveryFee, 30);
+});
+
+Deno.test("a window added in app_settings is accepted without redeploying", async () => {
+  // The allowlist follows the live rows, so an operator adding an afternoon
+  // window must not need a function deploy for checkout to honour it.
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 10, stockQuantity: 50, maxQuantityPerOrder: 10 } },
+    settings: {
+      delivery_fee: 30,
+      free_delivery_threshold: 299,
+      delivery_slots: [{ value: "13:00", endValue: "15:00", shift: "evening" }],
+    },
+  });
+  const result = await handleCheckout(deps, {
+    addressId: "addr-1",
+    deliverySlot: "13:00",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  });
+
+  assertEquals(result.status, 200);
+  // Only the window's START is stored -- endValue never crosses the wire.
+  assertEquals((calls.createOrder[0] as { deliverySlot: string }).deliverySlot, "13:00");
+});
+
+Deno.test("a window removed from app_settings is rejected", async () => {
+  const { deps, calls } = makeDeps({
+    variants: { "p1/v1": { price: 10, stockQuantity: 50, maxQuantityPerOrder: 10 } },
+    settings: {
+      delivery_fee: 30,
+      free_delivery_threshold: 299,
+      delivery_slots: [{ value: "06:00", endValue: "08:00", shift: "morning" }],
+    },
+  });
+  const result = await handleCheckout(deps, {
+    addressId: "addr-1",
+    deliverySlot: "18:00",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  });
+
+  assertEquals(result.status, 400);
+  assertEquals(calls.createOrder.length, 0);
+});
+
+Deno.test("a malformed slots row falls back to the shipped allowlist", async () => {
+  // A settings row must never be able to reject every checkout.
+  const { deps } = makeDeps({
+    variants: { "p1/v1": { price: 10, stockQuantity: 50, maxQuantityPerOrder: 10 } },
+    settings: {
+      delivery_fee: 30,
+      free_delivery_threshold: 299,
+      delivery_slots: [{ value: "not-a-time", endValue: "x", shift: "morning" }],
+    },
+  });
+  const result = await handleCheckout(deps, {
+    addressId: "addr-1",
+    deliverySlot: "06:00",
+    items: [{ productId: "p1", variantId: "v1", quantity: 1, deliveryType: "one_time" }],
+  });
+
+  assertEquals(result.status, 200);
 });

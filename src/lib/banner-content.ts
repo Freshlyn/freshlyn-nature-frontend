@@ -32,6 +32,13 @@ export interface BannerContent {
   imageUrl: string;
   imageAlt: string;
   theme: BannerTheme;
+  /**
+   * Whether the card is shown. Optional, defaulting to true, so an operator
+   * adding a banner row does not have to know about the flag -- but a card can
+   * be parked in the table without reaching customers, which is how content
+   * for an unbuilt feature is staged.
+   */
+  enabled?: boolean;
 }
 
 export const DEFAULT_BANNERS: BannerContent[] = [
@@ -41,7 +48,7 @@ export const DEFAULT_BANNERS: BannerContent[] = [
     accentText: "Delivered Fast",
     subtitle: "Get your daily essentials delivered to your doorstep in minutes",
     pills: [
-      { icon: "truck", label: "Free over ₹299" },
+      { icon: "truck", label: "Free over ₹{free_delivery_threshold}" },
       { icon: "clock", label: "30 min" },
     ],
     imageUrl:
@@ -57,7 +64,9 @@ export const DEFAULT_BANNERS: BannerContent[] = [
     // schedules exactly duration_days deliveries. Granting 30 deliveries for
     // the price of 25 needs a schema + RPC change first.
     //
-    // Until that lands, do not ship this card to production users.
+    // Until that lands this row stays enabled: false -- present and editable in
+    // public.app_settings, but never rendered. Flip it on in the dashboard the
+    // day the schema honours the offer.
     id: "milk-subscription",
     title: "Buy 25 Days,",
     accentText: "Get 30 Days Milk",
@@ -70,5 +79,6 @@ export const DEFAULT_BANNERS: BannerContent[] = [
       "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400&auto=format&fit=crop",
     imageAlt: "Fresh Milk",
     theme: "amber",
+    enabled: false,
   },
 ];

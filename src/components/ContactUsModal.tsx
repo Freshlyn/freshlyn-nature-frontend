@@ -1,17 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Phone, Mail, Clock, ChevronRight } from "lucide-react";
-
-/**
- * Placeholder support contact details.
- *
- * The number is kept in two forms on purpose: `tel:` needs E.164 with no
- * separators to dial reliably, while the UI shows the spaced form. Swap both
- * when the real support line is provisioned.
- */
-const SUPPORT_PHONE = "+919876543210";
-const SUPPORT_PHONE_DISPLAY = "+91 98765 43210";
-const SUPPORT_EMAIL = "info@freshlynature.com";
-const SUPPORT_HOURS = "8:00 AM - 8:00 PM";
+import { useAppSettings } from "@/hooks/use-app-settings";
 
 interface ContactUsModalProps {
   open: boolean;
@@ -30,6 +19,17 @@ interface ContactUsModalProps {
  * tab in front of the intent.
  */
 export function ContactUsModal({ open, onOpenChange }: ContactUsModalProps) {
+  // Live from public.app_settings. The support number shipped as a placeholder
+  // and is still one -- but it can now be replaced from the dashboard the day
+  // the real line exists, without a code change or an app release.
+  const { contact } = useAppSettings();
+  const {
+    supportPhone: SUPPORT_PHONE,
+    supportPhoneDisplay: SUPPORT_PHONE_DISPLAY,
+    supportEmail: SUPPORT_EMAIL,
+    supportHours: SUPPORT_HOURS,
+  } = contact;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent

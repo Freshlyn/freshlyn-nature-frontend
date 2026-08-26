@@ -40,21 +40,14 @@ import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
 import type { UserAddress } from "@/types/user";
-import {
-  DEFAULT_DELIVERY_SLOT,
-  EVENING_SLOTS,
-  MORNING_SLOTS,
-  formatDeliverySlot,
-} from "@/lib/delivery-slots";
+import { DEFAULT_DELIVERY_SLOT, formatDeliverySlot, slotLabel } from "@/lib/delivery-slots";
+import { useAppSettings } from "@/hooks/use-app-settings";
+import { deliveryFeeFor } from "@/lib/app-settings";
 
 interface CartProps {
   sidebarOpen?: boolean;
   onSidebarToggle?: () => void;
 }
-
-// TODO: Move to BACKEND
-const FREE_DELIVERY_THRESHOLD = 299;
-const DELIVERY_FEE = 30;
 
 const PAYMENT_METHODS = [
   {
@@ -161,7 +154,31 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
       ),
     [cartItems, unavailableIds],
   );
-  const deliveryFee = total > FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+  // Both figures come from public.app_settings, live: an operator retuning the
+  // fee in the dashboard updates this cart without a refresh. deliveryFeeFor is
+  // the shared rule -- the checkout function applies the very same one, so the
+  // amount shown here is the amount charged.
+  const settings = useAppSettings();
+  // Shift grouping is derived from the live windows rather than stored, so an
+  // operator adding an evening slot in Supabase gets it in the right column
+  // without a second field to keep in step.
+  const morningSlots = useMemo(
+    () => settings.delivery_slots.filter((s) => s.shift === "morning"),
+    [settings.delivery_slots],
+  );
+  const eveningSlots = useMemo(
+    () => settings.delivery_slots.filter((s) => s.shift === "evening"),
+    [settings.delivery_slots],
+  );
+
+  // A window the customer selected can disappear under them: slots are live,
+  // so an operator retiming one mid-session would otherwise leave selectedTime
+  // pointing at a value the edge function now rejects, failing checkout with a
+  // 400 the customer cannot act on. Fall back to the first available window.
+  const slotValues = settings.delivery_slots.map((s) => s.value);
+  const selectedIsValid = slotValues.includes(selectedTime);
+  const effectiveTime = selectedIsValid ? selectedTime : (slotValues[0] ?? DEFAULT_DELIVERY_SLOT);
+  const deliveryFee = deliveryFeeFor(total, settings);
   const grandTotal = total + deliveryFee;
 
   /** Drop every line the customer cannot buy, so checkout can proceed. */
@@ -251,7 +268,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
         addressId: selectedAddress.id,
         cartItems,
         paymentMethod,
-        deliverySlot: selectedTime,
+        deliverySlot: effectiveTime,
       });
 
       if (paymentMethod === "cod") {
@@ -621,26 +638,26 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                 </p>
 
                 {[
-                  { title: "Morning", slots: MORNING_SLOTS },
-                  { title: "Evening", slots: EVENING_SLOTS },
+                  { title: "Morning", slots: morningSlots },
+                  { title: "Evening", slots: eveningSlots },
                 ].map(({ title, slots }) => (
                   <div key={title} className="mb-3 last:mb-0">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
                       {title}
                     </p>
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <div className="grid grid-cols-2 gap-1.5">
                       {slots.map((slot) => (
                         <button
                           key={slot.value}
                           onClick={() => setSelectedTime(slot.value)}
-                          className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
-                            selectedTime === slot.value
+                          className={`px-2 py-2 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all ${
+                            effectiveTime === slot.value
                               ? "bg-primary text-primary-foreground shadow-sm"
                               : "bg-muted/50 text-foreground hover:bg-muted"
                           }`}
                           data-testid={`button-time-${slot.value.replace(":", "-")}`}
                         >
-                          {slot.label}
+                          {slotLabel(slot)}
                         </button>
                       ))}
                     </div>
@@ -652,7 +669,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                   <p className="text-[11px] text-muted-foreground">
                     Selected:{" "}
                     <span className="font-semibold text-foreground">
-                      {formatDeliverySlot(selectedTime)}
+                      {formatDeliverySlot(effectiveTime, settings.delivery_slots)}
                     </span>
                     {hasSubscriptionItems ? " every delivery" : ""}
                   </p>
@@ -686,12 +703,12 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                       )}
                     </span>
                   </div>
-                  {total < FREE_DELIVERY_THRESHOLD && (
+                  {total < settings.free_delivery_threshold && (
                     <div className="bg-gradient-to-r from-primary/10 to-accent/10 p-3 rounded-xl text-xs">
                       <p className="text-foreground font-medium">
                         Add{" "}
                         <span className="text-primary font-bold">
-                          ₹{(FREE_DELIVERY_THRESHOLD - total).toFixed(2)}
+                          ₹{(settings.free_delivery_threshold - total).toFixed(2)}
                         </span>{" "}
                         more for free delivery!
                       </p>
@@ -699,7 +716,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                         <div
                           className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all"
                           style={{
-                            width: `${Math.min((total / FREE_DELIVERY_THRESHOLD) * 100, 100)}%`,
+                            width: `${Math.min((total / settings.free_delivery_threshold) * 100, 100)}%`,
                           }}
                         />
                       </div>

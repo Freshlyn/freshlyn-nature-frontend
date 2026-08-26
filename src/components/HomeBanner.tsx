@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Truck, Clock, Milk, Gift } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DEFAULT_BANNERS, type BannerContent, type BannerTheme } from "@/lib/banner-content";
+import { type BannerContent, type BannerTheme } from "@/lib/banner-content";
+import { useAppSettings } from "@/hooks/use-app-settings";
+import { visibleBanners } from "@/lib/app-settings";
 
 const PILL_ICONS = {
   truck: Truck,
@@ -108,10 +110,21 @@ function BannerCard({ content }: { content: BannerContent }) {
 }
 
 interface HomeBannerProps {
+  /**
+   * Overrides the banners from app_settings. Left for tests and for any caller
+   * that needs to render a fixed carousel; production passes nothing and gets
+   * the live rows.
+   */
   banners?: BannerContent[];
 }
 
-export function HomeBanner({ banners = DEFAULT_BANNERS }: HomeBannerProps) {
+export function HomeBanner({ banners }: HomeBannerProps) {
+  // Live from public.app_settings: a dashboard edit reaches an open carousel
+  // through the Realtime subscription, no refresh. visibleBanners drops the
+  // disabled rows and resolves {free_delivery_threshold} in the copy, so the
+  // component below still renders BannerContent and nothing else.
+  const settings = useAppSettings();
+  const resolved = banners ?? visibleBanners(settings);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   // Set while the user is touching or has just swiped: auto-advance stays off
@@ -149,19 +162,19 @@ export function HomeBanner({ banners = DEFAULT_BANNERS }: HomeBannerProps) {
   useEffect(() => () => clearTimeout(resumeTimer.current), []);
 
   useEffect(() => {
-    if (paused || banners.length < 2) return;
+    if (paused || resolved.length < 2) return;
     // Honour the OS "reduce motion" setting: auto-advancing carousels are
     // exactly the unrequested movement that setting exists to stop.
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     const timer = setInterval(
-      () => scrollToIndex((activeIndexRef.current + 1) % banners.length),
+      () => scrollToIndex((activeIndexRef.current + 1) % resolved.length),
       AUTO_ADVANCE_MS,
     );
     return () => clearInterval(timer);
-  }, [banners.length, paused, scrollToIndex]);
+  }, [resolved.length, paused, scrollToIndex]);
 
-  if (banners.length === 0) return null;
+  if (resolved.length === 0) return null;
 
   return (
     <div className="mb-5 md:mb-8" data-testid="home-banner">
@@ -174,19 +187,19 @@ export function HomeBanner({ banners = DEFAULT_BANNERS }: HomeBannerProps) {
         aria-roledescription="carousel"
         aria-label="Promotions"
       >
-        {banners.map((banner) => (
+        {resolved.map((banner) => (
           <BannerCard key={banner.id} content={banner} />
         ))}
       </div>
 
-      {banners.length > 1 && (
+      {resolved.length > 1 && (
         <div className="flex items-center justify-center gap-2 pt-3">
-          {banners.map((banner, index) => (
+          {resolved.map((banner, index) => (
             <button
               key={banner.id}
               type="button"
               data-testid={`banner-dot-${index}`}
-              aria-label={`Go to promotion ${index + 1} of ${banners.length}`}
+              aria-label={`Go to promotion ${index + 1} of ${resolved.length}`}
               aria-current={index === activeIndex}
               onClick={() => {
                 pauseAutoAdvance();
