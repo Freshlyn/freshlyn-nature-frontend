@@ -1,10 +1,10 @@
-import type { OrderItemWithDetails, SubscriptionDelivery } from "@/hooks/use-orders";
+import type { OrderItemWithDetails } from "@/hooks/use-orders";
 import { useOrder } from "@/hooks/use-orders";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Header } from "@/components/Header";
-import { format, isBefore, isToday, startOfDay } from "date-fns";
+import { format, isBefore, startOfDay } from "date-fns";
 import {
   Package,
   Clock,
@@ -24,6 +24,13 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useParams } from "wouter";
 import { getFrequencyLabel } from "@/hooks/use-products";
+import { describeOneTimeDelivery } from "@/lib/delivery-estimate";
+import {
+  DeliveryCardShell,
+  DeliveryStat,
+  DeliveryStatGrid,
+  DeliveryTimelineRow,
+} from "@/components/orders/DeliveryCard";
 
 const statusConfig: Record<string, { icon: typeof Clock; label: string; variant: string }> = {
   pending: { icon: Clock, label: "Pending", variant: "secondary" },
@@ -38,23 +45,6 @@ const statusConfig: Record<string, { icon: typeof Clock; label: string; variant:
   },
   cancelled: { icon: XCircle, label: "Cancelled", variant: "destructive" },
 };
-
-/**
- * The stored due time for a delivery, rendered in the delivery city's zone.
- *
- * scheduled_at is a timestamptz, so formatting it with the viewer's local zone
- * would show a Dubai customer a different time than the rider is given. Falls
- * back to the order's chosen slot, then to nothing -- never to a placeholder.
- */
-function formatScheduledTime(delivery?: SubscriptionDelivery): string | null {
-  if (!delivery?.scheduled_at) return null;
-  return new Date(delivery.scheduled_at).toLocaleTimeString("en-IN", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "Asia/Kolkata",
-  });
-}
 
 function DeliverySchedule({
   item,
@@ -108,155 +98,46 @@ function DeliverySchedule({
   const effectivePivot = pivotIndex === -1 ? deliveryDates.length : pivotIndex;
   // Collapsed: show 2 past + 2 upcoming, clamped so we always get 4 rows
   const collapseStart = Math.max(0, Math.min(effectivePivot - 2, deliveryDates.length - 4));
-  const visibleDates = expanded
-    ? deliveryDates
-    : deliveryDates.slice(collapseStart, collapseStart + 4);
   const visibleDeliveries = expanded
     ? deliveries
     : deliveries.slice(collapseStart, collapseStart + 4);
   const hasMore = deliveryDates.length > 4;
 
   return (
-    <Card
-      className="p-4 mt-3 bg-emerald-50/50 border-emerald-200/60"
-      data-testid={`schedule-${item.id}`}
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <Calendar size={16} className="text-emerald-600" />
-        <h4 className="font-semibold text-sm text-emerald-800">Delivery Schedule</h4>
-      </div>
+    <DeliveryCardShell title="Delivery Schedule" testId={`schedule-${item.id}`}>
 
-      <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
-        <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
-          <span className="text-muted-foreground block">Frequency</span>
-          <span className="font-semibold text-foreground" data-testid={`text-frequency-${item.id}`}>
-            {getFrequencyLabel(item.subscription_frequency!)}
-          </span>
-        </div>
-        <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
-          <span className="text-muted-foreground block">Plan</span>
-          <span className="font-semibold text-foreground" data-testid={`text-duration-${item.id}`}>
-            {item.subscription_duration_days} Deliveries
-          </span>
-        </div>
-        <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
-          <span className="text-muted-foreground block">Total Deliveries</span>
-          <span
-            className="font-semibold text-foreground"
-            data-testid={`text-deliveries-${item.id}`}
-          >
-            {item.subscription_duration_days}
-          </span>
-        </div>
-        <div className="bg-white rounded-lg p-2.5 border border-emerald-100">
-          <span className="text-muted-foreground block">Ends on</span>
-          <span className="font-semibold text-foreground" data-testid={`text-end-date-${item.id}`}>
-            {format(endDate, "MMM d, yyyy")}
-          </span>
-        </div>
-      </div>
+      <DeliveryStatGrid>
+        <DeliveryStat
+          label="Frequency"
+          value={getFrequencyLabel(item.subscription_frequency!)}
+          testId={`text-frequency-${item.id}`}
+        />
+        <DeliveryStat
+          label="Plan"
+          value={`${item.subscription_duration_days} Deliveries`}
+          testId={`text-duration-${item.id}`}
+        />
+        <DeliveryStat
+          label="Total Deliveries"
+          value={String(item.subscription_duration_days)}
+          testId={`text-deliveries-${item.id}`}
+        />
+        <DeliveryStat
+          label="Ends on"
+          value={format(endDate, "MMM d, yyyy")}
+          testId={`text-end-date-${item.id}`}
+        />
+      </DeliveryStatGrid>
 
       <div className="space-y-0">
-        {visibleDates.map((date, sliceIndex) => {
-          const globalIndex = expanded ? sliceIndex : collapseStart + sliceIndex;
-          const isTodayDate = isToday(date);
-          const isLast = sliceIndex === visibleDates.length - 1;
-
-          // Marker state comes from the row's stored status, not from its date.
-          // Deriving it from `scheduled_date < today` (as this used to) meant a
-          // delivery marked delivered ahead of its date still rendered as a
-          // grey pending dot, and a past date still sitting at 'scheduled'
-          // rendered a green tick claiming a delivery that never happened.
-          const status = visibleDeliveries[sliceIndex]?.status;
-          const isDelivered = status === "delivered";
-          const isSkipped = status === "skipped";
-          const isCancelled = status === "cancelled";
-
-          // Overdue but still 'scheduled' stays neutral: nothing has been
-          // recorded against it either way, so asserting a miss would be the
-          // same guess-from-the-date mistake in the other direction.
-          const isPast = isBefore(date, today) && !isTodayDate;
-          // Drives the connector line and the muted date text -- both mean
-          // "this row is behind us", which delivered and skipped also are.
-          const isSettled = isDelivered || isSkipped || isCancelled;
-          const isDimmed = isPast || isSettled;
-
-          return (
-            <div
-              key={globalIndex}
-              className="flex items-center gap-3 relative"
-              data-testid={`delivery-date-${globalIndex}`}
-            >
-              {!isLast && (
-                <div
-                  className={`absolute left-[9px] top-[22px] w-0.5 h-full ${isDelivered ? "bg-emerald-300" : "bg-gray-200"}`}
-                />
-              )}
-              <div
-                className={`w-[18px] h-[18px] rounded-full flex items-center justify-center flex-shrink-0 z-10 ${
-                  isSkipped || isCancelled
-                    ? "bg-red-400"
-                    : isDelivered
-                      ? "bg-emerald-500"
-                      : isTodayDate
-                        ? "bg-gray-200 ring-2 ring-emerald-200"
-                        : "bg-gray-200"
-                }`}
-              >
-                {isSkipped || isCancelled ? (
-                  <XCircle size={12} className="text-white" />
-                ) : isDelivered ? (
-                  <CheckCircle size={12} className="text-white" />
-                ) : (
-                  <div className="w-2 h-2 rounded-full bg-gray-400" />
-                )}
-              </div>
-              <div
-                className={`flex-1 flex items-center justify-between gap-2 py-2.5 ${isTodayDate ? "font-semibold" : ""}`}
-              >
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={`text-xs ${isDimmed ? "text-muted-foreground" : "text-foreground"}`}
-                    data-testid={`text-delivery-date-${globalIndex}`}
-                  >
-                    {format(date, "EEE, MMM d")}
-                  </span>
-                  {isTodayDate && (
-                    <Badge
-                      variant="default"
-                      className="text-[10px] px-1.5 py-0 bg-emerald-600 h-4"
-                      data-testid={`badge-today-${globalIndex}`}
-                    >
-                      Today
-                    </Badge>
-                  )}
-                  {/* Colour alone carried the delivered/skipped distinction,
-                      which is invisible to anyone who cannot separate the two
-                      dot shades. */}
-                  {isSettled && (
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] px-1.5 py-0 h-4 capitalize ${
-                        isDelivered
-                          ? "border-emerald-300 text-emerald-700"
-                          : "border-red-300 text-red-600"
-                      }`}
-                      data-testid={`badge-delivery-status-${globalIndex}`}
-                    >
-                      {status}
-                    </Badge>
-                  )}
-                </div>
-                <span
-                  className={`text-xs ${isDimmed ? "text-muted-foreground" : "text-foreground"}`}
-                  data-testid={`text-delivery-time-${globalIndex}`}
-                >
-                  {formatScheduledTime(visibleDeliveries[sliceIndex]) ?? "—"}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+        {visibleDeliveries.map((delivery, sliceIndex) => (
+          <DeliveryTimelineRow
+            key={delivery.id}
+            delivery={delivery}
+            showConnector={sliceIndex !== visibleDeliveries.length - 1}
+            index={expanded ? sliceIndex : collapseStart + sliceIndex}
+          />
+        ))}
       </div>
 
       {hasMore && (
@@ -276,35 +157,63 @@ function DeliverySchedule({
           )}
         </button>
       )}
-    </Card>
+    </DeliveryCardShell>
+  );
+}
+
+function OneTimeDeliveryCard({ item }: { item: OrderItemWithDetails }) {
+  // Nothing rendered when the backend recorded no delivery row. Orders placed
+  // before the schedule was persisted genuinely have no date, and computing a
+  // stand-in here is the bug the stored schedule replaced.
+  const summary = describeOneTimeDelivery(item.deliveries);
+  if (!summary) return null;
+
+  // No timeline row here. With one delivery it would restate the tile's date
+  // verbatim; the tile alone carries it, and the status badge covers what the
+  // marker would have said.
+  return (
+    <DeliveryCardShell title="Delivery" testId={`schedule-${item.id}`}>
+      <DeliveryStatGrid spaced={false}>
+        <DeliveryStat
+          label={summary.label}
+          value={summary.value}
+          wide
+          badge={summary.badge}
+          testId={`text-expected-delivery-${item.id}`}
+        />
+      </DeliveryStatGrid>
+    </DeliveryCardShell>
   );
 }
 
 function OneTimeItemCard({ item }: { item: OrderItemWithDetails }) {
   if (!item.product) return null;
   return (
-    <div className="flex items-center gap-3 py-3" data-testid={`order-item-${item.id}`}>
-      <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-        <img
-          src={item.product.image_url ?? undefined}
-          alt={item.product.name}
-          className="w-full h-full object-cover"
-        />
+    <div data-testid={`order-item-${item.id}`}>
+      <div className="flex items-center gap-3 py-3">
+        <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+          <img
+            src={item.product.image_url ?? undefined}
+            alt={item.product.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm truncate" data-testid={`text-item-name-${item.id}`}>
+            {item.product.name}
+          </p>
+          <p className="text-xs text-muted-foreground" data-testid={`text-item-variant-${item.id}`}>
+            {item.variant?.name} x {item.quantity}
+          </p>
+        </div>
+        <span
+          className="font-semibold text-sm whitespace-nowrap self-start pt-0.5"
+          data-testid={`text-item-price-${item.id}`}
+        >
+          ₹{(item.unit_price * item.quantity).toFixed(2)}
+        </span>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate" data-testid={`text-item-name-${item.id}`}>
-          {item.product.name}
-        </p>
-        <p className="text-xs text-muted-foreground" data-testid={`text-item-variant-${item.id}`}>
-          {item.variant?.name} x {item.quantity}
-        </p>
-      </div>
-      <span
-        className="font-semibold text-sm whitespace-nowrap"
-        data-testid={`text-item-price-${item.id}`}
-      >
-        ₹{(item.unit_price * item.quantity).toFixed(2)}
-      </span>
+      <OneTimeDeliveryCard item={item} />
     </div>
   );
 }
