@@ -15,6 +15,7 @@ import Home from "@/pages/Home";
 import Cart from "@/pages/Cart";
 import Orders from "@/pages/Orders";
 import OrderDetail from "@/pages/OrderDetail";
+import ReceiptPage from "@/pages/Receipt";
 import Profile from "@/pages/Profile";
 import TermsAndConditions from "@/pages/TermsAndConditions";
 import DataPrivacy from "@/pages/DataPrivacy";
@@ -37,13 +38,21 @@ function App() {
   return (
     <div className="h-screen overflow-hidden">
       <OfflineBanner />
-      {showDesktopSidebar && <DesktopSidebar isOpen={sidebarOpen} />}
+      {/* print:hidden -- the sidebar is app chrome. Without this it prints
+          into saved PDFs (the receipt) and pushes the document off-centre. */}
+      {showDesktopSidebar && (
+        <div className="print:hidden">
+          <DesktopSidebar isOpen={sidebarOpen} />
+        </div>
+      )}
 
       <div
         key={location}
         className={`h-screen overflow-y-auto ${
-          showDesktopSidebar ? "md:ml-56" : ""
-        } transition-all duration-200`}
+          // The sidebar offset must be dropped for print too, or the document
+          // is indented by the width of a sidebar that is no longer there.
+          showDesktopSidebar ? "md:ml-56 print:ml-0" : ""
+        } transition-all duration-200 print:h-auto print:overflow-visible`}
       >
         <Switch>
           {/* The one public route. Browsing the catalogue needs no account;
@@ -61,6 +70,16 @@ function App() {
           <Route path="/cart">
             <ProtectedRoute>
               <Cart
+                sidebarOpen={sidebarOpen}
+                onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+              />
+            </ProtectedRoute>
+          </Route>
+          {/* Declared before /orders/:id: wouter matches in source order, and
+              the looser pattern would otherwise swallow this one. */}
+          <Route path="/orders/:id/receipt">
+            <ProtectedRoute>
+              <ReceiptPage
                 sidebarOpen={sidebarOpen}
                 onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
               />
@@ -118,7 +137,11 @@ function App() {
         </Switch>
       </div>
 
-      {showBottomNav && <BottomNav visible={true} />}
+      {showBottomNav && (
+        <div className="print:hidden">
+          <BottomNav visible={true} />
+        </div>
+      )}
       <Toaster />
     </div>
   );

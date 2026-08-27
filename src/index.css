@@ -233,3 +233,40 @@ html {
   width: 0;
   height: 0;
 }
+
+/* Print: the receipt page is saved as a PDF through the browser's own print
+   dialog rather than a PDF library, so print is a real output target here and
+   not an afterthought. Anything marked print:hidden (the app header, the
+   download button, the bottom nav) is dropped, leaving the document alone on
+   a clean page.
+
+   The colour-adjust rules matter: browsers strip background colours when
+   printing by default, which would flatten the receipt's rules and borders. */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* The app shell is a fixed-height scroll container, which clips a printed
+     document to one viewport. Print needs it to flow to its natural height. */
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Rows and totals must not be split across a page break mid-figure. */
+  tr,
+  table {
+    break-inside: avoid;
+  }
+}

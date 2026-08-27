@@ -17,6 +17,7 @@ import {
   MapPin,
   ChevronDown,
   ChevronUp,
+  FileText,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useParams } from "wouter";
 import { getFrequencyLabel } from "@/hooks/use-products";
 import { describeOneTimeDelivery } from "@/lib/delivery-estimate";
+import { isReceiptAvailable } from "@/lib/receipt";
 import {
   DeliveryCardShell,
   DeliveryStat,
@@ -105,7 +107,6 @@ function DeliverySchedule({
 
   return (
     <DeliveryCardShell title="Delivery Schedule" testId={`schedule-${item.id}`}>
-
       <DeliveryStatGrid>
         <DeliveryStat
           label="Frequency"
@@ -514,6 +515,18 @@ export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetai
               </span>
             </div>
           </div>
+
+          {/* Only once the money has actually arrived. A receipt is an
+              assertion that payment was received, so an order still awaiting
+              payment deliberately offers none. */}
+          {isReceiptAvailable(order) && (
+            <Link href={`/orders/${order.id}/receipt`}>
+              <Button variant="outline" className="w-full mt-4" data-testid="button-view-receipt">
+                <FileText size={16} className="mr-2" />
+                Download Receipt
+              </Button>
+            </Link>
+          )}
         </Card>
       </main>
     </div>

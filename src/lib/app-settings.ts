@@ -17,6 +17,7 @@ import { z } from "zod";
 import { DEFAULT_BANNERS, type BannerContent } from "@/lib/banner-content";
 import { DEFAULT_CONTACT, DEFAULT_PRIVACY, DEFAULT_TERMS } from "@/lib/legal-content";
 import { DELIVERY_SLOTS } from "@/lib/delivery-slots";
+import { DEFAULT_SELLER } from "@/lib/seller-content";
 
 /** A positive rupee amount. Rejects NaN, negatives and non-numbers. */
 const money = z.number().finite().nonnegative();
@@ -105,6 +106,24 @@ const deliverySlotSchema = z
     message: "endValue must be after value",
   });
 
+/**
+ * The seller of record, printed on every downloaded receipt.
+ *
+ * `gstin` and `fssai` are optional and default to empty, which is what keeps
+ * the document a Bill of Supply rather than a Tax Invoice -- see receipt.ts.
+ * They are strings, not booleans, precisely so an operator can switch the
+ * document over by typing the real number into the dashboard.
+ */
+const sellerSchema = z.object({
+  legalName: z.string().min(1),
+  tradeName: z.string().min(1),
+  addressLines: z.array(z.string()),
+  email: z.string(),
+  phoneDisplay: z.string(),
+  gstin: z.string().default(""),
+  fssai: z.string().default(""),
+});
+
 export const SETTINGS_SCHEMA = {
   delivery_fee: { schema: money, fallback: 30 },
   free_delivery_threshold: { schema: money, fallback: 299 },
@@ -120,6 +139,11 @@ export const SETTINGS_SCHEMA = {
   // One row, read by both pages, replacing the block that was duplicated
   // verbatim in each.
   contact: { schema: contactSchema, fallback: DEFAULT_CONTACT },
+  // Who the receipt says sold the goods. Deliberately separate from
+  // `contact`: that row is how to reach support, this one is the entity of
+  // record, and the two diverge as soon as the registered name differs from
+  // the brand name.
+  seller: { schema: sellerSchema, fallback: DEFAULT_SELLER },
 } as const;
 
 export type SettingKey = keyof typeof SETTINGS_SCHEMA;
