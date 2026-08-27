@@ -9,6 +9,7 @@ import { useAndroidBackButton } from "@/lib/platform/back-button";
 import { initSystemUi } from "@/lib/platform/system-ui";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PublicOnlyRoute } from "@/components/PublicOnlyRoute";
+import { PublicRoute } from "@/components/PublicRoute";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Cart from "@/pages/Cart";
@@ -45,13 +46,17 @@ function App() {
         } transition-all duration-200`}
       >
         <Switch>
+          {/* The one public route. Browsing the catalogue needs no account;
+              the gate moves to the actions -- see useRequireAuth. Every other
+              route below stays protected, because each one is inherently
+              per-user (cart, orders, profile) or sits behind login by choice. */}
           <Route path="/">
-            <ProtectedRoute>
+            <PublicRoute>
               <Home
                 sidebarOpen={sidebarOpen}
                 onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
               />
-            </ProtectedRoute>
+            </PublicRoute>
           </Route>
           <Route path="/cart">
             <ProtectedRoute>

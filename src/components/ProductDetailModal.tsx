@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStaticCart } from "@/hooks/use-static-cart";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useToast } from "@/hooks/use-toast";
 import {
   Minus,
@@ -87,6 +88,7 @@ export function ProductDetailModal({
 
   const { cart, addToCart, updateSubscriptionItem, removeFromCart, updateQuantity } =
     useStaticCart();
+  const requireAuth = useRequireAuth();
   const { toast } = useToast();
 
   const { data: productDetail, isLoading: isDetailLoading } = useProduct(product?.id ?? null);
@@ -262,19 +264,27 @@ export function ProductDetailModal({
 
   const handleIncrementOneTime = () => {
     if (!product || !selectedVariantId) return;
-    setIncrementPulse((p) => p + 1);
-    if (oneTimeCartItem) {
-      updateQuantity(oneTimeCartItem.id, oneTimeCartItem.quantity + 1);
-    } else {
-      addToCart({
-        productId: product.id,
-        variantId: selectedVariantId,
-        quantity: 1,
-        deliveryType: "one_time",
-        productName: product.name,
-        variantName: selectedVariant?.name,
-      });
-    }
+
+    // The one-time stepper writes to the cart directly rather than through
+    // onAddToCart, so it needs its own gate -- otherwise a guest's "+" is the
+    // one way into the cart that never asks them to log in. Guarded before the
+    // pulse so a redirected tap does not animate a button that did nothing.
+    const added = requireAuth(() => {
+      if (oneTimeCartItem) {
+        updateQuantity(oneTimeCartItem.id, oneTimeCartItem.quantity + 1);
+      } else {
+        addToCart({
+          productId: product.id,
+          variantId: selectedVariantId,
+          quantity: 1,
+          deliveryType: "one_time",
+          productName: product.name,
+          variantName: selectedVariant?.name,
+        });
+      }
+    }, "Login to add items to your cart");
+
+    if (added) setIncrementPulse((p) => p + 1);
   };
 
   const handleDecrementOneTime = () => {

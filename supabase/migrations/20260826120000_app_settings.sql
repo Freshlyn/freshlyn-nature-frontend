@@ -1,6 +1,19 @@
 -- Runtime-tunable constants, editable from the Supabase dashboard without a
 -- deploy.
 --
+-- HISTORY NOTE (recorded 2026-08-27). This file is marked applied on the
+-- production project via `supabase migration repair`, not by having been run
+-- there. The same schema reached production earlier as four separate
+-- migrations -- 20260826102350, 20260826103838, 20260826115556 and
+-- 20260826121647 -- which remain in the remote ledger but have no counterpart
+-- files here. This consolidated file is the source of truth for a fresh
+-- database; those four are historical record.
+--
+-- One key, `contact`, exists in production with NO migration behind it at all
+-- (it was inserted from the dashboard). It IS seeded below, so a database
+-- built from this file is complete -- but that is why the seed list here is
+-- longer than the four remote migrations combined.
+--
 -- Key/value with a jsonb payload rather than one column per setting: adding a
 -- setting is then an INSERT, not a migration, and the same table holds both
 -- scalars (delivery_fee) and structures (delivery_slots, banners) without
@@ -45,10 +58,22 @@ alter table public.app_settings replica identity full;
 -- The checkout handler's own hardcoded 50/5.00 were placeholders that had
 -- drifted: an order under the threshold displayed a 30.00 fee and was charged
 -- 5.00. Both sides now read these rows, so the two cannot disagree again.
+-- SEED VALUES ONLY -- operators own these at runtime.
+--
+-- delivery_fee and delivery_slots are edited from the Supabase dashboard as
+-- business decisions, and the app reads them from these rows on every load.
+-- The numbers below are what production ran on 2026-08-27; they are a starting
+-- point for a fresh database, NOT a statement of current truth. Production has
+-- already moved past an earlier version of this seed once (fee 30 -> 25, and a
+-- fifth 10:00-12:00 window added).
+--
+-- So: do NOT "correct" production to match this file. If they disagree, the
+-- database is right and this seed is stale. Changing a value here only affects
+-- databases created from scratch afterwards.
 insert into public.app_settings (key, value, description) values
   (
     'delivery_fee',
-    '30'::jsonb,
+    '25'::jsonb,
     'Delivery charge in INR applied when the subtotal does not exceed free_delivery_threshold.'
   ),
   (
@@ -76,7 +101,7 @@ insert into public.app_settings (key, value, description) values
 insert into public.app_settings (key, value, description) values
   (
     'banners',
-    '[{"id":"fast-delivery","title":"Fresh Groceries,","accentText":"Delivered Fast","subtitle":"Get your daily essentials delivered to your doorstep in minutes","pills":[{"icon":"truck","label":"Free over ₹{free_delivery_threshold}"},{"icon":"clock","label":"30 min"}],"imageUrl":"https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&auto=format&fit=crop","imageAlt":"Fresh Fruits","theme":"green"},{"id":"milk-subscription","title":"Buy 25 Days,","accentText":"Get 30 Days Milk","subtitle":"Subscribe to your daily milk and get 5 extra days free","pills":[{"icon":"milk","label":"Daily delivery"},{"icon":"gift","label":"5 days free"}],"imageUrl":"https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400&auto=format&fit=crop","imageAlt":"Fresh Milk","theme":"amber","enabled":false}]'::jsonb,
+    '[{"id":"fast-delivery","title":"Fresh Groceries,","accentText":"Delivered Fast","subtitle":"Get your daily essentials delivered to your doorstep in minutes","pills":[{"icon":"truck","label":"Free over ₹{free_delivery_threshold}"},{"icon":"clock","label":"30 min"}],"imageUrl":"https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&auto=format&fit=crop","imageAlt":"Fresh Fruits","theme":"green"},{"id":"milk-subscription","title":"Buy 25 Days,","accentText":"Get 30 Days Milk","subtitle":"Subscribe to your daily milk and get 5 extra days free","pills":[{"icon":"milk","label":"Daily delivery"},{"icon":"gift","label":"5 days free"}],"imageUrl":"https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400&auto=format&fit=crop","imageAlt":"Fresh Milk","theme":"amber","enabled":true}]'::jsonb,
     'Hero carousel cards. icon must be truck|clock|milk|gift and theme green|amber -- other values are rejected and the whole setting falls back to the shipped default. "enabled": false parks a card without deleting it. {free_delivery_threshold} in any copy field resolves to that setting at render time.'
   );
 
@@ -108,8 +133,8 @@ insert into public.app_settings (key, value, description) values
   ),
   (
     'contact',
-    '{"address":"Freshlyn Nature, Kolkata, West Bengal, India","email":"info@freshlynnature.com","website":"https://freshlynnature.com/","supportPhone":"+919876543210","supportPhoneDisplay":"+91 98765 43210","supportEmail":"info@freshlynature.com","supportHours":"8:00 AM - 8:00 PM"}'::jsonb,
-    'Contact details shown on /terms, /privacy and the Contact Us sheet. NOTE: supportPhone/supportPhoneDisplay are a PLACEHOLDER number, not a working line -- replace both when the real support line is provisioned (supportPhone must be E.164 with no separators so tel: dials; supportPhoneDisplay is the spaced form shown to users). `email` (general/legal, freshlynnature.com) and `supportEmail` (support, freshlynature.com) are deliberately different mailboxes, not a typo.'
+    '{"address":"Freshlyn Nature, Kolkata, West Bengal, India","email":"info@freshlynnature.com","website":"https://freshlynnature.com/","supportPhone":"+919876543210","supportPhoneDisplay":"+91 98765 43210","supportEmail":"info@freshlynnature.com","supportHours":"8:00 AM - 8:00 PM"}'::jsonb,
+    'Contact details shown on /terms, /privacy and the Contact Us sheet. NOTE: supportPhone/supportPhoneDisplay are a PLACEHOLDER number, not a working line -- replace both when the real support line is provisioned (supportPhone must be E.164 with no separators so tel: dials; supportPhoneDisplay is the spaced form shown to users). `email` (general/legal, freshlynnature.com) and `supportEmail` (support, freshlynnature.com) are deliberately different mailboxes, not a typo.'
   );
 
 -- Delivery windows, moved out of src/lib/delivery-slots.ts.
@@ -130,6 +155,6 @@ insert into public.app_settings (key, value, description) values
 insert into public.app_settings (key, value, description) values
   (
     'delivery_slots',
-    '[{"value":"06:00","endValue":"08:00","shift":"morning"},{"value":"08:00","endValue":"10:00","shift":"morning"},{"value":"16:00","endValue":"18:00","shift":"evening"},{"value":"18:00","endValue":"20:00","shift":"evening"}]'::jsonb,
+    '[{"value":"06:00","endValue":"08:00","shift":"morning"},{"value":"08:00","endValue":"10:00","shift":"morning"},{"value":"10:00","endValue":"12:00","shift":"morning"},{"value":"16:00","endValue":"18:00","shift":"evening"},{"value":"18:00","endValue":"20:00","shift":"evening"}]'::jsonb,
     'Delivery windows offered at checkout. `value` is the window START in 24-hour HH:MM and is the ONLY field stored on the order -- scheduled_at is derived from it, so it must be a valid time. `endValue` is display-only (the label is built as "value - endValue"). `shift` is morning|evening and only groups the buttons. Adding a window here is honoured by checkout without a redeploy; removing one makes it immediately unselectable.'
   );

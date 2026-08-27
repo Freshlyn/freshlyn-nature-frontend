@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
+import { takeAuthRedirect } from "@/lib/auth-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,7 +93,10 @@ export default function AuthPage() {
             title: "Welcome back!",
             description: "Successfully logged in.",
           });
-          setLocation("/");
+          // Back to whatever the user was trying to do when login interrupted
+          // them; Home when nothing was pending. Taking it also clears it, so
+          // the next login cannot inherit this destination.
+          setLocation(takeAuthRedirect() ?? "/");
         }
       } else {
         toast({

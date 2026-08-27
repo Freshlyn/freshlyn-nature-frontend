@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth, StaleSessionError } from "@/hooks/use-auth";
 import { formatPhoneForDisplay } from "@/lib/phone";
 import { useLocation, Link } from "wouter";
+import { clearAuthRedirect } from "@/lib/auth-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,10 @@ export default function RegisterPage() {
     if (!isAuthenticated) {
       setLocation("/login", { replace: true });
     } else if (!needsProfileCompletion) {
+      // A brand-new account starts on Home -- there is nothing in their cart
+      // to return to. Any target remembered before signup is dropped rather
+      // than left pending, where a later login would inherit it.
+      clearAuthRedirect();
       setLocation("/", { replace: true });
     }
   }, [isLoading, isAuthenticated, needsProfileCompletion, setLocation]);

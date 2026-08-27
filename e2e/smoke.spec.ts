@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { seedLocationPreference } from './helpers/otp';
 
 // Smoke coverage that needs no auth: the app boots, the login screen renders,
-// protected routes bounce unauthenticated visitors to /login, and unknown
-// routes render the 404. These guard the routing/render wiring in App.tsx.
+// Home is browsable signed out, protected routes bounce unauthenticated
+// visitors to /login, and unknown routes render the 404. These guard the
+// routing/render wiring in App.tsx.
 
 test.describe('smoke: app boots and routes', () => {
   test('login page renders the phone form', async ({ page }) => {
@@ -14,12 +16,30 @@ test.describe('smoke: app boots and routes', () => {
     await expect(page.getByTestId('button-send-otp')).toBeVisible();
   });
 
-  test('protected home route redirects to /login when signed out', async ({
-    page,
-  }) => {
+  // The storefront is public: browsing must work with no session at all.
+  // This asserts the inverse of the old guard -- Home used to bounce to /login.
+  //
+  // The grid assertion needs the anon-read policies from migration
+  // 20260826140000 on whichever backend this runs against. Without them the
+  // page still renders publicly (everything below the grid passes) but the
+  // catalogue query returns zero rows and Home shows "No products found" --
+  // so a failure HERE with the rest of the test green means the migration has
+  // not been applied to that environment, not that routing regressed.
+  test('home renders the catalogue when signed out', async ({ page }) => {
+    // Answer the app-open location screen first, or its overlay covers the grid.
+    await seedLocationPreference(page);
     await page.goto('/');
+    await expect(page).toHaveURL(/\/$/);
+    // The page is public: a guest is not bounced to /login.
+    await expect(page.getByTestId('button-login')).toBeVisible();
+    await expect(page.getByTestId('bottom-nav')).toHaveCount(0);
+    // And the catalogue is readable without a session.
+    await expect(page.getByTestId('product-grid')).toBeVisible();
+  });
+
+  test('/cart still redirects to /login when signed out', async ({ page }) => {
+    await page.goto('/cart');
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByTestId('input-phone')).toBeVisible();
   });
 
   test('protected /orders redirects to /login when signed out', async ({

@@ -5,6 +5,7 @@ import { ProductCardSkeleton } from "@/components/ProductCardSkeleton";
 import { HomeBanner, HomeBannerSkeleton } from "@/components/HomeBanner";
 import { useProductsWithMeta } from "@/hooks/use-products";
 import { useStaticCart } from "@/hooks/use-static-cart";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { LocationModal } from "@/components/LocationModal";
@@ -76,6 +77,7 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
   });
 
   const { addToCart, getQuantity } = useStaticCart();
+  const requireAuth = useRequireAuth();
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
@@ -93,7 +95,10 @@ export default function Home({ sidebarOpen, onSidebarToggle }: HomeProps) {
     productName?: string;
     variantName?: string;
   }) => {
-    addToCart(params);
+    // The single gate for both entry points -- ProductCard's quick-add and the
+    // detail modal's Add button both land here. A guest is sent to login with
+    // this page remembered; nothing enters the cart until they are back.
+    requireAuth(() => addToCart(params), "Login to add items to your cart");
   };
 
   return (
