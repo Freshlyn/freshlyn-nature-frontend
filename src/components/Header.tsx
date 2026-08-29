@@ -2,12 +2,18 @@ import { Link, useLocation } from "wouter";
 import { ShoppingCart, Search, MapPin, Menu, X, ArrowLeft } from "lucide-react";
 import { useStaticCart } from "@/hooks/use-static-cart";
 import { useAuth } from "@/hooks/use-auth";
+import { readLocationPreference } from "@/lib/location-preference";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
   onSearch?: (term: string) => void;
+  /**
+   * The delivery label to show. Optional: when omitted, the header reads the
+   * stored preference itself. Home passes it so the label updates the instant
+   * the location modal closes, without waiting for a storage round-trip.
+   */
   location?: string;
   onLocationClick?: () => void;
   sidebarOpen?: boolean;
@@ -20,7 +26,7 @@ interface HeaderProps {
 
 export function Header({
   onSearch,
-  location = "Select Location",
+  location,
   onLocationClick,
   sidebarOpen,
   onSidebarToggle,
@@ -30,8 +36,30 @@ export function Header({
   const [term, setTerm] = useState("");
   const { getCartCount } = useStaticCart();
   const { user } = useAuth();
-  const [currentPath] = useLocation();
+  const [currentPath, setNavigate] = useLocation();
   const isHomePage = currentPath === "/";
+
+  // Every page shows the same delivery label, but only Home owns the location
+  // modal and can pass it down. Without this the other pages fell back to a
+  // hardcoded default, so a user who had set a pincode saw it forgotten the
+  // moment they opened Cart, Orders or Profile.
+  const [storedLabel, setStoredLabel] = useState<string | null>(null);
+  useEffect(() => {
+    // Re-read on navigation: the value may have been set on another page.
+    let active = true;
+    readLocationPreference()
+      .then((pref) => {
+        if (active) setStoredLabel(pref?.label ?? null);
+      })
+      .catch(() => {
+        // A storage failure just leaves the placeholder in place.
+      });
+    return () => {
+      active = false;
+    };
+  }, [currentPath]);
+
+  const locationLabel = location ?? storedLabel ?? "Set Location";
 
   const itemCount = getCartCount();
   const [displayCount, setDisplayCount] = useState(itemCount);
@@ -104,8 +132,11 @@ export function Header({
             />
           </Link>
 
+          {/* The location modal lives on Home, so pages that cannot open it
+              send the user there rather than presenting a button that looks
+              interactive and does nothing. */}
           <button
-            onClick={onLocationClick}
+            onClick={onLocationClick ?? (() => setNavigate("/"))}
             className="hidden md:flex items-center gap-2 text-sm font-medium text-foreground/80 hover:text-primary transition-colors bg-muted/50 hover:bg-primary/10 px-3 py-2 rounded-xl"
             data-testid="button-location"
           >
@@ -116,7 +147,7 @@ export function Header({
               <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">
                 Delivering to
               </span>
-              <span className="truncate max-w-[120px] text-xs font-semibold">{location}</span>
+              <span className="truncate max-w-[120px] text-xs font-semibold">{locationLabel}</span>
             </div>
           </button>
         </div>

@@ -250,7 +250,7 @@ export default function Profile({ sidebarOpen, onSidebarToggle }: ProfileProps) 
         backLabel="Back to Shop"
       />
 
-      <main className="container mx-auto px-4 py-6 max-w-lg pb-28 md:pb-6">
+      <main className="container mx-auto px-4 py-6 max-w-lg lg:max-w-3xl pb-28 md:pb-6">
         <div
           className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[hsl(88_58%_93%)] to-[hsl(88_54%_86%)] px-5 pt-6 pb-6 mb-5"
           data-testid="card-user-info"

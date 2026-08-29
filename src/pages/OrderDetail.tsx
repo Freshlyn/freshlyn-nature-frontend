@@ -26,7 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useParams } from "wouter";
 import { getFrequencyLabel } from "@/hooks/use-products";
 import { describeOneTimeDelivery } from "@/lib/delivery-estimate";
-import { isReceiptAvailable } from "@/lib/receipt";
+import { isReceiptAvailable, receiptNumber } from "@/lib/receipt";
 import {
   DeliveryCardShell,
   DeliveryStat,
@@ -416,16 +416,6 @@ export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetai
   const oneTimeItems = order.items.filter((item) => item.delivery_type === "one_time");
   const subscriptionItems = order.items.filter((item) => item.delivery_type === "subscription");
 
-  const computedSubtotal = order.items.reduce((sum, item) => {
-    if (item.delivery_type === "subscription" && item.subscription_duration_days) {
-      return (
-        sum +
-        item.unit_price * item.subscription_duration_days * (1 - (item.discount_percent || 0) / 100)
-      );
-    }
-    return sum + item.unit_price * item.quantity;
-  }, 0);
-
   return (
     <div className="min-h-screen bg-muted/10">
       <Header
@@ -438,7 +428,7 @@ export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetai
         <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
           <div>
             <h1 className="text-xl font-display font-bold" data-testid="text-order-detail-id">
-              Order #{order.id.replace("ord_", "")}
+              Order {receiptNumber(order)}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {format(new Date(order.created_at), "MMMM d, yyyy 'at' h:mm a")}
@@ -500,7 +490,7 @@ export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetai
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
-              <span data-testid="text-subtotal">₹{computedSubtotal.toFixed(2)}</span>
+              <span data-testid="text-subtotal">₹{order.subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Delivery Fee</span>
@@ -510,9 +500,7 @@ export default function OrderDetail({ sidebarOpen, onSidebarToggle }: OrderDetai
             </div>
             <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
               <span>Total</span>
-              <span data-testid="text-order-detail-total">
-                ₹{(computedSubtotal + order.delivery_fee).toFixed(2)}
-              </span>
+              <span data-testid="text-order-detail-total">₹{order.total.toFixed(2)}</span>
             </div>
           </div>
 

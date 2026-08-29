@@ -82,7 +82,7 @@ export default function Orders({ sidebarOpen, onSidebarToggle }: OrdersProps) {
         backTo="/"
         backLabel="Back to Shop"
       />
-      <main className="container mx-auto px-4 py-6 max-w-2xl pb-28 md:pb-6">
+      <main className="container mx-auto px-4 py-6 max-w-2xl lg:max-w-4xl pb-28 md:pb-6">
         <h1 className="text-2xl font-display font-bold mb-4" data-testid="text-orders-title">
           Your Orders
         </h1>
