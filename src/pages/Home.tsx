@@ -18,14 +18,22 @@ import type { Product, SubscriptionFrequency } from "@/hooks/use-products";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Every product Freshlyn currently sells is dairy, so only these two chips
+// have anything behind them. The rest are kept commented for when the catalog
+// widens -- uncomment a line once products carry that category.
 const CATEGORIES = [
   { id: "all", name: "All", icon: "🛒" },
   { id: "dairy", name: "Dairy", icon: "🥛" },
-  { id: "bakery", name: "Bakery", icon: "🍞" },
-  { id: "produce", name: "Vegetables", icon: "🥬" },
-  { id: "pantry", name: "Pantry", icon: "🍚" },
-  { id: "snacks", name: "Snacks", icon: "🍪" },
-  { id: "beverages", name: "Beverages", icon: "🧃" },
+  // { id: "milk", name: "Milk", icon: "🥛" },
+  // { id: "curd", name: "Curd", icon: "🍮" },
+  // { id: "paneer", name: "Paneer", icon: "🧀" },
+  // { id: "ghee", name: "Ghee", icon: "🫕" },
+  // { id: "lassi", name: "Lassi", icon: "🥤" },
+  // { id: "bakery", name: "Bakery", icon: "🍞" },
+  // { id: "produce", name: "Vegetables", icon: "🥬" },
+  // { id: "pantry", name: "Pantry", icon: "🍚" },
+  // { id: "snacks", name: "Snacks", icon: "🍪" },
+  // { id: "beverages", name: "Beverages", icon: "🧃" },
 ];
 
 interface HomeProps {

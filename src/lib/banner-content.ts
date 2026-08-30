@@ -57,16 +57,14 @@ export const DEFAULT_BANNERS: BannerContent[] = [
     theme: "green",
   },
   {
-    // PLACEHOLDER COPY -- this offer is NOT honoured at checkout yet.
+    // This offer IS honoured at checkout, via discount_percent rather than a
+    // bonus-days concept: milk plans of 30 days and up carry 16.67% off
+    // (100/6), so the customer pays for 25 of 30 days, 50 of 60, 75 of 90.
+    // duration_days stays 30/60/90, so create_order still schedules the full
+    // number of deliveries -- the discount moves only the money.
     //
-    // subscription_durations only carries discount_percent (5/10/15/20% for
-    // the 15/30/60/90 ladder); there is no bonus-days concept, and create_order
-    // schedules exactly duration_days deliveries. Granting 30 deliveries for
-    // the price of 25 needs a schema + RPC change first.
-    //
-    // Until that lands this row stays enabled: false -- present and editable in
-    // public.app_settings, but never rendered. Flip it on in the dashboard the
-    // day the schema honours the offer.
+    // 16.67 is numeric(5,2)'s closest value to 100/6; totals land a few paise
+    // under the round "pay N days" figure, never above.
     id: "milk-subscription",
     title: "Buy 25 Days,",
     accentText: "Get 30 Days Milk",
@@ -79,6 +77,6 @@ export const DEFAULT_BANNERS: BannerContent[] = [
       "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400&auto=format&fit=crop",
     imageAlt: "Fresh Milk",
     theme: "amber",
-    enabled: false,
+    enabled: true,
   },
 ];

@@ -71,10 +71,25 @@ describe("interpolate", () => {
 
 describe("visibleBanners", () => {
   it("drops disabled rows and keeps ones with no flag", () => {
+    // Built from an explicit pair rather than DEFAULT_SETTINGS: every shipped
+    // banner is enabled now that the milk offer is honoured, so the real set
+    // no longer exercises the disabled branch.
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      banners: [
+        { ...DEFAULT_SETTINGS.banners[0], id: "no-flag", enabled: undefined },
+        { ...DEFAULT_SETTINGS.banners[0], id: "parked", enabled: false },
+      ],
+    };
+    const ids = visibleBanners(settings).map((b) => b.id);
+    expect(ids).toContain("no-flag");
+    expect(ids).not.toContain("parked");
+  });
+
+  it("shows the milk offer, which checkout now honours via discount_percent", () => {
     const ids = visibleBanners(DEFAULT_SETTINGS).map((b) => b.id);
     expect(ids).toContain("fast-delivery");
-    // Parked until create_order actually honours the bonus-days offer.
-    expect(ids).not.toContain("milk-subscription");
+    expect(ids).toContain("milk-subscription");
   });
 
   it("resolves placeholders in pill copy", () => {

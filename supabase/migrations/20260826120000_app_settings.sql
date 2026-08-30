@@ -94,10 +94,14 @@ insert into public.app_settings (key, value, description) values
 --     the threshold cannot leave the banner advertising a stale number.
 --
 --   * milk-subscription carries "enabled": false. Its "Buy 25 Days, Get 30
---     Days" offer is NOT honoured at checkout -- subscription_durations models
---     only discount_percent, and create_order schedules exactly duration_days
---     deliveries, so a customer buying 25 days receives 25. The row is parked
---     here, editable, and must stay disabled until the schema honours it.
+--     Days" offer was not honoured at checkout when this migration shipped, so
+--     the card was parked here rather than deleted.
+--
+--     SUPERSEDED by 20260829120000_real_catalog_from_rate_chart.sql, which
+--     honours the offer through discount_percent: milk plans of 30+ days carry
+--     16.67% off, so the customer pays 25 of 30 days while duration_days stays
+--     30 and create_order still schedules all 30 deliveries. The card is
+--     enabled in the live setting.
 insert into public.app_settings (key, value, description) values
   (
     'banners',
