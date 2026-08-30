@@ -353,7 +353,7 @@ export default function Profile({ sidebarOpen, onSidebarToggle }: ProfileProps) 
           </Button>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-4">FreshlynNature v1.0.0</p>
+        <p className="text-center text-xs text-muted-foreground mt-4">Freshlyn Nature v1.0.0</p>
       </main>
 
       <AddressModal

@@ -54,7 +54,7 @@ export default function RegisterPage() {
     try {
       await updateProfile({ name: name.trim(), email: email.trim() || undefined });
       toast({
-        title: "Welcome to FreshlynNature!",
+        title: "Welcome to Freshlyn Nature!",
         description: "Your account has been created.",
       });
       // Don't navigate imperatively here. updateProfile updates the profile

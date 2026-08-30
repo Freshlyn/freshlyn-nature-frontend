@@ -168,7 +168,7 @@ export function LocationModal({ open, onOpenChange, onResolved }: LocationModalP
           </DialogTitle>
           <DialogDescription className="text-base mt-2">
             {outOfArea
-              ? "FreshLyn covers parts of Kolkata and is expanding."
+              ? "Freshlyn Nature covers parts of Kolkata and is expanding."
               : "Enter your pincode and we'll check if we deliver to your area."}
           </DialogDescription>
         </div>

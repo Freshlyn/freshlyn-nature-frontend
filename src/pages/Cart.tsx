@@ -256,7 +256,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
     if (addressNotServiceable) {
       toast({
         title: "We don't deliver here yet",
-        description: "FreshLyn covers parts of Kolkata. Choose another address to continue.",
+        description: "Freshlyn Nature covers parts of Kolkata. Choose another address to continue.",
         variant: "destructive",
       });
       setAddressModalOpen(true);
@@ -823,7 +823,7 @@ export default function Cart({ sidebarOpen, onSidebarToggle }: CartProps) {
                       We don't deliver to this address yet
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      FreshLyn covers parts of Kolkata and is expanding.
+                      Freshlyn Nature covers parts of Kolkata and is expanding.
                     </p>
                     <Button
                       variant="outline"
